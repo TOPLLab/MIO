@@ -60,22 +60,24 @@ tasks.register<Jar>("fatJar") {
     }
 }
 
-val wdcliPath = projectDir.absolutePath + "/WARDuino/build-emu/wdcli"
-
-tasks.register<Exec>("cmakeWARDuino") {
-    val buildDir = File(File(wdcliPath).parent)
+fun cmakeBuildTask(dir: String): String {
+    val buildDir = File(File(dir).parent)
     buildDir.mkdirs()
-    workingDir(buildDir)
-    commandLine("sh", "-c", "cmake .. -DBUILD_EMULATOR=ON")
-}
 
-tasks.register<Exec>("makeWARDuino") {
-    dependsOn("cmakeWARDuino")
+    val name = buildDir.parentFile.name
 
-    val buildDir = File(File(wdcliPath).parent)
-    buildDir.mkdirs()
-    workingDir(buildDir)
-    commandLine("sh", "-c", "make")
+    tasks.register<Exec>("cmake-$name") {
+        workingDir(buildDir)
+        commandLine("sh", "-c", "cmake .. -DBUILD_EMULATOR=ON")
+    }
+
+    tasks.register<Exec>("make-$name") {
+        dependsOn("cmake-$name")
+        workingDir(buildDir)
+        commandLine("sh", "-c", "make")
+    }
+
+    return "make-$name"
 }
 
 fun setDefaultZephyrWasmBinary() {
@@ -84,9 +86,15 @@ fun setDefaultZephyrWasmBinary() {
     File(projectDir.absolutePath + "/examples/binary-counter/upload.wasm.map").copyTo(File(zephyrBuildDir.absolutePath + "/upload.wasm.map"), overwrite = true)
 }
 
+val wdcliPath = projectDir.absolutePath + "/WARDuino/build-emu/wdcli"
+val wdcliSymbolicPath = projectDir.absolutePath + "/WARDuino-symbolic/build-emu/wdcli"
+private val compileWdcliTask = cmakeBuildTask(wdcliPath)
+private val compileWdcliSymbolicTask = cmakeBuildTask(wdcliSymbolicPath)
+
 tasks.register<Copy>("setup") {
     dependsOn("fatJar")
-    dependsOn("makeWARDuino")
+    dependsOn(compileWdcliTask)
+    dependsOn(compileWdcliSymbolicTask)
     setDefaultZephyrWasmBinary()
 
     // Setup configuration file.
@@ -96,6 +104,8 @@ tasks.register<Copy>("setup") {
         println("Generating a default configuration file ${file.absolutePath}")
         val properties = Properties()
         properties.setProperty("wdcli", wdcliPath)
+        properties.setProperty("wdcli-symbolic", wdcliSymbolicPath)
+        properties.setProperty("concolic", "true")
         properties.store(file.writer(), null)
     }
 }

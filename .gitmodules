@@ -1,3 +1,6 @@
 [submodule "WARDuino"]
 	path = WARDuino
 	url = git@github.com:TOPLLab/WARDuino.git
+[submodule "WARDuino-symbolic"]
+	path = WARDuino-symbolic
+	url = git@github.com:TOPLLab/WARDuino.git
