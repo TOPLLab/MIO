@@ -233,11 +233,11 @@ class InteractiveDebugger(
             contentPane.add(toolBarPanel, BorderLayout.NORTH)
         }
         toolBar.add(pauseButton)
-        toolBar.add(stepBackButton)
+        //toolBar.add(stepBackButton)
         toolBar.add(stepOverButton)
         toolBar.add(stepIntoButton)
         toolBar.addSeparator()
-        toolBar.add(stepBackLineButton)
+        //toolBar.add(stepBackLineButton)
         toolBar.add(stepLineButton)
         toolBar.addSeparator()
         toolBar.add(flashButton)
@@ -495,9 +495,10 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
         //add(JScrollPane(graphPanel))
         val scrollpane = JScrollPane(graphPanel)
         graphPanel.associatedScrollPane = scrollpane
-        add(JSplitPane(JSplitPane.VERTICAL_SPLIT, scrollpane, mockPanel).apply {
+        /*add(JSplitPane(JSplitPane.VERTICAL_SPLIT, scrollpane, mockPanel).apply {
             resizeWeight = 0.7
-        })
+        })*/
+        add(scrollpane)
         //add(OverridesPanel(), BorderLayout.EAST)
         add(JPanel(FlowLayout(FlowLayout.RIGHT)).apply {
             if (config.concolic) {
