@@ -241,7 +241,7 @@ class InteractiveDebugger(
         toolBar.add(stepLineButton)
         toolBar.addSeparator()
         toolBar.add(flashButton)
-        toolBar.addSeparator()
+        //toolBar.addSeparator()
         if (config.checkpointHistory) {
             toolBar.add(JButton(FlatSVGIcon(javaClass.getResource("/history.svg"))).apply {
                 toolTipText = "Checkpoint history"
@@ -264,7 +264,7 @@ class InteractiveDebugger(
                 }
             }
         })
-        toolBar.add(consoleToggle)
+        //toolBar.add(consoleToggle)
         toolBar.add(progressBar)
 
         val theme =
