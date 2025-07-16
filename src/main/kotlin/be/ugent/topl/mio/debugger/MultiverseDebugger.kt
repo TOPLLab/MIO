@@ -75,7 +75,7 @@ open class MultiverseNode(val children: MutableList<MultiverseNode> = mutableLis
 
     fun findPath(n: MultiverseNode): MutableList<MultiverseNode> {
         val path = mutableListOf(this)
-        findPath(n, path)
+        if (!findPath(n, path)) return mutableListOf()
         return path
     }
 
@@ -228,6 +228,12 @@ class MultiverseDebugger(
         // TODO: Improve so you can walk along the existing graph instead of destroying it
         //graph.currentNode.removeAllChildren()
         super.run()
+    }
+
+    override fun reset() {
+        super.reset()
+        graph.currentNode = graph.rootNode
+        graphUpdated()
     }
 
     override fun addPrimitiveOverride(primName: String, arg: Int, returnValue: Int) {

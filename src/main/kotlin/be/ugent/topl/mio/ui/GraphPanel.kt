@@ -186,6 +186,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
 
     var selectedNodes = mutableSetOf<MultiverseNode>()
     var selectedPath: Pair<List<MultiverseNode>, List<MultiverseNode>>? = null
+    var reset = true
     var completedPath = mutableSetOf<MultiverseNode>()
     override fun mouseClicked(e: MouseEvent) {
         if (!allowSelection) {
@@ -199,8 +200,15 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         }
         if (selectedNode == null) return
 
-        println(graph.rootNode.findPath(graph.currentNode, selectedValue!!))
-        selectedPath = graph.rootNode.findPath(graph.currentNode, selectedValue!!)
+        //selectedPath = graph.rootNode.findPath(graph.currentNode, selectedValue!!)
+        if (graph.currentNode.findPath(selectedValue!!).isEmpty()) {
+            selectedPath = Pair(listOf(), graph.rootNode.findPath(selectedValue!!))
+            reset = true
+        }
+        else {
+            selectedPath = Pair(listOf(), graph.currentNode.findPath(selectedValue!!))
+            reset = false
+        }
         selectedNodes = selectedPath!!.first.toMutableSet()
         selectedNodes.addAll(selectedPath!!.second.toSet())
 

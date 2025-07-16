@@ -392,7 +392,13 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
     fun dumpVMState() = send(10)
     fun dumpLocals() = send(11)
     fun dumpStateAndLocals() = send(12)
-    fun reset() = send(13)
+    open fun reset() {
+        val firstState = checkpoints.first()
+        checkpoints.clear()
+        checkpoints.add(firstState)
+        send(13)
+        checkpointsUpdated()
+    }
 
     fun snapshot(): String {
         send(60)

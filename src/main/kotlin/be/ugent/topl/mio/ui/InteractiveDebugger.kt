@@ -28,6 +28,8 @@ import java.awt.event.WindowEvent
 import java.io.File
 import java.io.IOException
 import javax.swing.*
+import javax.swing.JOptionPane.ERROR_MESSAGE
+import javax.swing.JOptionPane.YES_NO_OPTION
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 import javax.swing.table.DefaultTableModel
@@ -68,14 +70,20 @@ class InteractiveDebugger(
     private val stepBackLineButton = JButton().apply {
         toolTipText = "Step to the previous line"
     }
+    private val restartButton = JButton(FlatSVGIcon(javaClass.getResource("/debug-restart.svg"))).apply {
+        addActionListener {
+            debugger.reset()
+            updatePcLabel()
+        }
+    }
     private val flashButton = JButton().apply {
         toolTipText = "Upload module to microcontroller"
     }
     private val progressBar = JProgressBar().apply {
         isVisible = false
     }
-    private val allButtons = listOf(pauseButton, stepBackButton, stepOverButton, stepIntoButton, stepLineButton, stepBackLineButton, flashButton)
-    private val pausedOnlyButtons = listOf(stepBackButton, stepOverButton, stepIntoButton, stepLineButton, stepBackLineButton)
+    private val allButtons = listOf(pauseButton, stepBackButton, stepOverButton, stepIntoButton, stepLineButton, stepBackLineButton, restartButton, flashButton)
+    private val pausedOnlyButtons = listOf(stepBackButton, stepOverButton, stepIntoButton, stepLineButton, stepBackLineButton, restartButton)
     private var paused = false
 
     init {
@@ -239,6 +247,8 @@ class InteractiveDebugger(
         toolBar.addSeparator()
         //toolBar.add(stepBackLineButton)
         toolBar.add(stepLineButton)
+        toolBar.addSeparator()
+        toolBar.add(restartButton)
         toolBar.addSeparator()
         toolBar.add(flashButton)
         //toolBar.addSeparator()
@@ -471,7 +481,7 @@ class ContinueForAction(val debugger: Debugger, var n: Int) : MultiverseAction {
 class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config: DebuggerConfig, stateChanged: (c: Checkpoint?, b: Double) -> Unit) : JPanel() {
     private val graphPanel = GraphPanel(multiverseDebugger.graph)
     private val mockPanel = OverridesPanel()
-    private val concolicButton = JButton("Suggest interesting paths")
+    private val concolicButton = JButton("Suggest paths")
     private var maxInstructions = 50
     private val concolicOptionsButton = JButton().apply {
         val gearIcon = FlatSVGIcon(MultiverseDebugger::javaClass.javaClass.getResource("/settings-gear.svg"))
@@ -528,6 +538,7 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
             stateChanged(null, 0.0)
             followButton.isEnabled = false
             customButton.isEnabled = false
+            concolicButton.isEnabled = false
             thread {
                 // Disable breakpoints
                 val breakpointsStart = multiverseDebugger.checkpoints.last()!!.snapshot.breakpoints!!
@@ -565,6 +576,17 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
                     val lastAction = actionPath.last() as ContinueForAction
                     lastAction.n++
                 }
+                if (graphPanel.reset) {
+                    if (JOptionPane.showConfirmDialog(this, "This operation will restart the execution, continue?", "Restart program", YES_NO_OPTION, ERROR_MESSAGE) == JOptionPane.NO_OPTION) {
+                        customButton.isEnabled = true
+                        followButton.isEnabled = true
+                        graphPanel.allowSelection = true
+                        concolicButton.isEnabled = true
+                        stateChanged(null, 1.0)
+                        return@thread
+                    }
+                    multiverseDebugger.reset()
+                }
                 for (action in actionPath) {
                     action.doAction()
                     if (action is ContinueForAction) {
@@ -597,6 +619,7 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
                 graphPanel.clearSelection()
                 customButton.isEnabled = true
                 graphPanel.allowSelection = true
+                concolicButton.isEnabled = true
             }
         }
 
