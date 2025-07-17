@@ -689,7 +689,7 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
                 val rangeButton = JButton(allOptions[0])
                 val mockButton = JButton(allOptions[1])
                 val cancelButton = JButton(allOptions[2])
-                options = arrayOf(rangeButton, mockButton, cancelButton)
+                options = arrayOf(mockButton, cancelButton)
 
                 rangeButton.isEnabled = currentNode is PrimitiveNode
 
