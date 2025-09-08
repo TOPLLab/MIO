@@ -8,21 +8,16 @@ class ProcessConnection(vararg command: String, private val name: String ="Proce
     private val buffers = ConcurrentLinkedDeque<ByteArray>()
     /*private val buffer = ByteArray(4096)
     private var bytesAvailable = 0*/
+    var lastTime = System.currentTimeMillis()
     init {
         thread {
+            // If we don't read the output from the process, the process will start to block once there is too much unprocessed output so we must consume it as quickly as possible.
             while (process.isAlive) {
-                val available = process.inputStream.available()
-                if (available > 0) {
-                    val buffer = ByteArray(available)
-                    process.inputStream.read(buffer)
-                    buffers.add(buffer)
-                    //print(String(buffer))
-                    // TODO: Wait if there is no space but maybe give a warning because we don't want this.
-                    /*buffer.copyInto(buffer, bytesAvailable)
-                    bytesAvailable += available*/
-                } /*else {
-                    Thread.sleep(10)
-                }*/
+                val buffer = ByteArray(4096)
+                val read = process.inputStream.read(buffer)
+                val buf2 = ByteArray(read)
+                buffer.copyInto(buf2, 0, 0, read)
+                buffers.add(buf2)
             }
         }
     }
@@ -35,7 +30,11 @@ class ProcessConnection(vararg command: String, private val name: String ="Proce
             return 0
         }
 
-        println("Data " + buffers.size + " available")
+        if (System.currentTimeMillis() - lastTime > 1000) {
+            println("Data " + buffers.size + " available")
+            println("Avg buf size ${buffers.map { it.size }.average()}")
+            lastTime = System.currentTimeMillis()
+        }
 
         return buf.size
     }
@@ -45,7 +44,6 @@ class ProcessConnection(vararg command: String, private val name: String ="Proce
             throw RuntimeException("The process ($name) is no longer alive. Exit code ${process.exitValue()}")
         return process.inputStream.read(buf)*/
         //buffer.copyInto(buf)
-        println("Removing")
         val x = buffers.removeFirst()
         x.copyInto(buf)
         return x.size
