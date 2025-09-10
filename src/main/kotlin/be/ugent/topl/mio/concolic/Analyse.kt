@@ -14,16 +14,36 @@ data class SymbolicValueMapping(val primitive: String, val arg: Int, val value: 
     }
 }
 
-data class ConcolicAnalysisResult(val paths: List<SymbolicValueMapping>)
+data class ConcolicAnalysisResult(val paths: List<SymbolicValueMapping>) {
+    fun getPathCount(): Int {
+        return getPathCount(paths)
+    }
+    private fun getPathCount(paths: List<SymbolicValueMapping>): Int {
+        if (paths.isEmpty()) {
+            return 1
+        }
 
-fun analyse(wdcliPath: String, wasmFile: String, jsonSnapshot: String, maxInstructions: Int = 50, maxSymbolicVariables: Int = -1, maxIterations: Int = -1, stopPc: Int = -1): ConcolicAnalysisResult {
-    val woodState = WOODState.fromLine(jsonSnapshot)
-    val messages = woodState.toBinary(io = false, overrides = false).map { it.trim('\n', ' ') }
-    for (msg in messages) {
-        println("\"$msg\"")
+        var count = 0
+        for (path in paths) {
+            count += getPathCount(path.paths)
+        }
+        return count
+    }
+}
+
+fun analyse(wdcliPath: String, wasmFile: String, jsonSnapshot: String?, maxInstructions: Int = 50, maxSymbolicVariables: Int = -1, maxIterations: Int = -1, stopPc: Int = -1): ConcolicAnalysisResult {
+    val command = if (jsonSnapshot != null) {
+        val woodState = WOODState.fromLine(jsonSnapshot)
+        val messages = woodState.toBinary(io = false, overrides = false).map { it.trim('\n', ' ') }
+        for (msg in messages) {
+            println("\"$msg\"")
+        }
+        listOf(wdcliPath, wasmFile, "--no-socket", "--mode", "concolic", "--snapshot", *messages.toTypedArray(), "end", "--max-instructions", "$maxInstructions", "--max-symbolic-variables", "$maxSymbolicVariables", "--max-iterations", "$maxIterations", "--stop-at-pc", "$stopPc")
+    }
+    else {
+        listOf(wdcliPath, wasmFile, "--no-socket", "--mode", "concolic", "--max-instructions", "$maxInstructions", "--max-symbolic-variables", "$maxSymbolicVariables", "--max-iterations", "$maxIterations", "--stop-at-pc", "$stopPc")
     }
 
-    val command = listOf(wdcliPath, wasmFile, "--no-socket", "--mode", "concolic", "--snapshot", *messages.toTypedArray(), "end", "--max-instructions", "$maxInstructions", "--max-symbolic-variables", "$maxSymbolicVariables", "--max-iterations", "$maxIterations", "--stop-at-pc", "$stopPc")
     println("Running command: ${command.joinToString(" ") }")
     val process = ProcessBuilder(command).redirectErrorStream(true).start()
     val lineScanner = Scanner(process.inputStream)
@@ -39,6 +59,9 @@ fun analyse(wdcliPath: String, wasmFile: String, jsonSnapshot: String, maxInstru
             val result = objectMapper.readValue(currentLine, ConcolicAnalysisResult::class.java)
             //process(result)
             return ConcolicAnalysisResult(result.paths.sortedBy { it.value })
+        }
+        if (currentLine.startsWith("Trap:")) {
+            throw Exception("Execution resulted in a trap!")
         }
     }
     process.destroy()
