@@ -274,7 +274,7 @@ class ConcolicTests : DebuggerTestBase() {
         }
 
         @ParameterizedTest(name = "((value * {0}) as i32) < 50")
-        @ValueSource(floats = [0.488f, 2.3f, 3.14f, 10.42f, 0.1f, 0.02f, 0.0125f]) //, 0.01229f
+        @ValueSource(floats = [0.488f, 2.3f, 3.14f, 10.42f, 0.1f, 0.02f, 0.0125f, 0.01222f, 0.0122129f])
         fun `Test wat floats i32_trunc_f32_s medium 2`(v: Float) {
             val watString = makeWat($$"""
             i32.const 0
