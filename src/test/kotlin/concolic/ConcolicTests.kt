@@ -7,6 +7,7 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 import org.junit.jupiter.params.provider.ValueSource
 import java.io.File
 import kotlin.test.assertEquals
@@ -207,18 +208,19 @@ class ConcolicTests : DebuggerTestBase() {
             assertNotNull(result.paths.find { it.value >= 16 })
         }
 
-        @Test
-        fun `Test wat floats between`() {
+        @ParameterizedTest(name = "Value in between {0} and {1}")
+        @CsvSource("2,5", "3,6", "-3,3", "-3,1", "500,502", "500.999,501.0001")
+        fun `Test wat floats between`(lower: Float, upper: Float) {
             val watString = makeWat($$"""
             i32.const 0
-            call $chip_analog_read
+            call $chip_analog_read (;Range 0 to 4096;)
             local.tee 0
             f32.convert_i32_s
-            f32.const 5.0
+            f32.const $$upper
             f32.lt
             local.get 0
             f32.convert_i32_s
-            f32.const 2.0
+            f32.const $$lower
             f32.gt
             i32.and
             if
@@ -227,8 +229,8 @@ class ConcolicTests : DebuggerTestBase() {
         """.trimIndent())
             val result = getPathsFromWat(watString)
             assertEquals(2,result.getPathCount())
-            assertNotNull(result.paths.find { it.value < 5 && it.value > 2 })
-            assertNotNull(result.paths.find { it.value >= 5 || it.value <= 2})
+            assertNotNull(result.paths.find { it.value < upper && it.value > lower })
+            assertNotNull(result.paths.find { it.value >= upper || it.value <= lower})
         }
 
         @Test
