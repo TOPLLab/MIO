@@ -253,6 +253,49 @@ class ConcolicTests : DebuggerTestBase() {
         }
 
         @Test
+        fun `Test wat floats i32_trunc_f32_s medium`() {
+            val watString = makeWat($$"""
+            i32.const 0
+            call $chip_analog_read
+            f32.convert_i32_s
+            f32.const 0x1.9p+5 (;=50;)
+            f32.sub
+            i32.trunc_f32_s
+            i32.const 25
+            i32.lt_s
+            if
+                nop
+            end
+        """.trimIndent())
+            val result = getPathsFromWat(watString)
+            assertEquals(2,result.getPathCount())
+            assertNotNull(result.paths.find { it.value < 75 })
+            assertNotNull(result.paths.find { it.value >= 75 })
+        }
+
+        @ParameterizedTest(name = "((value * {0}) as i32) < 50")
+        @ValueSource(floats = [0.488f, 2.3f, 3.14f, 10.42f, 0.1f, 0.02f, 0.0125f]) //, 0.01229f
+        fun `Test wat floats i32_trunc_f32_s medium 2`(v: Float) {
+            val watString = makeWat($$"""
+            i32.const 0
+            call $chip_analog_read
+            f32.convert_i32_s
+            f32.const $$v
+            f32.mul
+            i32.trunc_f32_s
+            i32.const 50
+            i32.lt_s
+            if
+                nop
+            end
+        """.trimIndent())
+            val result = getPathsFromWat(watString)
+            assertEquals(2,result.getPathCount())
+            assertNotNull(result.paths.find { it.value < 50 / v })
+            assertNotNull(result.paths.find { it.value >= 50 / v })
+        }
+
+        @Test
         fun `Test wat floats i32_trunc_f32_s advanced`() {
             val watString = makeWat($$"""
             i32.const 0
