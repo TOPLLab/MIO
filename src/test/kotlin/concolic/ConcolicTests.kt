@@ -10,6 +10,7 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 import java.io.File
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 @DisplayName("WARDuino concolic execution tests")
 class ConcolicTests : DebuggerTestBase() {
@@ -144,6 +145,8 @@ class ConcolicTests : DebuggerTestBase() {
         """.trimIndent())
             val result = getPathsFromWat(watString)
             assertEquals(2,result.getPathCount())
+            assertNotNull(result.paths.find { it.value == 5 })
+            assertNotNull(result.paths.find { it.value != 5 })
         }
 
         @Test
@@ -160,10 +163,12 @@ class ConcolicTests : DebuggerTestBase() {
         """.trimIndent())
             val result = getPathsFromWat(watString)
             assertEquals(2,result.getPathCount())
+            assertNotNull(result.paths.find { it.value == 5 })
+            assertNotNull(result.paths.find { it.value != 5 })
         }
 
         @Test
-        fun `Test wat floats less than`() {
+        fun `Test wat floats less than basic`() {
             val watString = makeWat($$"""
             i32.const 0
             call $chip_analog_read
@@ -176,10 +181,12 @@ class ConcolicTests : DebuggerTestBase() {
         """.trimIndent())
             val result = getPathsFromWat(watString)
             assertEquals(2,result.getPathCount())
+            assertNotNull(result.paths.find { it.value < 5 })
+            assertNotNull(result.paths.find { it.value >= 5 })
         }
 
         @Test
-        fun `Test wat floats less than 2`() {
+        fun `Test wat floats less than advanced`() {
             val watString = makeWat($$"""
             i32.const 0
             call $chip_analog_read
@@ -196,6 +203,32 @@ class ConcolicTests : DebuggerTestBase() {
         """.trimIndent())
             val result = getPathsFromWat(watString)
             assertEquals(2,result.getPathCount())
+            assertNotNull(result.paths.find { it.value < 16 })
+            assertNotNull(result.paths.find { it.value >= 16 })
+        }
+
+        @Test
+        fun `Test wat floats between`() {
+            val watString = makeWat($$"""
+            i32.const 0
+            call $chip_analog_read
+            local.tee 0
+            f32.convert_i32_s
+            f32.const 5.0
+            f32.lt
+            local.get 0
+            f32.convert_i32_s
+            f32.const 2.0
+            f32.gt
+            i32.and
+            if
+                nop
+            end
+        """.trimIndent())
+            val result = getPathsFromWat(watString)
+            assertEquals(2,result.getPathCount())
+            assertNotNull(result.paths.find { it.value < 5 && it.value > 2 })
+            assertNotNull(result.paths.find { it.value >= 5 || it.value <= 2})
         }
 
         @Test
@@ -213,6 +246,8 @@ class ConcolicTests : DebuggerTestBase() {
         """.trimIndent())
             val result = getPathsFromWat(watString)
             assertEquals(2,result.getPathCount())
+            assertNotNull(result.paths.find { it.value < 10 })
+            assertNotNull(result.paths.find { it.value >= 10 })
         }
 
         @Test
