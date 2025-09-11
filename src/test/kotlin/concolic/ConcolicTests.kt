@@ -3,12 +3,15 @@ package concolic
 import DebuggerTestBase
 import be.ugent.topl.mio.concolic.ConcolicAnalysisResult
 import be.ugent.topl.mio.concolic.analyse
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 import java.io.File
 import kotlin.test.assertEquals
 
+@DisplayName("WARDuino concolic execution tests")
 class ConcolicTests : DebuggerTestBase() {
     @Test
     fun `Test result without any branches`() {
@@ -112,21 +115,24 @@ class ConcolicTests : DebuggerTestBase() {
         assertEquals(expectedIterationCount,result.getPathCount())
     }
 
-    @Test
-    fun `Test wat floats no branches`() {
-        val watString = makeWat($$"""
+    @Nested
+    @DisplayName("Floating point operations")
+    inner class FloatTests {
+        @Test
+        fun `Test wat floats no branches`() {
+            val watString = makeWat($$"""
             f32.const 0.0
             f32.const 5.0
             f32.add
             drop
         """.trimIndent())
-        val result = getPathsFromWat(watString)
-        assertEquals(1,result.getPathCount())
-    }
+            val result = getPathsFromWat(watString)
+            assertEquals(1,result.getPathCount())
+        }
 
-    @Test
-    fun `Test wat floats equal`() {
-        val watString = makeWat($$"""
+        @Test
+        fun `Test wat floats equal`() {
+            val watString = makeWat($$"""
             i32.const 0
             call $chip_analog_read
             f32.convert_i32_s
@@ -136,13 +142,13 @@ class ConcolicTests : DebuggerTestBase() {
                 nop
             end
         """.trimIndent())
-        val result = getPathsFromWat(watString)
-        assertEquals(2,result.getPathCount())
-    }
+            val result = getPathsFromWat(watString)
+            assertEquals(2,result.getPathCount())
+        }
 
-    @Test
-    fun `Test wat floats not equal`() {
-        val watString = makeWat($$"""
+        @Test
+        fun `Test wat floats not equal`() {
+            val watString = makeWat($$"""
             i32.const 0
             call $chip_analog_read
             f32.convert_i32_s
@@ -152,13 +158,13 @@ class ConcolicTests : DebuggerTestBase() {
                 nop
             end
         """.trimIndent())
-        val result = getPathsFromWat(watString)
-        assertEquals(2,result.getPathCount())
-    }
+            val result = getPathsFromWat(watString)
+            assertEquals(2,result.getPathCount())
+        }
 
-    @Test
-    fun `Test wat floats less than`() {
-        val watString = makeWat($$"""
+        @Test
+        fun `Test wat floats less than`() {
+            val watString = makeWat($$"""
             i32.const 0
             call $chip_analog_read
             f32.convert_i32_s
@@ -168,13 +174,13 @@ class ConcolicTests : DebuggerTestBase() {
                 nop
             end
         """.trimIndent())
-        val result = getPathsFromWat(watString)
-        assertEquals(2,result.getPathCount())
-    }
+            val result = getPathsFromWat(watString)
+            assertEquals(2,result.getPathCount())
+        }
 
-    @Test
-    fun `Test wat floats less than 2`() {
-        val watString = makeWat($$"""
+        @Test
+        fun `Test wat floats less than 2`() {
+            val watString = makeWat($$"""
             i32.const 0
             call $chip_analog_read
             f32.convert_i32_s
@@ -188,7 +194,46 @@ class ConcolicTests : DebuggerTestBase() {
                 nop
             end
         """.trimIndent())
-        val result = getPathsFromWat(watString)
-        assertEquals(2,result.getPathCount())
+            val result = getPathsFromWat(watString)
+            assertEquals(2,result.getPathCount())
+        }
+
+        @Test
+        fun `Test wat floats i32_trunc_f32_s basic`() {
+            val watString = makeWat($$"""
+            i32.const 0
+            call $chip_analog_read
+            f32.convert_i32_s
+            i32.trunc_f32_s
+            i32.const 10
+            i32.lt_s
+            if
+                nop
+            end
+        """.trimIndent())
+            val result = getPathsFromWat(watString)
+            assertEquals(2,result.getPathCount())
+        }
+
+        @Test
+        fun `Test wat floats i32_trunc_f32_s advanced`() {
+            val watString = makeWat($$"""
+            i32.const 0
+            call $chip_analog_read
+            f32.convert_i32_s
+            f32.const 0x1.f3b646p-2 (;=0.488;)
+            f32.mul
+            f32.const 0x1.9p+5 (;=50;)
+            f32.sub
+            i32.trunc_f32_s
+            i32.const 50
+            i32.lt_s
+            if
+                nop
+            end
+        """.trimIndent())
+            val result = getPathsFromWat(watString)
+            assertEquals(2,result.getPathCount())
+        }
     }
 }
