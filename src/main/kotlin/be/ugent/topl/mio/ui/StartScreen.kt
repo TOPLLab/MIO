@@ -98,8 +98,12 @@ open class StartScreen(config: DebuggerConfig) : AboutScreen(config, 550, 400) {
             }
         })
 
+        mainPanel.add(Box.createVerticalStrut(10))
         mainPanel.add(Box.createVerticalBox().apply {
-            add(JLabel("Recent:"))
+            add(JLabel("Recent files").apply {
+                setAlignmentX(CENTER_ALIGNMENT)
+                putClientProperty( "FlatLaf.style", "font: 160% \$light.font")
+            })
             val model = DefaultListModel<String>()
             for (file in recent.recentFiles.reversed()) {
                 model.addElement(file)
