@@ -16,7 +16,6 @@ import com.formdev.flatlaf.extras.FlatSVGIcon
 import com.formdev.flatlaf.util.SystemInfo
 import getBinaryInfo
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea
-import org.fife.ui.rsyntaxtextarea.SyntaxConstants
 import org.fife.ui.rsyntaxtextarea.Theme
 import org.fife.ui.rtextarea.IconRowHeader
 import org.fife.ui.rtextarea.RTextScrollPane
@@ -37,7 +36,7 @@ import kotlin.concurrent.thread
 class InteractiveDebugger(
     connection: Connection,
     symbolicWdcliPath: String,
-    private val sourceMapping: SourceMap? = null,
+    private var sourceMapping: SourceMap,
     private val wasmFile: String = "/home/maarten/Documents/School/Thesis/thesis-git/wardbg/simple-sym-test.wasm",
     private val config: DebuggerConfig
 ) : JFrame("WARDuino Debugger") {
@@ -114,7 +113,7 @@ class InteractiveDebugger(
         breakpointIcon.colorFilter = FlatSVGIcon.ColorFilter()
         breakpointIcon.colorFilter.add( Color.black, Color(229, 20, 1), Color(229, 20, 1))
     }
-    private var currentFileName = sourceMapping?.getSourceFile(0)
+    private var currentFileName = sourceMapping.getSourceFile(0)
 
     init {
         FlatSVGIcon.ColorFilter.getInstance()
@@ -157,11 +156,6 @@ class InteractiveDebugger(
         }
         stepLineButton.icon = FlatSVGIcon(javaClass.getResource("/debug-step-into.svg"))
         stepLineButton.addActionListener {
-            if (sourceMapping == null) {
-                stepLineButton.isEnabled = false
-                return@addActionListener
-            }
-
             println("Step line")
             var startLine = -1
             try {
@@ -182,11 +176,6 @@ class InteractiveDebugger(
         }
         stepBackLineButton.icon = FlatSVGIcon(javaClass.getResource("/debug-step-out.svg"))
         stepBackLineButton.addActionListener {
-            if (sourceMapping == null) {
-                stepBackLineButton.isEnabled = false
-                return@addActionListener
-            }
-
             println("Step back line")
             var startLine = -1
             try {
@@ -275,8 +264,8 @@ class InteractiveDebugger(
         // Increase font size:
         //textArea.font = textArea.font.deriveFont(textArea.font.size + 1.0f + 10)
         textArea.isEditable = false
-        textArea.text = sourceMapping?.getSourceFile(0) ?: "Source mapping unavailable"
-        textArea.syntaxEditingStyle = sourceMapping?.getStyle() ?: SyntaxConstants.SYNTAX_STYLE_ASSEMBLER_X86
+        textArea.text = sourceMapping.getSourceFile(0)
+        textArea.syntaxEditingStyle = sourceMapping.getStyle()
         textArea.popupMenu.add(JMenuItem("Disassemble").apply {
             addActionListener {
                 try {
@@ -288,36 +277,34 @@ class InteractiveDebugger(
         })
         scrollPane.isIconRowHeaderEnabled = true
         scrollPane.gutter.iconRowHeaderInheritsGutterBackground = true
-        if (sourceMapping != null) {
-            scrollPane.gutter.isBookmarkingEnabled = true
-            scrollPane.gutter.bookmarkIcon = breakpointIcon
+        scrollPane.gutter.isBookmarkingEnabled = true
+        scrollPane.gutter.bookmarkIcon = breakpointIcon
 
-            for (component in scrollPane.gutter.components) {
-                if (component is IconRowHeader) {
-                    component.addMouseListener(object : MouseListener {
-                        override fun mouseClicked(me: MouseEvent) {}
+        for (component in scrollPane.gutter.components) {
+            if (component is IconRowHeader) {
+                component.addMouseListener(object : MouseListener {
+                    override fun mouseClicked(me: MouseEvent) {}
 
-                        override fun mousePressed(me: MouseEvent) {
-                            val line = textArea.getLineOfOffset(textArea.viewToModel2D(me.point))
-                            try {
-                                val addr = sourceMapping.getPcForLine(line + 1, currentFileName!!)
-                                if (component.getTrackingIcons(line).isNotEmpty()) {
-                                    debugger.addBreakpoint(addr)
-                                } else {
-                                    debugger.removeBreakpoint(addr)
-                                }
-                            } catch (e: Exception) {
-                                component.toggleBookmark(line)
+                    override fun mousePressed(me: MouseEvent) {
+                        val line = textArea.getLineOfOffset(textArea.viewToModel2D(me.point))
+                        try {
+                            val addr = sourceMapping.getPcForLine(line + 1, currentFileName)
+                            if (component.getTrackingIcons(line).isNotEmpty()) {
+                                debugger.addBreakpoint(addr)
+                            } else {
+                                debugger.removeBreakpoint(addr)
                             }
+                        } catch (_: Exception) {
+                            component.toggleBookmark(line)
                         }
+                    }
 
-                        override fun mouseReleased(p0: MouseEvent?) {}
+                    override fun mouseReleased(p0: MouseEvent?) {}
 
-                        override fun mouseEntered(p0: MouseEvent?) {}
+                    override fun mouseEntered(p0: MouseEvent?) {}
 
-                        override fun mouseExited(p0: MouseEvent?) {}
-                    })
-                }
+                    override fun mouseExited(p0: MouseEvent?) {}
+                })
             }
         }
         /*for (choicepoint in binaryInfo.choicepoints) {
@@ -390,9 +377,6 @@ class InteractiveDebugger(
         //val snapshot = debugger.snapshotFull().second
         watchWindow.update(snapshot)
 
-        if (sourceMapping == null)
-            return
-
         updateBreakPoints(snapshot)
 
         val pc = snapshot.pc!!
@@ -424,9 +408,6 @@ class InteractiveDebugger(
     }
 
     private fun updateBreakPoints(snapshot: WOODDumpResponse) {
-        if (sourceMapping == null)
-            return;
-
         val breakpoints = snapshot.breakpoints!!
         scrollPane.gutter.removeAllTrackingIcons()
         for (breakPointPc in breakpoints) {
