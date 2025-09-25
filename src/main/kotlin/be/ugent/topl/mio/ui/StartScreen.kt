@@ -101,7 +101,7 @@ open class StartScreen(config: DebuggerConfig) : AboutScreen(config, 550, 400) {
         mainPanel.add(Box.createVerticalBox().apply {
             add(JLabel("Recent:"))
             val model = DefaultListModel<String>()
-            for (file in recent.recentFiles) {
+            for (file in recent.recentFiles.reversed()) {
                 model.addElement(file)
             }
             add(JScrollPane(JList(model).apply {
