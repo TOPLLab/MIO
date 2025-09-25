@@ -8,6 +8,8 @@ import be.ugent.topl.mio.connections.Connection
 import be.ugent.topl.mio.woodstate.Checkpoint
 import be.ugent.topl.mio.woodstate.WOODDumpResponse
 import be.ugent.topl.mio.woodstate.WasmStackValue
+import getBinaryInfo
+import java.io.File
 
 class MultiverseGraph(var rootNode: MultiverseNode = MultiverseNode(), var currentNode: MultiverseNode = rootNode) {
     fun replaceCurrentNode(newNode: MultiverseNode) {
@@ -154,7 +156,7 @@ class PrimitiveNode(val primitive: String, val arg: Int, children: MutableList<M
 
 class MultiverseDebugger(
     connection: Connection,
-    val wasmBinary: WasmBinary,
+    var wasmBinary: WasmBinary,
     private val symbolicWdcliPath: String,
     start: Boolean = true,
     private val graphUpdated: () -> Unit = {},
@@ -362,6 +364,15 @@ class MultiverseDebugger(
 
     private fun isAfterChoicePoint(pc: Int): Boolean {
         return pc in wasmBinary.metadata.after_choicepoints
+    }
+
+    override fun updateModule(wasmFilename: String) {
+        super.updateModule(wasmFilename)
+        // Reload binary metadata
+        wasmBinary = WasmBinary(File(wasmFilename), getBinaryInfo(symbolicWdcliPath, File(wasmFilename).absolutePath))
+        // Reset graph
+        graph.rootNode = MultiverseNode()
+        graph.currentNode = graph.rootNode
     }
 
     fun predictFuture(maxInstructions: Int = 50, maxSymbolicVariables: Int = -1, maxIterations: Int = -1, stopPc: Int = -1): Boolean {

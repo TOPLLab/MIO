@@ -436,7 +436,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
         send(81, payload)
     }
 
-    fun updateModule(wasmFilename: String) {
+    open fun updateModule(wasmFilename: String) {
         val bytes = File(wasmFilename).readBytes()
         sendRaw("22${HexaEncoder.convertToLEB128(bytes.size)}" + HexFormat.of().formatHex(bytes) + "\n")
         messageQueue.waitForResponse("CHANGE Module!")
