@@ -5,8 +5,10 @@ import be.ugent.topl.mio.DebuggerConfig
 import be.ugent.topl.mio.connections.Connection
 import be.ugent.topl.mio.debugger.ConstraintParser
 import be.ugent.topl.mio.debugger.Debugger
+import be.ugent.topl.mio.debugger.ExecutionState
 import be.ugent.topl.mio.debugger.MultiverseDebugger
 import be.ugent.topl.mio.debugger.PrimitiveNode
+import be.ugent.topl.mio.sourcemap.AsSourceMapping
 import be.ugent.topl.mio.sourcemap.SourceMap
 import be.ugent.topl.mio.woodstate.Checkpoint
 import be.ugent.topl.mio.woodstate.WOODDumpResponse
@@ -26,6 +28,7 @@ import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 import java.io.File
 import java.io.IOException
+import java.nio.file.Files
 import javax.swing.*
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
@@ -200,7 +203,9 @@ class InteractiveDebugger(
             if (dialog.showDialog(this, "Upload") == JFileChooser.APPROVE_OPTION) {
                 debugger.updateModule(dialog.selectedFile.absolutePath)
             }*/
+            sourceMapping = AsSourceMapping(File("$wasmFile.map").readText())
             debugger.updateModule(wasmFile)
+            textArea.text = sourceMapping.getSourceFile(debugger.inspect(ExecutionState.ProgramCounter).pc!!)
         }
         val toolBar = JToolBar()
         toolBar.isFloatable = true
