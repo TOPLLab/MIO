@@ -772,7 +772,13 @@ class WatchWindow : JTable() {
         }
         val stack = snapshot.stack!!
         for (stackElement in stack) {
-            tableModel.addRow(arrayOf("stack[${stackElement.idx}]", stackElement.type, stackElement.value))
+            tableModel.addRow(arrayOf("stack[${stackElement.idx}]", stackElement.type,
+                when(stackElement.type) {
+                    "F32" -> Float.fromBits(stackElement.value.toInt())
+                    "F64" -> Double.fromBits(stackElement.value)
+                    else -> stackElement.value
+                })
+            )
         }
     }
 
