@@ -13,10 +13,10 @@ import java.awt.Image
 import javax.swing.*
 
 
-open class AboutScreen(protected val config: DebuggerConfig) : JFrame() {
+open class AboutScreen(protected val config: DebuggerConfig, w: Int = 400, h: Int = 300) : JFrame() {
     init {
         configureTheme()
-        setSize(400, 300)
+        setSize(w, h)
         minimumSize = Dimension(400, 300)
         val mainPanel = JPanel()
         mainPanel.setLayout(BoxLayout(mainPanel, BoxLayout.Y_AXIS))

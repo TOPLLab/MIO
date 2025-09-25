@@ -9,7 +9,6 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.fazecast.jSerialComm.SerialPort
 import com.formdev.flatlaf.extras.FlatSVGIcon
-import jdk.jfr.consumer.EventStream.openFile
 import java.awt.Dimension
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
@@ -21,7 +20,7 @@ import javax.swing.*
 import javax.swing.filechooser.FileNameExtensionFilter
 
 
-open class StartScreen(config: DebuggerConfig) : AboutScreen(config) {
+open class StartScreen(config: DebuggerConfig) : AboutScreen(config, 550, 400) {
     init {
         defaultCloseOperation = EXIT_ON_CLOSE
     }
@@ -99,22 +98,24 @@ open class StartScreen(config: DebuggerConfig) : AboutScreen(config) {
             }
         })
 
-        mainPanel.add(JLabel("Recent:"))
-        val model = DefaultListModel<String>()
-        for (file in recent.recentFiles) {
-            model.addElement(file)
-        }
-        mainPanel.add(JScrollPane(JList(model).apply {
-            addMouseListener(object : MouseAdapter() {
-                override fun mouseClicked(evt: MouseEvent) {
-                    val list = evt.getSource() as JList<*>
-                    if (evt.getClickCount() == 2) {
-                        val index = list.locationToIndex(evt.getPoint())
-                        open(File(recent.recentFiles[index]))
+        mainPanel.add(Box.createVerticalBox().apply {
+            add(JLabel("Recent:"))
+            val model = DefaultListModel<String>()
+            for (file in recent.recentFiles) {
+                model.addElement(file)
+            }
+            add(JScrollPane(JList(model).apply {
+                addMouseListener(object : MouseAdapter() {
+                    override fun mouseClicked(evt: MouseEvent) {
+                        val list = evt.getSource() as JList<*>
+                        if (evt.getClickCount() == 2) {
+                            val index = list.locationToIndex(evt.getPoint())
+                            open(File(recent.recentFiles[index]))
+                        }
                     }
-                }
-            })
-        }))
+                })
+            }))
+        })
     }
 
     private fun startDebugger(binary: File, emulator: Boolean, comPort: String?): Boolean {
