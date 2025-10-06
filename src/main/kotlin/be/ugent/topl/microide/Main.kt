@@ -3,6 +3,8 @@ package be.ugent.topl.microide
 import be.ugent.topl.mio.DebuggerConfig
 import be.ugent.topl.mio.connections.Connection
 import be.ugent.topl.mio.connections.ProcessConnection
+import be.ugent.topl.mio.connections.SerialConnection
+import be.ugent.topl.mio.debugger.Debugger
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.extras.FlatSVGIcon
 import com.formdev.flatlaf.themes.FlatMacLightLaf
@@ -120,17 +122,31 @@ class MainWindow(private val filename: String = "microide.ts") : JFrame("WARDuin
             addActionListener {
                 val conn = connection
                 if (conn != null) {
+                    println("Halt execution")
                     conn.write("02\n".toByteArray(Charset.defaultCharset()))
                     connection = null
                     icon = runIcon
                     toolTipText = "Run"
                 }
                 else {
-                    build()
+                    if (!build())
+                        return@addActionListener
+
                     val config = DebuggerConfig()
                     errorPane.text = ""
                     errorPane.foreground = Color.BLACK
-                    connection = ProcessConnection(config.wdcliPath, "test.wasm", "--no-socket")
+                    if (config.useEmulator) {
+                        connection = ProcessConnection(config.wdcliPath, "test.wasm", "--no-socket")
+                    }
+                    else {
+                        val newConn = SerialConnection(config.port!!)
+                        val debugger = Debugger(newConn)
+                        debugger.updateModule("test.wasm")
+                        debugger.run()
+                        debugger.close()
+
+                        connection = newConn
+                    }
                     icon = stopIcon
                     toolTipText = "Stop"
                 }
@@ -182,9 +198,8 @@ class MainWindow(private val filename: String = "microide.ts") : JFrame("WARDuin
         File(filename).writeText(textArea.text)
     }
 
-    fun build() {
+    fun build(): Boolean {
         save()
-        //val process = ProcessBuilder("asc", "microide.ts", "-o", "test.wasm").inheritIO().start()
         errorPane.text = ""
         errorPane.foreground = Color.RED
         val process = ProcessBuilder("asc", "microide.ts", "-o", "test.wasm", "--disable", "mutable-globals", "--disable", "sign-extension", "--disable", "nontrapping-f2i", "--disable", "bulk-memory", "--sourceMap").redirectErrorStream(true).start()
@@ -200,5 +215,6 @@ class MainWindow(private val filename: String = "microide.ts") : JFrame("WARDuin
             errorPane.text += "Compilation finished without errors"
         }
         println("Compilation finished with exit code $exitCode")
+        return exitCode == 0
     }
 }
