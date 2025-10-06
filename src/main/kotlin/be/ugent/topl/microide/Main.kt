@@ -38,7 +38,9 @@ fun main() {
 
 class MainWindow(private val filename: String = "microide.ts") : JFrame("WARDuino Micro IDE - $filename") {
     private var connection: Connection? = null
-    private val errorPane = JTextPane()
+    private val errorPane = JTextPane().apply {
+        isEditable = false
+    }
     private val textArea = RSyntaxTextArea()
 
     init {
