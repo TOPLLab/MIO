@@ -179,7 +179,9 @@ class MainWindow(private val filename: String = "microide.ts") : JFrame("WARDuin
         }
 
         thread {
-            var addBuffer = ""
+            //val outputBufferLimit = 40000
+            val outputBufferLimit = 500
+            var addBuffer = StringBuilder()
             var lastTime = 0L
             while (true) {
                 val connection = connection
@@ -193,16 +195,28 @@ class MainWindow(private val filename: String = "microide.ts") : JFrame("WARDuin
                     connection.read(buffer)
                     SwingUtilities.invokeLater {
                         val str = buffer.toString(Charset.defaultCharset())
-                        println(str)
-                        addBuffer += str
+                        //println(str)
+                        addBuffer.append(str)
                     }
 
                 }
 
-                if (addBuffer.length > 1000 || System.currentTimeMillis() - lastTime > 500) {
+                if (System.currentTimeMillis() - lastTime > 250) { //addBuffer.length > 1000 ||
                     lastTime = System.currentTimeMillis()
-                    errorPane.text += addBuffer
-                    addBuffer = ""
+                    //println(addBuffer.length)
+                    if (errorPane.text.length + addBuffer.length > outputBufferLimit) {
+                        val remaining = outputBufferLimit - addBuffer.length
+                        if (remaining <= 0) {
+                            errorPane.text = addBuffer.substring(addBuffer.length - outputBufferLimit)
+                        }
+                        else {
+                            val existing = errorPane.text.substring(errorPane.text.length-remaining)
+                            errorPane.text = existing +  addBuffer
+                        }
+                    } else {
+                        errorPane.text += addBuffer
+                    }
+                    addBuffer.setLength(0)
                 }
             }
         }
