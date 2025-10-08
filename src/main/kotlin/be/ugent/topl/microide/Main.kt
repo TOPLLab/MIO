@@ -34,6 +34,8 @@ fun main() {
     }*/
 
     val config = DebuggerConfig()
+    System.setProperty("apple.laf.useScreenMenuBar", "true")
+    System.setProperty("apple.awt.application.name", "WARDuino IDE") //WAMIDE
     if (config.lightMode) System.setProperty("apple.awt.application.appearance", "NSAppearanceNameAqua")
     else System.setProperty("apple.awt.application.appearance", "NSAppearanceNameDarkAqua")
 
