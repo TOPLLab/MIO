@@ -5,9 +5,16 @@ import be.ugent.topl.mio.connections.Connection
 import be.ugent.topl.mio.connections.ProcessConnection
 import be.ugent.topl.mio.connections.SerialConnection
 import be.ugent.topl.mio.debugger.Debugger
+import be.ugent.topl.mio.ui.InteractiveDebugger
+import be.ugent.topl.mio.ui.setupFlatLafTheme
+import com.formdev.flatlaf.FlatDarkLaf
+import com.formdev.flatlaf.FlatIntelliJLaf
 import com.formdev.flatlaf.FlatLaf
+import com.formdev.flatlaf.FlatLightLaf
 import com.formdev.flatlaf.extras.FlatSVGIcon
+import com.formdev.flatlaf.themes.FlatMacDarkLaf
 import com.formdev.flatlaf.themes.FlatMacLightLaf
+import com.formdev.flatlaf.util.SystemInfo
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants
 import org.fife.ui.rsyntaxtextarea.Theme
@@ -32,11 +39,14 @@ fun main() {
         }
     }*/
 
+    System.setProperty( "apple.awt.application.appearance", "system" )
+
     val window = MainWindow()
     window.isVisible = true
 }
 
 class MainWindow(private val filename: String = "microide.ts") : JFrame("WARDuino Micro IDE - $filename") {
+    private val config = DebuggerConfig()
     private var connection: Connection? = null
     private val errorPane = JTextPane().apply {
         isEditable = false
@@ -117,8 +127,8 @@ class MainWindow(private val filename: String = "microide.ts") : JFrame("WARDuin
         }, BorderLayout.CENTER)
         val toolbar = JToolBar()
         mainPanel.add(toolbar, BorderLayout.NORTH)
-        val runIcon = FlatSVGIcon(javaClass.getResource("/run.svg"))
-        val stopIcon = FlatSVGIcon(javaClass.getResource("/stop.svg"))
+        val runIcon = ideaIcon("/run", config.lightMode)
+        val stopIcon = ideaIcon("/stop", config.lightMode)
         val runButton = JButton(runIcon).apply {
             toolTipText = "Run"
             addActionListener {
@@ -131,12 +141,13 @@ class MainWindow(private val filename: String = "microide.ts") : JFrame("WARDuin
                     toolTipText = "Run"
                 }
                 else {
-                    if (!build())
+                    if (!build()) {
                         return@addActionListener
-
-                    val config = DebuggerConfig()
+                    }
                     errorPane.text = ""
-                    errorPane.foreground = Color.BLACK
+
+                    errorPane.text = ""
+                    errorPane.foreground = UIManager.getDefaults().getColor("Panel.foreground")
                     if (config.useEmulator) {
                         connection = ProcessConnection(config.wdcliPath, "test.wasm", "--no-socket")
                     }
@@ -184,25 +195,37 @@ class MainWindow(private val filename: String = "microide.ts") : JFrame("WARDuin
             }
         }
 
-        toolbar.add(JButton(FlatSVGIcon(javaClass.getResource("/save.svg"))).apply {
+        toolbar.add(JButton(ideaIcon("/save", config.lightMode)).apply {
             toolTipText = "Save"
             addActionListener {
                 save()
             }
         })
-        toolbar.add(JButton(FlatSVGIcon(javaClass.getResource("/build.svg"))).apply {
+        toolbar.add(JButton(ideaIcon("/build", config.lightMode)).apply {
             toolTipText = "Build"
             addActionListener {
                 build()
             }
         })
         toolbar.add(runButton)
+        toolbar.add(JButton(ideaIcon("/debug", config.lightMode)).apply {
+            toolTipText = "Debug"
+            //InteractiveDebugger()
+        })
 
         add(mainPanel)
     }
 
     fun initTheme() {
-        FlatMacLightLaf.setup()
+        setupFlatLafTheme(config)
+        errorPane.background = UIManager.getDefaults().getColor("Panel.background")
+        errorPane.foreground = UIManager.getDefaults().getColor("Panel.foreground")
+    }
+
+    fun ideaIcon(name: String, ligtMode: Boolean): Icon {
+        return FlatSVGIcon(
+            if (ligtMode) javaClass.getResource("$name.svg")
+            else javaClass.getResource("${name}_dark.svg"))
     }
 
     fun save() {

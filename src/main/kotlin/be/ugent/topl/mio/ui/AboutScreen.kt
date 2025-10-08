@@ -60,16 +60,20 @@ open class AboutScreen(protected val config: DebuggerConfig, w: Int = 400, h: In
                 }
             }
         }
-        if (config.lightMode) {
-            if (SystemInfo.isMacOS) FlatMacLightLaf.setup()
-            else FlatIntelliJLaf.setup()
+        setupFlatLafTheme(config)
+    }
+}
+
+fun setupFlatLafTheme(config: DebuggerConfig) {
+    if (config.lightMode) {
+        if (SystemInfo.isMacOS) FlatMacLightLaf.setup()
+        else FlatIntelliJLaf.setup()
+    }
+    else {
+        if (SystemInfo.isMacOS) {
+            FlatLaf.registerCustomDefaultsSource( "themes")
+            FlatMacDarkLaf.setup()
         }
-        else {
-            if (SystemInfo.isMacOS) {
-                FlatLaf.registerCustomDefaultsSource( "themes")
-                FlatMacDarkLaf.setup()
-            }
-            else FlatDarkLaf.setup()
-        }
+        else FlatDarkLaf.setup()
     }
 }
