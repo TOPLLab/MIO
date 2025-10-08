@@ -7,11 +7,11 @@
 -->
 <RSyntaxTheme version="1.0">
 
-	<!-- Omitting baseFont will use a system-appropriate monospaced. -->
+	<!-- 1e2025 20232a Omitting baseFont will use a system-appropriate monospaced. -->
 	<!--<baseFont family="..." size="13"/>-->
 
 	<!--  General editor colors. -->
-	<background color="1e1f22" />
+	<background color="20232a" />
 	<caret color="c1cbc2" />
 	<selection useFG="false" bg="404E51" roundedEdges="false" />
 	<currentLineHighlight color="2F393C" fade="false" />
