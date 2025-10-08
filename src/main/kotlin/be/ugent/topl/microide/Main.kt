@@ -5,15 +5,9 @@ import be.ugent.topl.mio.connections.Connection
 import be.ugent.topl.mio.connections.ProcessConnection
 import be.ugent.topl.mio.connections.SerialConnection
 import be.ugent.topl.mio.debugger.Debugger
-import be.ugent.topl.mio.ui.InteractiveDebugger
 import be.ugent.topl.mio.ui.setupFlatLafTheme
-import com.formdev.flatlaf.FlatDarkLaf
-import com.formdev.flatlaf.FlatIntelliJLaf
 import com.formdev.flatlaf.FlatLaf
-import com.formdev.flatlaf.FlatLightLaf
 import com.formdev.flatlaf.extras.FlatSVGIcon
-import com.formdev.flatlaf.themes.FlatMacDarkLaf
-import com.formdev.flatlaf.themes.FlatMacLightLaf
 import com.formdev.flatlaf.util.SystemInfo
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants
@@ -126,7 +120,21 @@ class MainWindow(private val filename: String = "microide.ts") : JFrame("WARDuin
             resizeWeight = 0.8
         }, BorderLayout.CENTER)
         val toolbar = JToolBar()
-        mainPanel.add(toolbar, BorderLayout.NORTH)
+        if (SystemInfo.isMacOS) {
+            if (SystemInfo.isMacFullWindowContentSupported) {
+                getRootPane().putClientProperty("apple.awt.fullWindowContent", true)
+                getRootPane().putClientProperty("apple.awt.transparentTitleBar", true)
+            }
+
+            val box = Box.createVerticalBox()
+            box.add(Box.createVerticalStrut(25))
+            box.add(toolbar)
+            toolbar.alignmentX = LEFT_ALIGNMENT
+            mainPanel.add(box, BorderLayout.NORTH)
+        }
+        else {
+            mainPanel.add(toolbar, BorderLayout.NORTH)
+        }
         val runIcon = ideaIcon("/run", config.lightMode)
         val stopIcon = ideaIcon("/stop", config.lightMode)
         val runButton = JButton(runIcon).apply {
