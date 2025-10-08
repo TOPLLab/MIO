@@ -33,7 +33,9 @@ fun main() {
         }
     }*/
 
-    System.setProperty( "apple.awt.application.appearance", "system" )
+    val config = DebuggerConfig()
+    if (config.lightMode) System.setProperty("apple.awt.application.appearance", "NSAppearanceNameAqua")
+    else System.setProperty("apple.awt.application.appearance", "NSAppearanceNameDarkAqua")
 
     val window = MainWindow()
     window.isVisible = true
