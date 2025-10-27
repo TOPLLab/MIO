@@ -290,9 +290,9 @@ class ConcolicTests : DebuggerTestBase() {
             end
         """.trimIndent())
             val result = getPathsFromWat(watString)
-            assertEquals(2,result.getPathCount())
-            assertNotNull(result.paths.find { it.value < 50 / v })
-            assertNotNull(result.paths.find { it.value >= 50 / v })
+            assertEquals(2,result.getPathCount(), "Found more or less paths than expected!")
+            assertEquals(1, result.paths.count { it.value < 50 / v })
+            assertEquals(1, result.paths.count { it.value >= 50 / v })
         }
 
         @Test
