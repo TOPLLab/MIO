@@ -58,7 +58,7 @@ jobs:
       run: ./gradlew setup
 
     - name: Test concolic execution engine
-      run: ./gradlew test --tests concolic.ConcolicTests --scan
+      run: ./gradlew test --tests concolic.ConcolicTests
 
   dependency-submission:
 
