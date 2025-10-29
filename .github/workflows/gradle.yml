@@ -49,6 +49,15 @@ jobs:
         name: MIO fatJar
         path: build/libs/mio.jar
 
+    - name: Install Z3
+      run: sudo apt install -y libz3-dev
+
+    - name: Setup MIO
+      run: ./gradlew setup
+
+    - name: Test concolic execution engine
+      run: ./gradlew test --tests concolic.ConcolicTests
+
   dependency-submission:
 
     runs-on: ubuntu-latest
