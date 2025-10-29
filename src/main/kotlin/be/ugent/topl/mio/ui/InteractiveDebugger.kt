@@ -749,7 +749,7 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
         concolicButton.isEnabled = enabled
         //customButton.isEnabled = enabled && multiverseDebugger.graph.currentNode is PrimitiveNode
         customButton.isEnabled = enabled
-        followButton.isEnabled = enabled
+        followButton.isEnabled = enabled && graphPanel.selectedNode != null
     }
 }
 

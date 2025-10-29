@@ -40,7 +40,8 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
     private var renderedHeight = 500
     private var renderedWidth = 2000
     private val nodes = mutableListOf<Node>()
-    private var selectedNode: Node? = null
+    var selectedNode: Node? = null
+        private set
 
     // Panning
     private var startPos = Point(0, 0)
