@@ -12,7 +12,7 @@ import javax.swing.JComboBox
 class PortBox(defaultPort: String? = null) : Box(BoxLayout.X_AXIS) {
     private val portComboBox = JComboBox<String>().apply {
         setAlignmentX(CENTER_ALIGNMENT)
-        maximumSize = Dimension(250, 500)
+        //maximumSize = Dimension(250, 500)
         for (port in SerialPort.getCommPorts()) {
             addItem(port.systemPortPath)
         }

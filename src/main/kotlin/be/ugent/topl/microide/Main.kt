@@ -5,6 +5,7 @@ import be.ugent.topl.mio.connections.Connection
 import be.ugent.topl.mio.connections.ProcessConnection
 import be.ugent.topl.mio.connections.SerialConnection
 import be.ugent.topl.mio.debugger.Debugger
+import be.ugent.topl.mio.ui.PortBox
 import be.ugent.topl.mio.ui.setupFlatLafTheme
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.extras.FlatSVGIcon
@@ -15,6 +16,7 @@ import org.fife.ui.rsyntaxtextarea.Theme
 import org.fife.ui.rtextarea.RTextScrollPane
 import java.awt.BorderLayout
 import java.awt.Color
+import java.awt.Component
 import java.awt.Dimension
 import java.awt.Font
 import java.io.File
@@ -34,16 +36,55 @@ fun main() {
     }*/
 
     val config = DebuggerConfig()
+
+    // Set theme.
     System.setProperty("apple.laf.useScreenMenuBar", "true")
     System.setProperty("apple.awt.application.name", "WARDuino IDE") //WAMIDE
     if (config.lightMode) System.setProperty("apple.awt.application.appearance", "NSAppearanceNameAqua")
     else System.setProperty("apple.awt.application.appearance", "NSAppearanceNameDarkAqua")
 
-    val window = MainWindow()
-    window.isVisible = true
+    // Open port selector.
+    setupFlatLafTheme(config)
+    val frame = JFrame("Select port")
+    frame.minimumSize = Dimension(400, 150)
+    frame.add(Box.createVerticalBox().apply {
+        alignmentX = Component.LEFT_ALIGNMENT
+        border = BorderFactory.createEmptyBorder(5, 5, 5, 5)
+        val portSelector = PortBox(config.port)
+        add(Box.Filler(
+            Dimension(0, 0),        // min
+            Dimension(0, 0),        // preferred
+            Dimension(0, Int.MAX_VALUE)   // max height → expands to fill all remaining space
+        ))
+        add(portSelector)
+        add(Box.createVerticalStrut(5))
+        val emulatorCheckbox = JCheckBox("Use emulator", config.useEmulator)
+        add(Box.createHorizontalBox().apply {
+            add(emulatorCheckbox)
+            add(Box.createHorizontalGlue())
+        })
+        add(Box.Filler(
+            Dimension(0, 0),        // min
+            Dimension(0, 0),        // preferred
+            Dimension(0, Int.MAX_VALUE)   // max height → expands to fill all remaining space
+        ))
+        add(Box.createHorizontalBox().apply {
+            add(Box.createHorizontalGlue())
+            add(JButton("Use").apply {
+                addActionListener {
+                    val window = MainWindow(portSelector.selectedPort!!, emulatorCheckbox.isSelected)
+                    window.isVisible = true
+                    frame.isVisible = false
+                    frame.dispose()
+                }
+            })
+        })
+    })
+    frame.defaultCloseOperation = WindowConstants.EXIT_ON_CLOSE
+    frame.isVisible = true
 }
 
-class MainWindow(private val filename: String = "microide.ts") : JFrame("WARDuino Micro IDE - $filename") {
+class MainWindow(private val port: String, private val useEmulator: Boolean, private val filename: String = "microide.ts") : JFrame("WARDuino Micro IDE - $filename") {
     private val config = DebuggerConfig()
     private var connection: Connection? = null
     private val errorPane = JTextPane().apply {
@@ -160,11 +201,11 @@ class MainWindow(private val filename: String = "microide.ts") : JFrame("WARDuin
 
                     errorPane.text = ""
                     errorPane.foreground = UIManager.getDefaults().getColor("Panel.foreground")
-                    if (config.useEmulator) {
+                    if (useEmulator) {
                         connection = ProcessConnection(config.wdcliPath, "test.wasm", "--no-socket")
                     }
                     else {
-                        val newConn = SerialConnection(config.port!!)
+                        val newConn = SerialConnection(port)
                         val debugger = Debugger(newConn)
                         debugger.updateModule("test.wasm")
                         debugger.run()
