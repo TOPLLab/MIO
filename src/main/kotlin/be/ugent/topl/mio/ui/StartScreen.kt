@@ -26,29 +26,8 @@ open class StartScreen(config: DebuggerConfig) : AboutScreen(config, 550, 400) {
     }
 
     override fun addOptions(mainPanel: JPanel) {
-        val portComboBox = JComboBox<String>().apply {
-            setAlignmentX(CENTER_ALIGNMENT)
-            maximumSize = Dimension(250, 500)
-            for (port in SerialPort.getCommPorts()) {
-                addItem(port.systemPortPath)
-            }
-            if (config.port != null) {
-                selectedItem = config.port
-            }
-        }
-        val portBox = Box.createHorizontalBox()
-        portBox.add(portComboBox)
-        portBox.add(JButton(FlatSVGIcon(javaClass.getResource("/refresh.svg"))).apply {
-            addActionListener {
-                val currentItem = portComboBox.selectedItem as String
-                portComboBox.removeAllItems()
-                for (port in SerialPort.getCommPorts()) {
-                    portComboBox.addItem(port.systemPortPath) // TODO: We can use the device name CONFIG_USB_DEVICE_PRODUCT
-                }
-                portComboBox.selectedItem = currentItem
-            }
-        })
-        mainPanel.add(portBox)
+        val portComboBox = PortBox(config.port)
+        mainPanel.add(portComboBox)
         val emulatorCheckbox = JCheckBox("Use emulator").apply {
             setAlignmentX(CENTER_ALIGNMENT)
             isSelected = config.useEmulator || config.port == null
@@ -74,7 +53,7 @@ open class StartScreen(config: DebuggerConfig) : AboutScreen(config, 550, 400) {
         fun open(selectedFile: File) {
             recentProperties.setProperty("lastDir", selectedFile.parent)
             recentProperties.store(FileWriter(recentConfig), null)
-            if(!startDebugger(selectedFile, emulatorCheckbox.isSelected, portComboBox.selectedItem as String?)) {
+            if(!startDebugger(selectedFile, emulatorCheckbox.isSelected, portComboBox.selectedPort)) {
                 JOptionPane.showMessageDialog(this, "Please select a port!", "Invalid port", JOptionPane.ERROR_MESSAGE)
                 return
             }
