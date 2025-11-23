@@ -3,11 +3,13 @@ package be.ugent.topl.mio.ui
 import be.ugent.topl.mio.DebuggerConfig
 import com.fazecast.jSerialComm.SerialPort
 import com.formdev.flatlaf.extras.FlatSVGIcon
+import java.awt.Color
 import java.awt.Dimension
 import javax.swing.Box
 import javax.swing.BoxLayout
 import javax.swing.JButton
 import javax.swing.JComboBox
+import javax.swing.UIManager
 
 class PortBox(defaultPort: String? = null) : Box(BoxLayout.X_AXIS) {
     private val portComboBox = JComboBox<String>().apply {
@@ -22,7 +24,11 @@ class PortBox(defaultPort: String? = null) : Box(BoxLayout.X_AXIS) {
     }
     init {
         add(portComboBox)
-        add(JButton(FlatSVGIcon(javaClass.getResource("/refresh.svg"))).apply {
+        val refreshIcon = FlatSVGIcon(javaClass.getResource("/refresh.svg")).apply {
+            colorFilter = FlatSVGIcon.ColorFilter()
+            colorFilter.add(Color.black, UIManager.getDefaults().getColor("Button.foreground"), UIManager.getDefaults().getColor("Button.foreground"))
+        }
+        add(JButton(refreshIcon).apply {
             addActionListener {
                 val currentItem = portComboBox.selectedItem as String
                 portComboBox.removeAllItems()
