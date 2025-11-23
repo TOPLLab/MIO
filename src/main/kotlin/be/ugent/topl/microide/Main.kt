@@ -98,6 +98,8 @@ class MainWindow(private val port: String, private val useEmulator: Boolean, pri
         defaultCloseOperation = EXIT_ON_CLOSE
         textArea.isEditable = true
         textArea.highlightCurrentLine = true
+        textArea.tabsEmulated = true
+        textArea.tabSize = 4
         val theme =
             if (!FlatLaf.isLafDark()) Theme.load(javaClass.getResourceAsStream("/light.xml"))
             else Theme.load(javaClass.getResourceAsStream("/dark.xml"))
@@ -306,7 +308,7 @@ class MainWindow(private val port: String, private val useEmulator: Boolean, pri
     fun build(): Boolean {
         save()
         errorPane.text = ""
-        errorPane.foreground = Color.RED
+        errorPane.foreground = Color(225, 28, 28)
         val process = ProcessBuilder("asc", "microide.ts", "-o", "test.wasm", "--disable", "mutable-globals", "--disable", "sign-extension", "--disable", "nontrapping-f2i", "--disable", "bulk-memory", "--sourceMap").redirectErrorStream(true).start()
         //thread {
         process.inputStream.bufferedReader().forEachLine {
