@@ -14,11 +14,7 @@ import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants
 import org.fife.ui.rsyntaxtextarea.Theme
 import org.fife.ui.rtextarea.RTextScrollPane
-import java.awt.BorderLayout
-import java.awt.Color
-import java.awt.Component
-import java.awt.Dimension
-import java.awt.Font
+import java.awt.*
 import java.io.File
 import java.nio.charset.Charset
 import javax.swing.*
@@ -73,6 +69,7 @@ fun main() {
             add(JButton("Use").apply {
                 addActionListener {
                     val window = MainWindow(portSelector.selectedPort!!, emulatorCheckbox.isSelected)
+                    window.setLocationRelativeTo(frame)
                     window.isVisible = true
                     frame.isVisible = false
                     frame.dispose()
@@ -80,6 +77,7 @@ fun main() {
             })
         })
     })
+    frame.setLocationRelativeTo(null)
     frame.defaultCloseOperation = WindowConstants.EXIT_ON_CLOSE
     frame.isVisible = true
 }
@@ -188,7 +186,12 @@ class MainWindow(private val port: String, private val useEmulator: Boolean, pri
                 val conn = connection
                 if (conn != null) {
                     println("Halt execution")
-                    conn.write("02\n".toByteArray(Charset.defaultCharset()))
+                    if (useEmulator) conn.write("02\n".toByteArray(Charset.defaultCharset()))
+                    else conn.write("03\n".toByteArray(Charset.defaultCharset()))
+                    /*val debugger = Debugger(conn)
+                    debugger.pause()
+                    debugger.close()*/
+                    conn.close()
                     connection = null
                     icon = runIcon
                     toolTipText = "Run"
@@ -209,9 +212,9 @@ class MainWindow(private val port: String, private val useEmulator: Boolean, pri
                         val debugger = Debugger(newConn)
                         debugger.updateModule("test.wasm")
                         debugger.run()
-                        debugger.close()
+                        debugger.close() // Also closes the connection so we re-open it again.
 
-                        connection = newConn
+                        connection = SerialConnection(port)
                     }
                     icon = stopIcon
                     toolTipText = "Stop"
