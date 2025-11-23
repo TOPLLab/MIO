@@ -102,6 +102,7 @@ class MainWindow(private val port: String, private val useEmulator: Boolean, pri
             if (!FlatLaf.isLafDark()) Theme.load(javaClass.getResourceAsStream("/light.xml"))
             else Theme.load(javaClass.getResourceAsStream("/dark.xml"))
         theme.apply(textArea)
+        textArea.font = Font.createFont(Font.TRUETYPE_FONT,  this.javaClass.getResourceAsStream("/fonts/JetBrainsMono-2.304/fonts/variable/JetBrainsMono[wght].ttf")).deriveFont(13f)
         textArea.syntaxEditingStyle = SyntaxConstants.SYNTAX_STYLE_TYPESCRIPT
         if (File(filename).exists()) {
             textArea.text = File(filename).readText(Charset.defaultCharset())
