@@ -309,7 +309,7 @@ class MainWindow(private val port: String, private val useEmulator: Boolean, pri
         save()
         errorPane.text = ""
         errorPane.foreground = Color(225, 28, 28)
-        val process = ProcessBuilder("asc", "microide.ts", "-o", "test.wasm", "--disable", "mutable-globals", "--disable", "sign-extension", "--disable", "nontrapping-f2i", "--disable", "bulk-memory", "--sourceMap").redirectErrorStream(true).start()
+        val process = ProcessBuilder("asc", "microide.ts", "-o", "test.wasm", "--disable", "mutable-globals", "--disable", "sign-extension", "--disable", "nontrapping-f2i", "--disable", "bulk-memory", "--sourceMap", "-Osize").redirectErrorStream(true).start()
         //thread {
         process.inputStream.bufferedReader().forEachLine {
             println(it)
