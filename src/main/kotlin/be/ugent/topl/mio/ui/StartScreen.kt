@@ -3,16 +3,16 @@ package be.ugent.topl.mio.ui
 import be.ugent.topl.mio.DebuggerConfig
 import be.ugent.topl.mio.connections.ProcessConnection
 import be.ugent.topl.mio.connections.SerialConnection
+import be.ugent.topl.mio.sourcemap.AsSourceMapping
 import com.fazecast.jSerialComm.SerialPort
 import com.formdev.flatlaf.extras.FlatSVGIcon
-import be.ugent.topl.mio.sourcemap.AsSourceMapping
+import com.formdev.flatlaf.util.SystemFileChooser
 import java.awt.Dimension
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileWriter
-import java.util.Properties
+import java.util.*
 import javax.swing.*
-import javax.swing.filechooser.FileNameExtensionFilter
 
 open class StartScreen(config: DebuggerConfig) : AboutScreen(config) {
     init {
@@ -53,12 +53,13 @@ open class StartScreen(config: DebuggerConfig) : AboutScreen(config) {
         if (File(recentConfig).exists()) {
             recentProperties.load(FileInputStream(recentConfig))
         }
+        val chooser = SystemFileChooser(recentProperties.getOrDefault("lastDir", "").toString()).apply {
+            fileSelectionMode = JFileChooser.FILES_ONLY
+            fileFilter = SystemFileChooser.FileNameExtensionFilter("WebAssembly binaries (.wasm)", "wasm")
+        }
         mainPanel.add(JButton("Select program").apply {
             setAlignmentX(CENTER_ALIGNMENT)
             addActionListener {
-                val chooser = JFileChooser(recentProperties.getOrDefault("lastDir", "").toString())
-                chooser.fileSelectionMode = JFileChooser.FILES_ONLY
-                chooser.fileFilter = FileNameExtensionFilter("WebAssembly binaries (.wasm)", "wasm")
                 if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
                     recentProperties.setProperty("lastDir", chooser.selectedFile.parent)
                     recentProperties.store(FileWriter(recentConfig), null)

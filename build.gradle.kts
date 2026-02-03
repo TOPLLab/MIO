@@ -22,8 +22,8 @@ dependencies {
     implementation("com.fazecast:jSerialComm:[2.0.0,3.0.0)")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.15.2")
-    implementation("com.formdev:flatlaf:3.6")
-    implementation("com.formdev:flatlaf-extras:3.6")
+    implementation("com.formdev:flatlaf:3.7")
+    implementation("com.formdev:flatlaf-extras:3.7")
     implementation("com.fifesoft:rsyntaxtextarea:3.5.2")
 
     // Needed for AssemblyScript source mapping:
