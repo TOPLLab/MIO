@@ -4,9 +4,13 @@ import WasmBinary
 import be.ugent.topl.mio.DebuggerConfig
 import be.ugent.topl.mio.connections.Connection
 import be.ugent.topl.mio.debugger.ConstraintParser
+import be.ugent.topl.mio.debugger.ContinueForAction
 import be.ugent.topl.mio.debugger.Debugger
+import be.ugent.topl.mio.debugger.MultiverseAction
 import be.ugent.topl.mio.debugger.MultiverseDebugger
+import be.ugent.topl.mio.debugger.OverrideAction
 import be.ugent.topl.mio.debugger.PrimitiveNode
+import be.ugent.topl.mio.debugger.ResetAction
 import be.ugent.topl.mio.sourcemap.SourceMap
 import be.ugent.topl.mio.woodstate.Checkpoint
 import be.ugent.topl.mio.woodstate.WOODDumpResponse
@@ -461,23 +465,6 @@ class InteractiveDebugger(
     }
 }
 
-interface MultiverseAction {
-    fun doAction()
-}
-
-class OverrideAction(val debugger: Debugger, val node: PrimitiveNode, val index: Int) : MultiverseAction {
-    override fun doAction() {
-        debugger.addPrimitiveOverride(node.primitive, node.arg, node.values[index])
-    }
-
-}
-
-class ContinueForAction(val debugger: Debugger, var n: Int) : MultiverseAction {
-    override fun doAction() {
-        debugger.continueFor(n)
-    }
-}
-
 class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config: DebuggerConfig, stateChanged: (c: Checkpoint?, b: Double) -> Unit) : JPanel() {
     private val graphPanel = GraphPanel(multiverseDebugger.graph)
     private val mockPanel = OverridesPanel()
@@ -548,6 +535,9 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
 
                 multiverseDebugger.printCheckpoints(multiverseDebugger.wasmBinary.metadata)
 
+                val actions = multiverseDebugger.graph.navigationOperations(graphPanel.selectedValue!!)
+                println(actions)
+
                 val backwardsLength = graphPanel.selectedPath!!.first.size
                 val forwardsLength = graphPanel.selectedPath!!.second.size
                 val totalLength = backwardsLength + forwardsLength
@@ -563,19 +553,6 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
 
                 val forwardPath = graphPanel.selectedPath!!.second.toMutableList()
                 val actionPath = mutableListOf<MultiverseAction>()
-                for (i in 1..<forwardPath.size) {
-                    val a = forwardPath[i - 1]
-                    val b = forwardPath[i]
-                    val index = a.children.indexOf(b)
-                    if (a is PrimitiveNode) {
-                        actionPath.add(OverrideAction(multiverseDebugger, a, index))
-                    }
-                    if (actionPath.isEmpty() || actionPath.last() is OverrideAction) {
-                        actionPath.add(ContinueForAction(multiverseDebugger, 0))
-                    }
-                    val lastAction = actionPath.last() as ContinueForAction
-                    lastAction.n++
-                }
                 if (graphPanel.reset) {
                     if (JOptionPane.showConfirmDialog(this, "This operation will restart the execution, continue?", "Restart program", YES_NO_OPTION, ERROR_MESSAGE) == JOptionPane.NO_OPTION) {
                         customButton.isEnabled = true
@@ -585,10 +562,23 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
                         stateChanged(null, 1.0)
                         return@thread
                     }
-                    multiverseDebugger.reset()
+                    actionPath.add(ResetAction())
+                }
+                for (i in 1..<forwardPath.size) {
+                    val a = forwardPath[i - 1]
+                    val b = forwardPath[i]
+                    val index = a.children.indexOf(b)
+                    if (a is PrimitiveNode) {
+                        actionPath.add(OverrideAction(a, index))
+                    }
+                    if (actionPath.isEmpty() || actionPath.last() is OverrideAction || actionPath.last() is ResetAction) {
+                        actionPath.add(ContinueForAction(0))
+                    }
+                    val lastAction = actionPath.last() as ContinueForAction
+                    lastAction.n++
                 }
                 for (action in actionPath) {
-                    action.doAction()
+                    action.doAction(multiverseDebugger)
                     if (action is ContinueForAction) {
                         finishedSteps += action.n
                         stateChanged(multiverseDebugger.checkpoints.last(), finishedSteps / totalLength.toDouble())

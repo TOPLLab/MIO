@@ -50,6 +50,10 @@ class MultiverseGraph(var rootNode: MultiverseNode = MultiverseNode(), var curre
         currentNode = last
         return currentNode
     }
+
+    fun navigationOperations(destination: MultiverseNode): List<MultiverseAction> {
+        return rootNode.navigationOperations(currentNode, destination)
+    }
 }
 
 open class MultiverseNode(val children: MutableList<MultiverseNode> = mutableListOf(), val values: MutableList<Int> = mutableListOf(), var parent: MultiverseNode? = null) {
@@ -95,6 +99,34 @@ open class MultiverseNode(val children: MutableList<MultiverseNode> = mutableLis
             }
         }
         throw IllegalStateException("There should always be a lowest common ancestor between two nodes in a tree!")
+    }
+
+    fun navigationOperations(start: MultiverseNode, end: MultiverseNode): List<MultiverseAction> {
+        fun buildActionPath(forwardPath: List<MultiverseNode>, actionPath: MutableList<MultiverseAction>) {
+            for (i in 1..<forwardPath.size) {
+                val a = forwardPath[i - 1]
+                val b = forwardPath[i]
+                val index = a.children.indexOf(b)
+                if (a is PrimitiveNode) {
+                    actionPath.add(OverrideAction(a, index))
+                }
+                if (actionPath.isEmpty() || actionPath.last() is OverrideAction || actionPath.last() is ResetAction) {
+                    actionPath.add(ContinueForAction(0))
+                }
+                val lastAction = actionPath.last() as ContinueForAction
+                lastAction.n++
+            }
+        }
+
+        val actions = mutableListOf<MultiverseAction>()
+        if (start.findPath(end).isEmpty()) {
+            actions.add(ResetAction())
+            buildActionPath(findPath(end), actions)
+        }
+        else {
+            buildActionPath(start.findPath(end), actions)
+        }
+        return actions
     }
 
     fun addChild(n: MultiverseNode) {
@@ -149,6 +181,34 @@ class PrimitiveNode(val primitive: String, val arg: Int, children: MutableList<M
 
     override fun nextNode(stackValue: WasmStackValue): MultiverseNode {
         return children[values.indexOf(stackValue.value.toInt())]
+    }
+}
+
+interface MultiverseAction {
+    fun doAction(debugger: Debugger)
+}
+
+class StepBackAction(val n: Int, val wasmBinary: WasmBinary, val stepDone: () -> Unit = {}) : MultiverseAction {
+    override fun doAction(debugger: Debugger) {
+        debugger.stepBack(n, wasmBinary.metadata, stepDone)
+    }
+}
+
+class ResetAction() : MultiverseAction {
+    override fun doAction(debugger: Debugger) {
+        debugger.reset()
+    }
+}
+
+class OverrideAction(val node: PrimitiveNode, val index: Int) : MultiverseAction {
+    override fun doAction(debugger: Debugger) {
+        debugger.addPrimitiveOverride(node.primitive, node.arg, node.values[index])
+    }
+}
+
+class ContinueForAction(var n: Int) : MultiverseAction {
+    override fun doAction(debugger: Debugger) {
+        debugger.continueFor(n)
     }
 }
 
@@ -323,6 +383,7 @@ class MultiverseDebugger(
         // Don't add new nodes if we are walking on an existing graph section.
         if (graph.currentNode.children.isNotEmpty()) {
             if (checkpoint != null && isAfterChoicePoint(checkpoint.snapshot.pc!!)) {
+                // Is after a choicepoint, follow the return value.
                 val stackValue = checkpoint.snapshot.stack!!.last()
                 val intValue = stackValue.value.toInt()
                 if (graph.currentNode is PrimitiveNode) {
@@ -338,9 +399,11 @@ class MultiverseDebugger(
                 }
             }
             else if (graph.currentNode.children.size == 1) {
+                // Not after a choicepoint and node only has one child, just follow.
                 graph.currentNode = graph.currentNode.children.first()
             }
             else {
+                // Should be impossible.
                 throw RuntimeException("Don't know where to go! ${graph.currentNode.displayName}")
             }
             return
@@ -352,12 +415,11 @@ class MultiverseDebugger(
     }
 
     private fun newNodeFromCheckpoint(checkpoint: Checkpoint?): MultiverseNode {
-        //  TODO: We need to know if we are after a choicepoint
         var newNode = MultiverseNode()
-        // TODO: Enable this again once the VM gives us information about the argument being used
-        /*if (checkpoint != null && isChoicePoint(checkpoint.pc!!)) {
-            newNode = PrimitiveNode("non-deterministic-primitive", 0)
-            newNode.values.add(0)
+        /*if (checkpoint != null && isChoicePoint(checkpoint.snapshot.pc!!)) {
+            val argument = checkpoint.snapshot.stack!!.last()
+            // TODO: We need to know the name of the primitive here:
+            newNode = PrimitiveNode("non-deterministic-primitive", argument.value.toInt())
         }*/
         return newNode
     }
