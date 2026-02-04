@@ -3,7 +3,6 @@ package be.ugent.topl.mio.ui
 import be.ugent.topl.mio.debugger.DeterministicPrimitiveNode
 import be.ugent.topl.mio.debugger.MultiverseGraph
 import be.ugent.topl.mio.debugger.MultiverseNode
-import be.ugent.topl.mio.debugger.PrimitiveNode
 import com.formdev.flatlaf.FlatLaf
 import java.awt.BasicStroke
 import java.awt.Color
@@ -21,13 +20,12 @@ import java.awt.event.MouseWheelListener
 import java.awt.geom.Path2D
 import java.awt.image.BufferedImage
 import java.io.File
-import java.lang.Integer.max
 import javax.imageio.ImageIO
-import javax.imageio.ImageWriter
 import javax.swing.JPanel
 import javax.swing.JScrollPane
 import javax.swing.UIManager
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
     MouseListener, MouseMotionListener, MouseWheelListener {
@@ -62,14 +60,44 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         return Dimension((renderedWidth * scaleFactor).toInt(), (renderedHeight * scaleFactor).toInt())
     }
 
+    var xOffset = 0
+    var yOffset = 0
     override fun paintComponent(g: Graphics) {
         super.paintComponent(g)
         val g2 = g as Graphics2D
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
         g2.stroke = BasicStroke(2.0f)
+
+        drawMiniMap(g2)
+
         g2.scale(scaleFactor, scaleFactor)
+        g2.translate(-xOffset, -yOffset)
 
         drawPaths(g, graph.rootNode)
+    }
+
+    fun drawMiniMap(g: Graphics2D) {
+        //g.drawString("camera pos = ($xOffset, $yOffset)", 5, 10)
+        if (scaleFactor != 1.0) {
+            val zoomStr = "${(scaleFactor * 100).roundToInt()}%"
+            val zoomStrWidth = getFontMetrics(g.font).stringWidth(zoomStr)
+            g.drawString(zoomStr, width - zoomStrWidth, 10)
+        }
+        g.color = Color(100, 100, 100, 50)
+        g.fillRect(0, 0, (renderedWidth  * 0.01f).roundToInt(), (renderedHeight * 0.01f).roundToInt())
+        g.color = Color(255, 150, 150, 150)
+        val cameraPosX = (xOffset * 0.01f).roundToInt()
+        val cameraPosY = (yOffset * 0.01f).roundToInt()
+        val cameraWidth = (width/scaleFactor  * 0.01f).roundToInt()
+        val cameraHeight = (height/scaleFactor * 0.01f).roundToInt()
+        g.fillRect(cameraPosX, cameraPosY, cameraWidth, cameraHeight)
+        g.color = Color(255, 150, 150, 255)
+        g.drawRect(cameraPosX, cameraPosY, cameraWidth, cameraHeight)
+        /*g.color = Color(200, 100, 100, 255)
+        g.drawString("C", cameraPosX, cameraPosY + 10)*/
+        g.scale(0.01, 0.01)
+        drawPaths(g, graph.rootNode)
+        g.scale(100.0, 100.0)
     }
 
     fun saveImage(filename: String) {
@@ -253,8 +281,8 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
             return
         }
 
-        val x = e.x/scaleFactor
-        val y = e.y/scaleFactor
+        val x = e.x/scaleFactor + xOffset
+        val y = e.y/scaleFactor + yOffset
         for (node in nodes) {
             if (x > node.x && y > node.y && x < node.x + node.w && y < node.y + node.h) {
                 selectedNode = node
@@ -279,6 +307,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
     }
 
     override fun mousePressed(p0: MouseEvent) {
+        println("Mouse pressed")
         startPos = p0.point
     }
 
@@ -290,16 +319,21 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
 
     override fun mouseDragged(e: MouseEvent) {
         val delta = Point(e.x - startPos.x, e.y - startPos.y)
-        associatedScrollPane?.horizontalScrollBar?.value -= delta.x
-        associatedScrollPane?.verticalScrollBar?.value -= delta.y
+        println("" + e.x + " " + e.y)
+        /*associatedScrollPane?.horizontalScrollBar?.value -= delta.x
+        associatedScrollPane?.verticalScrollBar?.value -= delta.y*/
+        xOffset -= (delta.x / scaleFactor).toInt()
+        yOffset -= (delta.y / scaleFactor).toInt()
+        repaint()
+        startPos = Point(e.x, e.y)
     }
 
     override fun mouseMoved(e: MouseEvent) {
         cursor = Cursor(Cursor.DEFAULT_CURSOR)
         var hit = false
         for (node in nodes) {
-            val x = e.x/scaleFactor
-            val y = e.y/scaleFactor
+            val x = e.x/scaleFactor + xOffset
+            val y = e.y/scaleFactor + yOffset
             if (x > node.x && y > node.y && x < node.x + node.w && y < node.y + node.h) {
                 hit = true
                 break
@@ -315,12 +349,27 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         val adjustment = e.wheelRotation / 20.0
         scaleFactor += adjustment
         scaleFactor = kotlin.math.max(0.1, scaleFactor)
-        associatedScrollPane?.horizontalScrollBar?.value = ((associatedScrollPane?.horizontalScrollBar?.value!! / oldScaleFactor) * scaleFactor).toInt()
-        associatedScrollPane?.verticalScrollBar?.value = ((associatedScrollPane?.verticalScrollBar?.value!! / oldScaleFactor) * scaleFactor).toInt()
+        /*val oldW = height * oldScaleFactor
+        val newW = height * scaleFactor
+        val delta = (newW - oldW)/scaleFactor
+        yOffset += (delta/2).toInt()*/
+
+        val oldH = height/oldScaleFactor
+        val newH = height/scaleFactor
+        val deltaH = (newH - oldH)
+        yOffset -= (deltaH/2).toInt()
+
+        val oldW = width/oldScaleFactor
+        val newW = width/scaleFactor
+        val deltaW = (newW - oldW)
+        xOffset -= (deltaW/2).toInt()
+
+        /*associatedScrollPane?.horizontalScrollBar?.value = ((associatedScrollPane?.horizontalScrollBar?.value!! / oldScaleFactor) * scaleFactor).toInt()
+        associatedScrollPane?.verticalScrollBar?.value = ((associatedScrollPane?.verticalScrollBar?.value!! / oldScaleFactor) * scaleFactor).toInt()*/
         println("Scale = $scaleFactor")
         repaint()
 
-        associatedScrollPane?.verticalScrollBar?.revalidate()
-        associatedScrollPane?.horizontalScrollBar?.revalidate()
+        /*associatedScrollPane?.verticalScrollBar?.revalidate()
+        associatedScrollPane?.horizontalScrollBar?.revalidate()*/
     }
 }
