@@ -97,9 +97,9 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         g.drawRect(cameraPosX, cameraPosY, cameraWidth, cameraHeight)
         /*g.color = Color(200, 100, 100, 255)
         g.drawString("C", cameraPosX, cameraPosY + 10)*/
-        g.scale(0.01, 0.01)
+        /*g.scale(0.01, 0.01)
         drawPaths(g, graph.rootNode)
-        g.scale(100.0, 100.0)
+        g.scale(100.0, 100.0)*/
     }
 
     fun saveImage(filename: String) {
@@ -319,7 +319,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
     override fun mouseWheelMoved(e: MouseWheelEvent) {
         val oldScaleFactor = scaleFactor
         val adjustment = e.wheelRotation / 20.0
-        scaleFactor += adjustment
+        scaleFactor -= adjustment
         scaleFactor = kotlin.math.max(0.1, scaleFactor)
         /*val oldW = height * oldScaleFactor
         val newW = height * scaleFactor
