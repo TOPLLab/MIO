@@ -16,17 +16,20 @@ import java.awt.RenderingHints
 import java.awt.event.MouseEvent
 import java.awt.event.MouseListener
 import java.awt.event.MouseMotionListener
+import java.awt.event.MouseWheelEvent
+import java.awt.event.MouseWheelListener
 import java.awt.geom.Path2D
 import javax.swing.JPanel
 import javax.swing.JScrollPane
 import javax.swing.UIManager
 
 class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
-    MouseListener, MouseMotionListener {
+    MouseListener, MouseMotionListener, MouseWheelListener {
     private var selectionListeners = mutableListOf<() -> Unit>()
     init {
         addMouseListener(this)
         addMouseMotionListener(this)
+        addMouseWheelListener(this)
     }
     private val textColour = UIManager.getDefaults().getColor("RadioButton.foreground")
     //private val borderColour = Color(125, 125, 125)
@@ -51,7 +54,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
     data class Node(val x: Int, val y: Int, val w: Int, val h: Int, val value: MultiverseNode)
 
     override fun getPreferredSize(): Dimension {
-        return Dimension(renderedWidth, renderedHeight)
+        return Dimension((renderedWidth * scaleFactor).toInt(), (renderedHeight * scaleFactor).toInt())
     }
 
     override fun paintComponent(g: Graphics) {
@@ -59,6 +62,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         val g2 = g as Graphics2D
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
         g2.stroke = BasicStroke(2.0f)
+        g2.scale(scaleFactor, scaleFactor)
 
         drawPaths(g, width - 100, graph.rootNode)
     }
@@ -192,8 +196,10 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
             return
         }
 
+        val x = e.x/scaleFactor
+        val y = e.y/scaleFactor
         for (node in nodes) {
-            if (e.x > node.x && e.y > node.y && e.x < node.x + node.w && e.y < node.y + node.h) {
+            if (x > node.x && y > node.y && x < node.x + node.w && y < node.y + node.h) {
                 selectedNode = node
             }
         }
@@ -228,11 +234,29 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         cursor = Cursor(Cursor.DEFAULT_CURSOR)
         var hit = false
         for (node in nodes) {
-            if (e.x > node.x && e.y > node.y && e.x < node.x + node.w && e.y < node.y + node.h) {
+            val x = e.x/scaleFactor
+            val y = e.y/scaleFactor
+            if (x > node.x && y > node.y && x < node.x + node.w && y < node.y + node.h) {
                 hit = true
                 break
             }
         }
         cursor = if(hit) Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) else Cursor.getDefaultCursor()
+    }
+
+    private var scaleFactor = 1.0
+
+    override fun mouseWheelMoved(e: MouseWheelEvent) {
+        val oldScaleFactor = scaleFactor
+        val adjustment = e.wheelRotation / 20.0
+        scaleFactor += adjustment
+        scaleFactor = kotlin.math.max(0.1, scaleFactor)
+        associatedScrollPane?.horizontalScrollBar?.value = ((associatedScrollPane?.horizontalScrollBar?.value!! / oldScaleFactor) * scaleFactor).toInt()
+        associatedScrollPane?.verticalScrollBar?.value = ((associatedScrollPane?.verticalScrollBar?.value!! / oldScaleFactor) * scaleFactor).toInt()
+        println("Scale = $scaleFactor")
+        repaint()
+
+        associatedScrollPane?.verticalScrollBar?.revalidate()
+        associatedScrollPane?.horizontalScrollBar?.revalidate()
     }
 }
