@@ -4,7 +4,10 @@ import be.ugent.topl.mio.debugger.MultiverseNode
 import be.ugent.topl.mio.debugger.PrimitiveNode
 import be.ugent.topl.mio.woodstate.WOODState
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import java.nio.file.Files
+import java.nio.file.Path
 import java.util.*
 
 data class SymbolicValueMapping(val primitive: String, val arg: Int, val value: Int, val time_step: Int, val paths: List<SymbolicValueMapping>) {
@@ -43,6 +46,14 @@ fun analyse(wdcliPath: String, wasmFile: String, jsonSnapshot: String?, maxInstr
     else {
         listOf(wdcliPath, wasmFile, "--no-socket", "--mode", "concolic", "--max-instructions", "$maxInstructions", "--max-symbolic-variables", "$maxSymbolicVariables", "--max-iterations", "$maxIterations", "--stop-at-pc", "$stopPc")
     }
+
+    //val currentLine = Files.readString(Path.of("/Users/maarten/Documents/Writing/concolic-multiverse-debugging-paper/pruned.json"))
+    //val currentLine = Files.readString(Path.of("/Users/maarten/Documents/Writing/concolic-multiverse-debugging-paper/pruned-modified.json"))
+    val currentLine = Files.readString(Path.of("/Users/maarten/Library/Application Support/JetBrains/PyCharm2025.2/scratches/test.json"))
+    val result = ObjectMapper().apply{
+        registerKotlinModule()
+    }.readValue(currentLine, ConcolicAnalysisResult::class.java)
+    return ConcolicAnalysisResult(result.paths.sortedBy { it.value })
 
     println("Running command: ${command.joinToString(" ") }")
     val process = ProcessBuilder(command).redirectErrorStream(true).start()

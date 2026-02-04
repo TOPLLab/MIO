@@ -8,6 +8,8 @@ import be.ugent.topl.mio.connections.Connection
 import be.ugent.topl.mio.woodstate.Checkpoint
 import be.ugent.topl.mio.woodstate.WOODDumpResponse
 import be.ugent.topl.mio.woodstate.WasmStackValue
+import kotlin.math.max
+import kotlin.math.min
 
 class MultiverseGraph(var rootNode: MultiverseNode = MultiverseNode(), var currentNode: MultiverseNode = rootNode) {
     fun replaceCurrentNode(newNode: MultiverseNode) {
@@ -62,6 +64,15 @@ open class MultiverseNode(val children: MutableList<MultiverseNode> = mutableLis
 
     open val edgeLength: Int
         get() = 30
+
+    open val remainingDepth: Int
+        get() {
+            if (children.isEmpty()) {
+                return 0
+            }
+
+            return children[0].remainingDepth + 1
+        }
 
     private fun findPath(n: MultiverseNode, path: MutableList<MultiverseNode>): Boolean {
         if (this == n)
@@ -169,7 +180,11 @@ class PrimitiveNode(val primitive: String, val arg: Int, children: MutableList<M
         get() = "$primitive($arg)"
 
     override val edgeLength: Int
-        get() = 135
+        get() {
+            return (115 + min(20, children.size) * 10) * max(1, remainingDepth/4)
+            // Used for chunking:
+            //return (115 + children.size * 2) * max(1, remainingDepth/8)
+        }
 
     override fun nextNode(overrides: Map<String,Map<Int, Int>>): MultiverseNode {
         val returnValue = overrides[primitive]?.get(arg)

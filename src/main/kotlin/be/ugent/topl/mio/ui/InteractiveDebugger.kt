@@ -513,6 +513,8 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
                 if (!graphChanged) {
                     JOptionPane.showMessageDialog(this, "No future branching paths could be found")
                 }
+                graphPanel.repaint()
+                graphPanel.saveImage("test.png")
             }
         }
 

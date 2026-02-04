@@ -17,9 +17,15 @@ import java.awt.event.MouseEvent
 import java.awt.event.MouseListener
 import java.awt.event.MouseMotionListener
 import java.awt.geom.Path2D
+import java.awt.image.BufferedImage
+import java.io.File
+import java.lang.Integer.max
+import javax.imageio.ImageIO
+import javax.imageio.ImageWriter
 import javax.swing.JPanel
 import javax.swing.JScrollPane
 import javax.swing.UIManager
+import kotlin.math.min
 
 class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
     MouseListener, MouseMotionListener {
@@ -58,11 +64,41 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         val g2 = g as Graphics2D
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
         g2.stroke = BasicStroke(2.0f)
+        //g2.scale(0.5, 0.5)
 
-        drawPaths(g, width - 100, graph.rootNode)
+        drawPaths(g, graph.rootNode)
     }
 
-    private fun drawPaths(g: Graphics2D, width: Int, rootNode: MultiverseNode) {
+    fun saveImage(filename: String) {
+        println("Full graph size $renderedWidth x $renderedHeight")
+        //300000
+        //val image = BufferedImage(renderedWidth, renderedHeight, BufferedImage.TYPE_INT_RGB)
+        val imageSize = 30000
+        var imageWidth = min(imageSize, renderedWidth)
+        var imageHeight = min(imageSize, renderedHeight)
+        if (renderedWidth * renderedHeight < Integer.MAX_VALUE) {
+            imageWidth = renderedWidth - 450
+            imageHeight = renderedHeight
+        }
+        val image = BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_RGB)
+        val g = image.createGraphics().apply {
+            setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+            stroke = BasicStroke(2.0f)
+            //translate(-(renderedWidth/2 - imageWidth/2),-(renderedHeight/2 - imageHeight/2))
+            // Used for chunks:
+            //translate(-(renderedWidth - imageWidth),-(renderedHeight/2 - imageHeight/2) + imageHeight * 3)
+        }
+        g.color = backgroundColour
+        g.fillRect(0, 0, renderedWidth, renderedHeight)
+        println("Drawing multiverse tree...")
+        drawPaths(g, graph.rootNode)
+        println("Finished drawing, writing to file...")
+        g.dispose()
+        ImageIO.write(image, "png", File(filename))
+        println("Finished writing")
+    }
+
+    private fun drawPaths(g: Graphics2D, rootNode: MultiverseNode) {
         val xStart = g.fontMetrics.stringWidth(rootNode.displayName)/2
         val yPadding = 15
         renderedHeight = drawGraph(g, rootNode, x = xStart + 5, yPadding).second + yPadding
@@ -71,10 +107,19 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
     private fun drawGraph(g: Graphics2D, node: MultiverseNode, x: Int = 0, y: Int = 0): Pair<Point, Int> {
         val newPoints = mutableListOf<Point>()
         var currentHeight = 0
-        for (child in node.children) {
-            val l = if (child.edgeLength > node.edgeLength && child is PrimitiveNode) child.edgeLength else node.edgeLength
+        val children = node.children.subList(0, min(20, node.children.size)).toMutableList()
+        if (children.size > 1) {
+            children.add(node.children.last())
+        }
+        for (i in children.indices) {
+            val child = children[i]
+        //for (child in node.children.subList(0, node.children.size)) {
+            //val l = if (child.edgeLength > node.edgeLength && child is PrimitiveNode) child.edgeLength else node.edgeLength
+            val l = node.edgeLength
             val result = drawGraph(g, child, x + l, y + currentHeight)
             currentHeight += result.second
+            if (i == children.size - 2)
+                currentHeight += 40
             newPoints.add(result.first)
             renderedWidth = Integer.max(renderedWidth, x + node.edgeLength + 500)
         }
@@ -120,7 +165,12 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
                 if (completedPath.contains(node.children[i]))
                     g.color = green
             }
-            curvedLine(point.x + d, point.y + d/2, newPoints[i].x, newPoints[i].y + d/2, g, if (i < node.values.size) "${node.values[i]}" else null)
+            if (i == children.size - 1) {
+                curvedLine(point.x + d, point.y + d/2, newPoints[i].x, newPoints[i].y + d/2, g, if (i < node.values.size) "${node.values.last()}" else null)
+            }
+            else {
+                curvedLine(point.x + d, point.y + d/2, newPoints[i].x, newPoints[i].y + d/2, g, if (i < node.values.size) "${node.values[i]}" else null)
+            }
             g.color = borderColour
         }
         nodes.add(Node(point.x, point.y, d, d, node))
@@ -161,6 +211,14 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
             g.fillRoundRect((cx - textWidth/2).toInt() - padding/2, (cy + textHeight/2).toInt() - textHeight.toInt() - padding/2, bounds.width.toInt() + padding, textHeight.toInt() + padding, 10, 10)
             g.color = textColour
             g.drawString(str, (cx - textWidth/2).toInt(), (cy + textHeight/2).toInt())
+
+            if (str == "4095") {
+                val textWidth = g.fontMetrics.stringWidth("...")
+                /*g.color = UIManager.getDefaults().getColor("Panel.background")
+                g.fillRoundRect((cx - textWidth/2).toInt() - padding/2, (cy + textHeight/2 - 20).toInt() - textHeight.toInt() - padding/2, bounds.width.toInt() + padding, textHeight.toInt() + padding, 10, 10)*/
+                g.color = textColour
+                g.drawString("...", (cx - textWidth/2).toInt(), (cy + textHeight/2 - 20).toInt())
+            }
         }
 
         /*g.fillOval(x1, y1, 10, 10)
