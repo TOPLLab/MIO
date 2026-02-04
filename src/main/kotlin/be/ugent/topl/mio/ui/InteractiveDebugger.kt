@@ -495,7 +495,10 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
         /*add(JSplitPane(JSplitPane.VERTICAL_SPLIT, scrollpane, mockPanel).apply {
             resizeWeight = 0.7
         })*/
-        add(graphPanel)
+        add(JPanel(BorderLayout()).apply {
+            border = UIManager.getDefaults().getBorder("ScrollPane.border")
+            add(graphPanel)
+        })
         //add(OverridesPanel(), BorderLayout.EAST)
         add(JPanel(FlowLayout(FlowLayout.RIGHT)).apply {
             if (config.concolic) {
