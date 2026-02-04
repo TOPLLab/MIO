@@ -11,6 +11,7 @@ import java.awt.Dimension
 import java.awt.Graphics
 import java.awt.Graphics2D
 import java.awt.Point
+import java.awt.Rectangle
 import java.awt.RenderingHints
 import java.awt.event.MouseEvent
 import java.awt.event.MouseListener
@@ -44,8 +45,8 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
     private val green = if (!FlatLaf.isLafDark()) Color(89, 158, 94) else Color(136, 207, 131)
     private val d = 20
     private val hSpace = 100
-    private var renderedHeight = 500
-    private var renderedWidth = 2000
+    private var renderedHeight = 100
+    private var renderedWidth = 100
     private val nodes = mutableListOf<Node>()
     private var selectedNode: Node? = null
 
@@ -68,36 +69,53 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
         g2.stroke = BasicStroke(2.0f)
 
-        drawMiniMap(g2)
-
         g2.scale(scaleFactor, scaleFactor)
         g2.translate(-xOffset, -yOffset)
 
         drawPaths(g, graph.rootNode)
+
+        g2.translate(xOffset, yOffset)
+        g2.scale(1/scaleFactor, 1/scaleFactor)
+
+        drawMiniMap(g2)
     }
 
     fun drawMiniMap(g: Graphics2D) {
+        //val scale = min(100.0/renderedHeight, width.toDouble()/renderedWidth)
+        val scale = min(100.0/renderedHeight, (100.0 * width/height)/renderedWidth)
         //g.drawString("camera pos = ($xOffset, $yOffset)", 5, 10)
+
+        val graphWidth = (renderedWidth  * scale).roundToInt()
+        val offset = width - graphWidth
+
+        // Zoom str
         if (scaleFactor != 1.0) {
             val zoomStr = "${(scaleFactor * 100).roundToInt()}%"
             val zoomStrWidth = getFontMetrics(g.font).stringWidth(zoomStr)
-            g.drawString(zoomStr, width - zoomStrWidth, 10)
+            g.color = Color(100, 100, 100, 150)
+            g.drawString(zoomStr, offset - zoomStrWidth - 5, 15)
         }
+
+        // Graph rectangle
         g.color = Color(100, 100, 100, 50)
-        g.fillRect(0, 0, (renderedWidth  * 0.01f).roundToInt(), (renderedHeight * 0.01f).roundToInt())
-        g.color = Color(255, 150, 150, 150)
-        val cameraPosX = (xOffset * 0.01f).roundToInt()
-        val cameraPosY = (yOffset * 0.01f).roundToInt()
-        val cameraWidth = (width/scaleFactor  * 0.01f).roundToInt()
-        val cameraHeight = (height/scaleFactor * 0.01f).roundToInt()
-        g.fillRect(cameraPosX, cameraPosY, cameraWidth, cameraHeight)
-        g.color = Color(255, 150, 150, 255)
-        g.drawRect(cameraPosX, cameraPosY, cameraWidth, cameraHeight)
+        val rectangle = Rectangle(offset, 0, graphWidth, (renderedHeight * scale).roundToInt())
+        g.fillRect(rectangle.x, rectangle.y, rectangle.width, rectangle.height)
+        g.color = Color(150, 150, 255, 150)
+        val oldClip = g.clip // If we don't do this the component will be able to draw outside of itself.
+        g.clip = rectangle
+        val cameraPosX = (xOffset * scale).roundToInt()
+        val cameraPosY = (yOffset * scale).roundToInt()
+        val cameraWidth = (width/scaleFactor  * scale).roundToInt()
+        val cameraHeight = (height/scaleFactor * scale).roundToInt()
+        g.fillRect(offset + cameraPosX, cameraPosY, cameraWidth, cameraHeight)
+        g.color = Color(150, 150, 255, 255)
+        g.drawRect(offset + cameraPosX, cameraPosY, cameraWidth, cameraHeight)
+        g.clip = oldClip
         /*g.color = Color(200, 100, 100, 255)
         g.drawString("C", cameraPosX, cameraPosY + 10)*/
-        /*g.scale(0.01, 0.01)
+        /*g.scale(scale, scale)
         drawPaths(g, graph.rootNode)
-        g.scale(100.0, 100.0)*/
+        g.scale(1/scale, 1/scale)*/
     }
 
     fun saveImage(filename: String) {
@@ -152,7 +170,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
             if (i == children.size - 2)
                 currentHeight += 40
             newPoints.add(result.first)
-            renderedWidth = Integer.max(renderedWidth, x + node.edgeLength + 500)
+            renderedWidth = Integer.max(renderedWidth, x + node.edgeLength)
         }
 
         currentHeight = Integer.max(40, currentHeight)
