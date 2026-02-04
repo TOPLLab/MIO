@@ -506,7 +506,11 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
     }
     init {
         layout = BorderLayout()
-        add(JSplitPane(JSplitPane.VERTICAL_SPLIT, graphPanel, mockPanel).apply {
+        val treeFrame = JPanel(BorderLayout()).apply {
+            border = UIManager.getDefaults().getBorder("ScrollPane.border")
+            add(graphPanel)
+        }
+        add(JSplitPane(JSplitPane.VERTICAL_SPLIT, treeFrame, mockPanel).apply {
             resizeWeight = 0.7
         })
         //add(OverridesPanel(), BorderLayout.EAST)
