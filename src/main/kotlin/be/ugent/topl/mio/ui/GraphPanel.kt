@@ -26,7 +26,6 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         addMouseWheelListener(this)
     }
     private val textColour = UIManager.getDefaults().getColor("RadioButton.foreground")
-    //private val borderColour = Color(125, 125, 125)
     private val borderColour = UIManager.getDefaults().getColor("CheckBox.icon.borderColor")
     private val primaryColour = UIManager.getDefaults().getColor("Panel.foreground")
     private val backgroundColour = UIManager.getDefaults().getColor("CheckBox.icon.background")
@@ -45,7 +44,6 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
 
     // Panning
     private var startPos = Point(0, 0)
-    var associatedScrollPane: JScrollPane? = null
     var allowSelection = true
 
     data class Node(val x: Int, val y: Int, val w: Int, val h: Int, val value: MultiverseNode)
@@ -75,13 +73,6 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
     }
 
     fun drawMiniMap(g: Graphics2D) {
-        //val scale = min(100.0/renderedHeight, width.toDouble()/renderedWidth)
-        val scale = min(100.0/renderedHeight, (100.0 * width/height)/renderedWidth)
-        //g.drawString("camera pos = ($xOffset, $yOffset)", 5, 10)
-
-        val graphWidth = (renderedWidth  * scale).roundToInt()
-        val offset = width - graphWidth
-
         // Zoom str
         if (scaleFactor != 1.0) {
             val zoomStr = "${(scaleFactor * 100).roundToInt()}%"
@@ -116,27 +107,6 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
             g.color = green
             g.fillRect(xPos.toInt(), 0, 3, barHeight)
         }
-
-        // Graph rectangle
-        /*g.color = Color(100, 100, 100, 50)
-        val rectangle = Rectangle(offset, 0, graphWidth, (renderedHeight * scale).roundToInt())
-        g.fillRect(rectangle.x, rectangle.y, rectangle.width, rectangle.height)
-        g.color = Color(150, 150, 255, 150)
-        val oldClip = g.clip // If we don't do this the component will be able to draw outside of itself.
-        g.clip = rectangle
-        val cameraPosX = (xOffset * scale).roundToInt()
-        val cameraPosY = (yOffset * scale).roundToInt()
-        val cameraWidth = (width/scaleFactor  * scale).roundToInt()
-        val cameraHeight = (height/scaleFactor * scale).roundToInt()
-        g.fillRect(offset + cameraPosX, cameraPosY, cameraWidth, cameraHeight)
-        g.color = Color(150, 150, 255, 255)
-        g.drawRect(offset + cameraPosX, cameraPosY, cameraWidth, cameraHeight)
-        g.clip = oldClip*/
-        /*g.color = Color(200, 100, 100, 255)
-        g.drawString("C", cameraPosX, cameraPosY + 10)*/
-        /*g.scale(scale, scale)
-        drawPaths(g, graph.rootNode)
-        g.scale(1/scale, 1/scale)*/
     }
 
     private fun scrollBarPosition(): Int {
@@ -408,8 +378,6 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         }
 
         println("" + e.x + " " + e.y)
-        /*associatedScrollPane?.horizontalScrollBar?.value -= delta.x
-        associatedScrollPane?.verticalScrollBar?.value -= delta.y*/
         xOffset -= (delta.x / scaleFactor).toInt()
         yOffset -= (delta.y / scaleFactor).toInt()
         repaint()
@@ -449,11 +417,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         val oldScaleFactor = scaleFactor
         val adjustment = e.wheelRotation / 20.0
         scaleFactor -= adjustment
-        scaleFactor = kotlin.math.max(0.1, scaleFactor)
-        /*val oldW = height * oldScaleFactor
-        val newW = height * scaleFactor
-        val delta = (newW - oldW)/scaleFactor
-        yOffset += (delta/2).toInt()*/
+        scaleFactor = max(0.1, scaleFactor)
 
         val oldH = height/oldScaleFactor
         val newH = height/scaleFactor
@@ -465,12 +429,6 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         val deltaW = (newW - oldW)
         xOffset -= (deltaW/2).toInt()
 
-        /*associatedScrollPane?.horizontalScrollBar?.value = ((associatedScrollPane?.horizontalScrollBar?.value!! / oldScaleFactor) * scaleFactor).toInt()
-        associatedScrollPane?.verticalScrollBar?.value = ((associatedScrollPane?.verticalScrollBar?.value!! / oldScaleFactor) * scaleFactor).toInt()*/
-        println("Scale = $scaleFactor")
         repaint()
-
-        /*associatedScrollPane?.verticalScrollBar?.revalidate()
-        associatedScrollPane?.horizontalScrollBar?.revalidate()*/
     }
 }
