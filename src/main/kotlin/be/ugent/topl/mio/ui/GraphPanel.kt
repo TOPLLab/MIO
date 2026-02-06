@@ -31,6 +31,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
     private val primaryColour = UIManager.getDefaults().getColor("Panel.foreground")
     private val backgroundColour = UIManager.getDefaults().getColor("CheckBox.icon.background")
     private val secondaryColour = UIManager.getDefaults().getColor("Button.default.background") //javax.swing.UIManager.getDefaults().getColor("Button.default.focusColor")
+    val barHeight = UIManager.getInt("ScrollBar.width")
     private val green = if (!FlatLaf.isLafDark()) Color(89, 158, 94) else Color(136, 207, 131)
     private val d = 20
     private val hSpace = 100
@@ -89,15 +90,10 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
             g.drawString(zoomStr, width - zoomStrWidth - 5, 10 + 15)
         }
 
-        val barHeight = UIManager.getInt("ScrollBar.width")
-        val tOffset = ((xOffset.toDouble()/renderedWidth) * width).toInt()
-        val w = (width/scaleFactor)*width/renderedWidth
-        g.color = Color(100, 100, 100, 50)
         g.color = UIManager.getColor("ScrollBar.track")
         g.fillRect(0, 0, width,barHeight)
-        g.color = Color(150, 150, 255, 150)
-        g.color = UIManager.getColor("ScrollBar.thumb")
-        g.fillRect(tOffset, 0, max(w.toInt(), 5),barHeight)
+        g.color = if(draggingScrollBar) UIManager.getColor("ScrollBar.pressedThumbColor") else UIManager.getColor("ScrollBar.thumb")
+        g.fillRect(scrollBarPosition(), 0, scrollBarWidth(), barHeight)
 
         selectedNode?.let { node ->
             val xPos = (node.x.toDouble()/renderedWidth) * width
@@ -137,6 +133,14 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         /*g.scale(scale, scale)
         drawPaths(g, graph.rootNode)
         g.scale(1/scale, 1/scale)*/
+    }
+
+    private fun scrollBarPosition(): Int {
+        return ((xOffset.toDouble()/renderedWidth) * width).toInt()
+    }
+
+    private fun scrollBarWidth(): Int {
+        return max(((width/scaleFactor)*width/renderedWidth).toInt(), 5)
     }
 
     fun saveImage(filename: String) {
@@ -315,7 +319,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
             return
         }
 
-        if (e.y < 10) {
+        if (e.y < barHeight) {
             xOffset = ((e.x.toDouble()/width) * renderedWidth).roundToInt() - width/2
             repaint()
             return
@@ -348,7 +352,13 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         startPos = p0.point
     }
 
+    private var draggingScrollBar = false
     override fun mouseReleased(e: MouseEvent) {
+        println("Mouse released")
+        if (draggingScrollBar) {
+            draggingScrollBar = false
+            repaint()
+        }
         if (e.button != MouseEvent.BUTTON1) {
             mouseClicked(e)
             e.consume()
@@ -361,19 +371,33 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
     override fun mouseExited(p0: MouseEvent) {}
 
     override fun mouseDragged(e: MouseEvent) {
+        println("Mouse dragged")
         if (e.button != MouseEvent.BUTTON1) {
             e.consume()
             return
         }
 
         val delta = Point(e.x - startPos.x, e.y - startPos.y)
+        startPos = Point(e.x, e.y)
+
+        val pos = scrollBarPosition()
+        val w = scrollBarWidth()
+        if (e.y < barHeight || draggingScrollBar) {
+            if ((e.x >= pos && e.x < pos + w) || draggingScrollBar) {
+                xOffset += ((delta.x.toDouble()/width) * renderedWidth).roundToInt()
+                draggingScrollBar = true
+                repaint()
+            }
+            e.consume()
+            return
+        }
+
         println("" + e.x + " " + e.y)
         /*associatedScrollPane?.horizontalScrollBar?.value -= delta.x
         associatedScrollPane?.verticalScrollBar?.value -= delta.y*/
         xOffset -= (delta.x / scaleFactor).toInt()
         yOffset -= (delta.y / scaleFactor).toInt()
         repaint()
-        startPos = Point(e.x, e.y)
     }
 
     override fun mouseMoved(e: MouseEvent) {
