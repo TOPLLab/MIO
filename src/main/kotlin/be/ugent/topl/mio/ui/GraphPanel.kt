@@ -92,7 +92,11 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
 
         g.color = UIManager.getColor("ScrollBar.track")
         g.fillRect(0, 0, width,barHeight)
-        g.color = if(draggingScrollBar) UIManager.getColor("ScrollBar.pressedThumbColor") else UIManager.getColor("ScrollBar.thumb")
+        g.color = when (draggingScrollBar) {
+            MouseState.None -> UIManager.getColor("ScrollBar.thumb")
+            MouseState.Hover -> UIManager.getColor("ScrollBar.hoverThumbColor")
+            MouseState.Pressed -> UIManager.getColor("ScrollBar.pressedThumbColor")
+        }
         g.fillRect(scrollBarPosition(), 0, scrollBarWidth(), barHeight)
 
         selectedNode?.let { node ->
@@ -352,11 +356,16 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         startPos = p0.point
     }
 
-    private var draggingScrollBar = false
+    enum class MouseState {
+        None,
+        Hover,
+        Pressed
+    }
+    private var draggingScrollBar = MouseState.None
     override fun mouseReleased(e: MouseEvent) {
         println("Mouse released")
-        if (draggingScrollBar) {
-            draggingScrollBar = false
+        if (draggingScrollBar == MouseState.Pressed) {
+            draggingScrollBar = MouseState.None
             repaint()
         }
         if (e.button != MouseEvent.BUTTON1) {
@@ -366,9 +375,14 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         }
     }
 
-    override fun mouseEntered(p0: MouseEvent) {}
+    override fun mouseEntered(e: MouseEvent) {}
 
-    override fun mouseExited(p0: MouseEvent) {}
+    override fun mouseExited(e: MouseEvent) {
+        if (draggingScrollBar == MouseState.Hover) {
+            draggingScrollBar = MouseState.None
+            repaint()
+        }
+    }
 
     override fun mouseDragged(e: MouseEvent) {
         println("Mouse dragged")
@@ -382,10 +396,11 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
 
         val pos = scrollBarPosition()
         val w = scrollBarWidth()
-        if (e.y < barHeight || draggingScrollBar) {
-            if ((e.x >= pos && e.x < pos + w) || draggingScrollBar) {
+        val dragging = draggingScrollBar == MouseState.Pressed
+        if (e.y < barHeight || dragging) {
+            if ((e.x >= pos && e.x < pos + w) || dragging) {
                 xOffset += ((delta.x.toDouble()/width) * renderedWidth).roundToInt()
-                draggingScrollBar = true
+                draggingScrollBar = MouseState.Pressed
                 repaint()
             }
             e.consume()
@@ -401,6 +416,20 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
     }
 
     override fun mouseMoved(e: MouseEvent) {
+        // Scrollbar hover
+        val pos = scrollBarPosition()
+        val w = scrollBarWidth()
+        if (e.y < barHeight && e.x >= pos && e.x < pos + w) {
+            draggingScrollBar = MouseState.Hover
+            repaint()
+            e.consume()
+            return
+        } else if (draggingScrollBar == MouseState.Hover) {
+            draggingScrollBar = MouseState.None
+            repaint()
+        }
+
+        // Use hand cursor for clicking on nodes.
         cursor = Cursor(Cursor.DEFAULT_CURSOR)
         var hit = false
         for (node in nodes) {
