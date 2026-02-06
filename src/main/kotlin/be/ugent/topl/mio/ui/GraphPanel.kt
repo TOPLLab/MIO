@@ -11,9 +11,9 @@ import java.awt.geom.Path2D
 import java.awt.image.BufferedImage
 import java.io.File
 import javax.imageio.ImageIO
-import javax.swing.JPanel
-import javax.swing.JScrollPane
-import javax.swing.UIManager
+import javax.swing.*
+import javax.swing.filechooser.FileNameExtensionFilter
+import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
@@ -39,6 +39,8 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
     private val nodes = mutableListOf<Node>()
     var selectedNode: Node? = null
         private set
+    private var currentNode: Node? = null
+    private var lastCompleted: Node? = null
 
     // Panning
     private var startPos = Point(0, 0)
@@ -62,6 +64,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         g2.scale(scaleFactor, scaleFactor)
         g2.translate(-xOffset, -yOffset)
 
+        renderedWidth = 0
         drawPaths(g, graph.rootNode)
 
         g2.translate(xOffset, yOffset)
@@ -83,11 +86,39 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
             val zoomStr = "${(scaleFactor * 100).roundToInt()}%"
             val zoomStrWidth = getFontMetrics(g.font).stringWidth(zoomStr)
             g.color = Color(100, 100, 100, 150)
-            g.drawString(zoomStr, offset - zoomStrWidth - 5, 15)
+            g.drawString(zoomStr, width - zoomStrWidth - 5, 10 + 15)
+        }
+
+        val barHeight = UIManager.getInt("ScrollBar.width")
+        val tOffset = ((xOffset.toDouble()/renderedWidth) * width).toInt()
+        val w = (width/scaleFactor)*width/renderedWidth
+        g.color = Color(100, 100, 100, 50)
+        g.color = UIManager.getColor("ScrollBar.track")
+        g.fillRect(0, 0, width,barHeight)
+        g.color = Color(150, 150, 255, 150)
+        g.color = UIManager.getColor("ScrollBar.thumb")
+        g.fillRect(tOffset, 0, max(w.toInt(), 5),barHeight)
+
+        selectedNode?.let { node ->
+            val xPos = (node.x.toDouble()/renderedWidth) * width
+            g.color = secondaryColour
+            g.fillRect(xPos.toInt(), 0, 3, barHeight)
+        }
+
+        currentNode?.let { node ->
+            val xPos = (node.x.toDouble()/renderedWidth) * width
+            g.color = Color.black
+            g.fillRect(xPos.toInt(), 0, 3, barHeight)
+        }
+
+        lastCompleted?.let { node ->
+            val xPos = (node.x.toDouble()/renderedWidth) * width
+            g.color = green
+            g.fillRect(xPos.toInt(), 0, 3, barHeight)
         }
 
         // Graph rectangle
-        g.color = Color(100, 100, 100, 50)
+        /*g.color = Color(100, 100, 100, 50)
         val rectangle = Rectangle(offset, 0, graphWidth, (renderedHeight * scale).roundToInt())
         g.fillRect(rectangle.x, rectangle.y, rectangle.width, rectangle.height)
         g.color = Color(150, 150, 255, 150)
@@ -100,7 +131,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         g.fillRect(offset + cameraPosX, cameraPosY, cameraWidth, cameraHeight)
         g.color = Color(150, 150, 255, 255)
         g.drawRect(offset + cameraPosX, cameraPosY, cameraWidth, cameraHeight)
-        g.clip = oldClip
+        g.clip = oldClip*/
         /*g.color = Color(200, 100, 100, 255)
         g.drawString("C", cameraPosX, cameraPosY + 10)*/
         /*g.scale(scale, scale)
@@ -110,22 +141,17 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
 
     fun saveImage(filename: String) {
         println("Full graph size $renderedWidth x $renderedHeight")
-        //300000
-        //val image = BufferedImage(renderedWidth, renderedHeight, BufferedImage.TYPE_INT_RGB)
         val imageSize = 30000
         var imageWidth = min(imageSize, renderedWidth)
         var imageHeight = min(imageSize, renderedHeight)
         if (renderedWidth * renderedHeight < Integer.MAX_VALUE) {
-            imageWidth = renderedWidth - 450
+            imageWidth = renderedWidth
             imageHeight = renderedHeight
         }
         val image = BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_RGB)
         val g = image.createGraphics().apply {
             setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
             stroke = BasicStroke(2.0f)
-            //translate(-(renderedWidth/2 - imageWidth/2),-(renderedHeight/2 - imageHeight/2))
-            // Used for chunks:
-            //translate(-(renderedWidth - imageWidth),-(renderedHeight/2 - imageHeight/2) + imageHeight * 3)
         }
         g.color = backgroundColour
         g.fillRect(0, 0, renderedWidth, renderedHeight)
@@ -151,7 +177,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
             val result = drawGraph(g, child, x + l, y + currentHeight)
             currentHeight += result.second
             newPoints.add(result.first)
-            renderedWidth = Integer.max(renderedWidth, x + node.edgeLength)
+            renderedWidth = Integer.max(renderedWidth, x + node.edgeLength + d + 5)
         }
 
         currentHeight = Integer.max(40, currentHeight)
@@ -179,11 +205,16 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
             g.color = primaryColour
         } else if (selectedNodes.contains(node)) {
             g.color = secondaryColour
-            if (completedPath.contains(node))
+            if (completedPath.contains(node)) {
                 g.color = green
+                if (node == completedPath.last()) {
+                    lastCompleted = Node(point.x, point.y, d, d, node)
+                }
+            }
             g.fillOval(point.x, point.y, d, d)
             g.color = primaryColour
         } else if (node === graph.currentNode) {
+            currentNode = Node(point.x, point.y, d, d, graph.currentNode)
             g.color = secondaryColour
             g.fillOval(point.x, point.y, d, d)
             g.color = primaryColour
@@ -256,12 +287,40 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         selectedPath = null
         selectedNodes.clear()
         selectedNode = null
+        lastCompleted = null
     }
 
     var selectedNodes = mutableSetOf<MultiverseNode>()
     var selectedPath: Pair<List<MultiverseNode>, List<MultiverseNode>>? = null
     var completedPath = mutableSetOf<MultiverseNode>()
     override fun mouseClicked(e: MouseEvent) {
+        if (e.button == MouseEvent.BUTTON3) {
+            JPopupMenu().apply {
+                val saveItem = JMenuItem("Save as image").apply {
+                    addActionListener {
+                        val chooser = JFileChooser()
+                        chooser.fileFilter = FileNameExtensionFilter("png", "png")
+                        if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+                            var filename = chooser.selectedFile.absolutePath
+                            if (!filename.endsWith(".png")) {
+                                filename += ".png"
+                            }
+                            saveImage(filename)
+                        }
+                    }
+                }
+                add(saveItem)
+
+            }.show(this, e.x, e.y)
+            return
+        }
+
+        if (e.y < 10) {
+            xOffset = ((e.x.toDouble()/width) * renderedWidth).roundToInt() - width/2
+            repaint()
+            return
+        }
+
         if (!allowSelection) {
             return
         }
@@ -289,13 +348,24 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         startPos = p0.point
     }
 
-    override fun mouseReleased(p0: MouseEvent) {}
+    override fun mouseReleased(e: MouseEvent) {
+        if (e.button != MouseEvent.BUTTON1) {
+            mouseClicked(e)
+            e.consume()
+            return
+        }
+    }
 
     override fun mouseEntered(p0: MouseEvent) {}
 
     override fun mouseExited(p0: MouseEvent) {}
 
     override fun mouseDragged(e: MouseEvent) {
+        if (e.button != MouseEvent.BUTTON1) {
+            e.consume()
+            return
+        }
+
         val delta = Point(e.x - startPos.x, e.y - startPos.y)
         println("" + e.x + " " + e.y)
         /*associatedScrollPane?.horizontalScrollBar?.value -= delta.x
