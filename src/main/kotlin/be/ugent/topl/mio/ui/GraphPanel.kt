@@ -114,13 +114,15 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         var imageWidth = min(imageSize, renderedWidth)
         var imageHeight = min(imageSize, renderedHeight)
         if (renderedWidth * renderedHeight < Integer.MAX_VALUE) {
-            imageWidth = renderedWidth - 450
+            imageWidth = renderedWidth
             imageHeight = renderedHeight
         }
-        val image = BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_RGB)
+        val scale = 2
+        val image = BufferedImage(imageWidth * scale, imageHeight * scale, BufferedImage.TYPE_INT_RGB)
         val g = image.createGraphics().apply {
             setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
             stroke = BasicStroke(2.0f)
+            scale(scale.toDouble(), scale.toDouble())
             //translate(-(renderedWidth/2 - imageWidth/2),-(renderedHeight/2 - imageHeight/2))
             // Used for chunks:
             //translate(-(renderedWidth - imageWidth),-(renderedHeight/2 - imageHeight/2) + imageHeight * 3)
