@@ -4,6 +4,7 @@ import be.ugent.topl.mio.DebuggerConfig
 import be.ugent.topl.mio.connections.ProcessConnection
 import be.ugent.topl.mio.connections.SerialConnection
 import be.ugent.topl.mio.sourcemap.AsSourceMapping
+import be.ugent.topl.mio.sourcemap.getDwarfSourcemap
 import com.fazecast.jSerialComm.SerialPort
 import com.formdev.flatlaf.extras.FlatSVGIcon
 import com.formdev.flatlaf.util.SystemFileChooser
@@ -86,7 +87,10 @@ open class StartScreen(config: DebuggerConfig) : AboutScreen(config) {
         }
         val sourceMapFile = File(binary.path + ".map")
         if (!sourceMapFile.exists()) {
-            JOptionPane.showMessageDialog(this, "File does not have an associated sourcemap (.map) file!", "Missing sourcemaps", JOptionPane.ERROR_MESSAGE)
+            val sourceMapping = getDwarfSourcemap(binary.path)
+            InteractiveDebugger(connection, sourceMapping, binary.path, config = config)
+            return true
+            //JOptionPane.showMessageDialog(this, "File does not have an associated sourcemap (.map) file!", "Missing sourcemaps", JOptionPane.ERROR_MESSAGE)
             return false
         }
         val sourceMapping = AsSourceMapping(File(binary.path + ".map").readText())

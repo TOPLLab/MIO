@@ -2,6 +2,7 @@ package be.ugent.topl.mio.sourcemap
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import com.formdev.flatlaf.util.SystemInfo
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants
 import java.io.BufferedReader
 import java.io.File
@@ -48,7 +49,7 @@ class DwarfSourceMap(
 
 fun getDwarfSourcemap(wasmFilename: String): SourceMap {
     val process = ProcessBuilder(
-        "./dwarf-line-mapping",
+        if (SystemInfo.isMacOS) "./dwarf-line-mapping-mac" else "./dwarf-line-mapping",
         wasmFilename
     ).redirectErrorStream(true).start()
 
