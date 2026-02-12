@@ -83,6 +83,27 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         currentHeight = Integer.max(40, currentHeight)
 
         val point = Point(x, y + currentHeight / 2 - d / 2)
+        drawNode(g, point, node)
+        for (i in newPoints.indices) {
+            drawCurve(g, point, node, newPoints[i], node.children[i], i)
+        }
+        nodes.add(Node(point.x, point.y, d, d, node))
+
+        val spacing = Integer.max(40, currentHeight)
+        return Pair(point, Integer.max(spacing, currentHeight))
+    }
+
+    private fun drawCurve(g: Graphics2D, point: Point, node: MultiverseNode, destinationPoint: Point, destinationNode: MultiverseNode, childIndex: Int) {
+        if (selectedNodes.contains(node) && selectedNodes.contains(destinationNode)) {
+            g.color = secondaryColour
+            if (completedPath.contains(destinationNode)) {}
+                g.color = green
+        }
+        curvedLine(point.x + d, point.y + d/2, destinationPoint.x, destinationPoint.y + d/2, g, if (childIndex < node.values.size) "${node.values[childIndex]}" else null)
+        g.color = borderColour
+    }
+
+    private fun drawNode(g: Graphics2D, point: Point, node: MultiverseNode) {
         val textWidth = g.fontMetrics.stringWidth(node.displayName)/2
         g.color = textColour
         if (node is DeterministicPrimitiveNode) {
@@ -96,38 +117,37 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         g.color = backgroundColour
         g.fillOval(point.x + 1, point.y + 1, d - 2, d - 2)
         if (node === selectedValue) {
-            g.color = secondaryColour
-            g.fillOval(point.x, point.y, d, d) // Outer blue circle
-            g.color = backgroundColour
-            g.fillOval(point.x + 2, point.y + 2, d - 4, d - 4) // Inner white circle
-            g.color = secondaryColour
-            g.fillOval(point.x + 4, point.y + 4, d - 8, d - 8) // Inner blue circle
-            g.color = primaryColour
+            drawInnerSelectedNode(g, point)
         } else if (selectedNodes.contains(node)) {
-            g.color = secondaryColour
-            if (completedPath.contains(node))
-                g.color = green
-            g.fillOval(point.x, point.y, d, d)
-            g.color = primaryColour
+            drawInnerPathNode(g, point, node)
         } else if (node === graph.currentNode) {
-            g.color = secondaryColour
-            g.fillOval(point.x, point.y, d, d)
-            g.color = primaryColour
+            drawInnerCurrentNode(g, point)
         }
         g.color = borderColour
-        for (i in newPoints.indices) {
-            if (selectedNodes.contains(node) && selectedNodes.contains(node.children[i])) {
-                g.color = secondaryColour
-                if (completedPath.contains(node.children[i]))
-                    g.color = green
-            }
-            curvedLine(point.x + d, point.y + d/2, newPoints[i].x, newPoints[i].y + d/2, g, if (i < node.values.size) "${node.values[i]}" else null)
-            g.color = borderColour
-        }
-        nodes.add(Node(point.x, point.y, d, d, node))
+    }
 
-        val spacing = Integer.max(40, currentHeight)
-        return Pair(point, Integer.max(spacing, currentHeight))
+    private fun drawInnerSelectedNode(g: Graphics2D, point: Point) {
+        g.color = secondaryColour
+        g.fillOval(point.x, point.y, d, d) // Outer blue circle
+        g.color = backgroundColour
+        g.fillOval(point.x + 2, point.y + 2, d - 4, d - 4) // Inner white circle
+        g.color = secondaryColour
+        g.fillOval(point.x + 4, point.y + 4, d - 8, d - 8) // Inner blue circle
+        g.color = primaryColour
+    }
+
+    private fun drawInnerPathNode(g: Graphics2D, point: Point, node: MultiverseNode) {
+        g.color = secondaryColour
+        if (completedPath.contains(node))
+            g.color = green
+        g.fillOval(point.x, point.y, d, d)
+        g.color = primaryColour
+    }
+
+    private fun drawInnerCurrentNode(g: Graphics2D, point: Point) {
+        g.color = secondaryColour
+        g.fillOval(point.x, point.y, d, d)
+        g.color = primaryColour
     }
 
     private fun curvedLine(x1: Int, y1: Int, x2: Int, y2: Int, g: Graphics2D, str: String? = null): Path2D {
