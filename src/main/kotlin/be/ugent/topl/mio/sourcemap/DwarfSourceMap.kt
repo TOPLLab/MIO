@@ -13,6 +13,8 @@ class DwarfSourceMap(
     private val pcToSource: Map<Int, DwarfLineMapping>,
     private val sourceToPc: Map<Pair<String, Int>, DwarfLineMapping>
 ): SourceMap {
+    private var mostRecentFile = getSourceFile(0)
+
     override fun getLineForPc(pc: Int): Int {
         return pcToSource[pc]?.row ?: throw RuntimeException("No mapping for this pc")
     }
@@ -29,11 +31,18 @@ class DwarfSourceMap(
     }
 
     override fun getSourceFileName(pc: Int): String {
-        return pcToSource[pc]!!.file
+        mostRecentFile = pcToSource[pc]!!.file
+        return mostRecentFile
     }
 
     override fun getStyle(): String {
-        return SyntaxConstants.SYNTAX_STYLE_RUST
+        return when {
+            mostRecentFile.endsWith(".c") -> SyntaxConstants.SYNTAX_STYLE_C
+            mostRecentFile.endsWith(".cpp") -> SyntaxConstants.SYNTAX_STYLE_CPLUSPLUS
+            mostRecentFile.endsWith(".go") -> SyntaxConstants.SYNTAX_STYLE_GO
+            mostRecentFile.endsWith(".rs") -> SyntaxConstants.SYNTAX_STYLE_RUST
+            else -> SyntaxConstants.SYNTAX_STYLE_RUST
+        }
     }
 }
 
