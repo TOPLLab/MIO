@@ -16,6 +16,7 @@ import javax.swing.*
 
 open class StartScreen(config: DebuggerConfig) : AboutScreen(config) {
     init {
+        setLocationRelativeTo(null)
         defaultCloseOperation = EXIT_ON_CLOSE
     }
 

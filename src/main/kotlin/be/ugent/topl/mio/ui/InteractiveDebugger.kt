@@ -347,6 +347,7 @@ class InteractiveDebugger(
                 debugger.close()
             }
         })
+        setLocationRelativeTo(null)
         defaultCloseOperation = EXIT_ON_CLOSE
         isVisible = true
     }
