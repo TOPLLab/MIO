@@ -90,7 +90,7 @@ open class StartScreen(config: DebuggerConfig) : AboutScreen(config) {
             return false
         }
         val sourceMapping = AsSourceMapping(File(binary.path + ".map").readText())
-        InteractiveDebugger(connection, config.symbolicWdcliPath, sourceMapping, binary.path, config = config)
+        InteractiveDebugger(connection, sourceMapping, binary.path, config = config)
         return true
     }
 }

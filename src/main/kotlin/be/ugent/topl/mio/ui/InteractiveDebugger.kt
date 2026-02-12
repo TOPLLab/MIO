@@ -36,16 +36,15 @@ import kotlin.concurrent.thread
 
 class InteractiveDebugger(
     connection: Connection,
-    symbolicWdcliPath: String,
     private val sourceMapping: SourceMap? = null,
     private val wasmFile: String = "/home/maarten/Documents/School/Thesis/thesis-git/wardbg/simple-sym-test.wasm",
     private val config: DebuggerConfig
 ) : JFrame("WARDuino Debugger") {
-    private val binaryInfo = getBinaryInfo(symbolicWdcliPath, File(wasmFile).absolutePath)
+    private val binaryInfo = getBinaryInfo(config.wdcliPath, File(wasmFile).absolutePath)
     private val debugger = MultiverseDebugger(
         connection,
         WasmBinary(File(wasmFile), binaryInfo),
-        symbolicWdcliPath,
+        config.symbolicWdcliPath,
         false,
         this::onGraphUpdate,
         this::onMockingUpdate,
