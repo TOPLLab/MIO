@@ -64,7 +64,6 @@ open class StartScreen(config: DebuggerConfig) : AboutScreen(config) {
                     recentProperties.setProperty("lastDir", chooser.selectedFile.parent)
                     recentProperties.store(FileWriter(recentConfig), null)
                     if(!startDebugger(chooser.selectedFile, emulatorCheckbox.isSelected, portComboBox.selectedItem as String?)) {
-                        JOptionPane.showMessageDialog(this, "Please select a port!", "Invalid port", JOptionPane.ERROR_MESSAGE)
                         return@addActionListener
                     }
                     isVisible = false
@@ -80,9 +79,15 @@ open class StartScreen(config: DebuggerConfig) : AboutScreen(config) {
         }
         else {
             if (comPort == null) {
+                JOptionPane.showMessageDialog(this, "Please select a port!", "Invalid port", JOptionPane.ERROR_MESSAGE)
                 return false
             }
             SerialConnection(comPort)
+        }
+        val sourceMapFile = File(binary.path + ".map")
+        if (!sourceMapFile.exists()) {
+            JOptionPane.showMessageDialog(this, "File does not have an associated sourcemap (.map) file!", "Missing sourcemaps", JOptionPane.ERROR_MESSAGE)
+            return false
         }
         val sourceMapping = AsSourceMapping(File(binary.path + ".map").readText())
         InteractiveDebugger(connection, config.symbolicWdcliPath, sourceMapping, binary.path, config = config)
