@@ -69,7 +69,67 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         renderedHeight = drawGraph(g, rootNode, x = xStart + 5, yPadding).second + yPadding
     }
 
+    /*private fun drawGraphNonRecursive(g: Graphics2D, node: MultiverseNode, x: Int = 0, y: Int = 0) {
+        val stack = mutableListOf(Triple<MultiverseNode, Int, Int>(node, x, y))
+        while (stack.isNotEmpty()) {
+            val current = stack.removeLast()
+            val node = current.first
+            val x = current.second
+            val y = current.third
+
+            val newPoints = mutableListOf<Point>()
+            var currentHeight = 0
+            for (child in node.children) {
+                val l = if (child.edgeLength > node.edgeLength && child is PrimitiveNode) child.edgeLength else node.edgeLength
+                stack.add(Triple(child, x + l, y + currentHeight))
+                val result = drawGraph(g, child, x + l, y + currentHeight)
+                currentHeight += result.second
+                newPoints.add(result.first)
+                renderedWidth = Integer.max(renderedWidth, x + node.edgeLength + 500)
+            }
+
+            currentHeight = Integer.max(40, currentHeight)
+
+            val point = Point(x, y + currentHeight / 2 - d / 2)
+            drawNodeAndEdges(g, point, node, newPoints)
+            nodes.add(Node(point.x, point.y, d, d, node))
+
+            val spacing = Integer.max(40, currentHeight)
+            Pair(point, Integer.max(spacing, currentHeight))
+        }
+    }*/
+
+    //var collapsed = mutableMapOf<MultiverseNode, Boolean>()
+
     private fun drawGraph(g: Graphics2D, node: MultiverseNode, x: Int = 0, y: Int = 0): Pair<Point, Int> {
+        if (node.children.size == 1) {
+            val stack = mutableListOf<MultiverseNode>()
+            var x = x
+            var currentNode = node
+            while(currentNode.children.size == 1) {
+                stack.add(currentNode)
+                x += currentNode.edgeLength
+                currentNode = currentNode.children.first()
+            }
+
+            val result = drawGraph(g, currentNode, x + currentNode.edgeLength, y)
+            renderedWidth = Integer.max(renderedWidth, x + node.edgeLength + 500)
+
+            var newPoint = result.first
+            var currentHeight = result.second
+            var point = Point(x, y + currentHeight / 2 - d / 2)
+            currentHeight = Math.max(d + 0, currentHeight)
+            while (stack.isNotEmpty()) {
+                val node = stack.removeLast()
+                point = Point(x, y + currentHeight / 2 - d / 2)
+                drawNodeAndEdges(g, point, node, listOf(newPoint))
+                x -= node.edgeLength // Next node should be further forward
+                newPoint = Point(x + node.edgeLength, y + currentHeight / 2 - d / 2)
+            }
+
+            return Pair(point, currentHeight)
+        }
+
         val newPoints = mutableListOf<Point>()
         var currentHeight = 0
         for (child in node.children) {
@@ -83,14 +143,21 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         currentHeight = Integer.max(40, currentHeight)
 
         val point = Point(x, y + currentHeight / 2 - d / 2)
-        drawNode(g, point, node)
-        for (i in newPoints.indices) {
-            drawCurve(g, point, node, newPoints[i], node.children[i], i)
-        }
+        drawNodeAndEdges(g, point, node, newPoints)
         nodes.add(Node(point.x, point.y, d, d, node))
 
         val spacing = Integer.max(40, currentHeight)
         return Pair(point, Integer.max(spacing, currentHeight))
+    }
+
+    /**
+     * Draws one node and the edges to the children.
+     */
+    private fun drawNodeAndEdges(g: Graphics2D, point: Point, node: MultiverseNode, newPoints: List<Point>) {
+        drawNode(g, point, node)
+        for (i in newPoints.indices) {
+            drawCurve(g, point, node, newPoints[i], node.children[i], i)
+        }
     }
 
     private fun drawCurve(g: Graphics2D, point: Point, node: MultiverseNode, destinationPoint: Point, destinationNode: MultiverseNode, childIndex: Int) {
