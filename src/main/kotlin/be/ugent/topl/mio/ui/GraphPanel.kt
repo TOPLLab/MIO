@@ -61,6 +61,15 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         g2.stroke = BasicStroke(2.0f)
 
         drawPaths(g, width - 100, graph.rootNode)
+        //drawGraphNew(g)
+        println("Height ${leafCounter.getLeafCount(graph.rootNode)}")
+    }
+
+    val leafCounter = LeafCounter(graph)
+
+    private fun drawGraphNew(g: Graphics2D) {
+        drawNode(g, Point(10, 10), graph.rootNode)
+        // Draw node in the middle of the children's height
     }
 
     private fun drawPaths(g: Graphics2D, width: Int, rootNode: MultiverseNode) {
@@ -99,30 +108,44 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         }
     }*/
 
-    //var collapsed = mutableMapOf<MultiverseNode, Boolean>()
+    var collapsed = mutableMapOf<MultiverseNode, Boolean>()
 
     private fun drawGraph(g: Graphics2D, node: MultiverseNode, x: Int = 0, y: Int = 0): Pair<Point, Int> {
-        if (node.children.size == 1) {
+        if (node.children.size == 1 && node.displayName.isEmpty()) {
+            val collapse = collapsed.getOrDefault(node, true)
+
             val stack = mutableListOf<MultiverseNode>()
             var x = x
             var currentNode = node
-            while(currentNode.children.size == 1) {
-                stack.add(currentNode)
-                x += currentNode.edgeLength
+            while(currentNode.children.size == 1 && currentNode.displayName.isEmpty()) {
+                if (!collapse) {
+                    stack.add(currentNode)
+                    x += currentNode.edgeLength
+                }
                 currentNode = currentNode.children.first()
+            }
+            // If collapsed, just put the first node on the render stack.
+            if (collapse) {
+                stack.add(node)
+                x += node.edgeLength
             }
 
             val result = drawGraph(g, currentNode, x + currentNode.edgeLength, y)
             renderedWidth = Integer.max(renderedWidth, x + node.edgeLength + 500)
-
             var newPoint = result.first
             var currentHeight = result.second
             var point = Point(x, y + currentHeight / 2 - d / 2)
-            currentHeight = Math.max(d + 0, currentHeight)
+            currentHeight = Math.max(d, currentHeight)
             while (stack.isNotEmpty()) {
                 val node = stack.removeLast()
                 point = Point(x, y + currentHeight / 2 - d / 2)
+                if (collapse) {
+                    val textWidth = g.fontMetrics.stringWidth("+")
+                    g.color = borderColour
+                    g.drawString("+", point.x + d/2 - textWidth/2, point.y - 5)
+                }
                 drawNodeAndEdges(g, point, node, listOf(newPoint))
+                nodes.add(Node(point.x, point.y, d, d, node))
                 x -= node.edgeLength // Next node should be further forward
                 newPoint = Point(x + node.edgeLength, y + currentHeight / 2 - d / 2)
             }
@@ -279,14 +302,23 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
             return
         }
 
+        var selected: Node? = null
         for (node in nodes) {
             if (e.x > node.x && e.y > node.y && e.x < node.x + node.w && e.y < node.y + node.h) {
-                selectedNode = node
+                selected = node
             }
         }
-        if (selectedNode == null) return
+        if (selected == null) return
 
-        println(graph.rootNode.findPath(graph.currentNode, selectedValue!!))
+        if (e.button == MouseEvent.BUTTON3) {
+            collapsed[selected.value] = !collapsed.getOrDefault(selected.value, true)
+            repaint()
+            return
+        }
+
+        selectedNode = selected
+
+        //println(graph.rootNode.findPath(graph.currentNode, selectedValue!!))
         selectedPath = graph.rootNode.findPath(graph.currentNode, selectedValue!!)
         selectedNodes = selectedPath!!.first.toMutableSet()
         selectedNodes.addAll(selectedPath!!.second.toSet())
