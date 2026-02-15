@@ -19,6 +19,6 @@ class ProcessConnection(vararg command: String, private val name: String ="Proce
     }
 
     override fun close() {
-        process.destroy()
+        process.destroyForcibly()
     }
 }
