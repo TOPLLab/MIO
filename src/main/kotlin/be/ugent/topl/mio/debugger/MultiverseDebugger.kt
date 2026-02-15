@@ -281,9 +281,7 @@ class MultiverseDebugger(
 
     override fun checkpointsUpdated() {
         super.checkpointsUpdated()
-        val newCheckpoints = checkpoints.toList()
-        if (newCheckpoints.size > len)
-            println("Checkpoints: ${newCheckpoints.subList(len, newCheckpoints.size)}")
+        val newCheckpoints = checkpoints.subList(0, checkpoints.size)
         val change = newCheckpoints.size - len
         len = newCheckpoints.size
 
