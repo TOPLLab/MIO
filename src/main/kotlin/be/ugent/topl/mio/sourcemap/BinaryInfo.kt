@@ -4,10 +4,10 @@ import java.io.File
 import java.util.*
 
 data class WasmInfo(
-    val choicepoints: List<Int>,
-    val after_choicepoints: List<Int>,
-    val primitive_calls: List<Int>,
-    val after_primitive_calls: List<Int>,
+    val choicepoints: Set<Int>,
+    val after_choicepoints: Set<Int>,
+    val primitive_calls: Set<Int>,
+    val after_primitive_calls: Set<Int>,
     val primitive_fidx_mapping: List<String>
 )
 data class WasmBinary(val file: File, val metadata: WasmInfo)
