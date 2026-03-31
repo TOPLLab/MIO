@@ -62,7 +62,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
 
         drawPaths(g, width - 100, graph.rootNode)
         //drawGraphNew(g)
-        println("Height ${leafCounter.getLeafCount(graph.rootNode)}")
+        //println("Height ${leafCounter.getLeafCount(graph.rootNode)}")
     }
 
     val leafCounter = LeafCounter(graph)
@@ -129,6 +129,12 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
                 stack.add(node)
                 x += node.edgeLength
             }
+
+            /*println(associatedScrollPane?.horizontalScrollBar!!.value)
+            if (x < associatedScrollPane?.horizontalScrollBar!!.value) {
+                println("Cull")
+                return Pair(Point(0, 0), 0)
+            }*/
 
             val result = drawGraph(g, currentNode, x + currentNode.edgeLength, y)
             renderedWidth = Integer.max(renderedWidth, x + node.edgeLength + 500)
@@ -341,6 +347,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         val delta = Point(e.x - startPos.x, e.y - startPos.y)
         associatedScrollPane?.horizontalScrollBar?.value -= delta.x
         associatedScrollPane?.verticalScrollBar?.value -= delta.y
+        //repaint()
     }
 
     override fun mouseMoved(e: MouseEvent) {

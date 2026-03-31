@@ -41,7 +41,7 @@ class InteractiveDebugger(
     private val wasmFile: String = "/home/maarten/Documents/School/Thesis/thesis-git/wardbg/simple-sym-test.wasm",
     private val config: DebuggerConfig
 ) : JFrame("WARDuino Debugger") {
-    private val binaryInfo = getBinaryInfo(symbolicWdcliPath, File(wasmFile).absolutePath)
+    private val binaryInfo = getBinaryInfo(config.wdcliPath, File(wasmFile).absolutePath)
     private val debugger = MultiverseDebugger(
         connection,
         WasmBinary(File(wasmFile), binaryInfo),
@@ -387,8 +387,8 @@ class InteractiveDebugger(
         }
 
         //val snapshot = debugger.currentSnapshot!!
-        val snapshot = debugger.checkpoints.last()!!.snapshot
-        //val snapshot = debugger.snapshotFull().second
+        //val snapshot = debugger.checkpoints.last()!!.snapshot
+        val snapshot = debugger.snapshotFull().second
         watchWindow.update(snapshot)
 
         if (sourceMapping == null)
@@ -474,6 +474,7 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
     private val mockPanel = OverridesPanel()
     private val concolicButton = JButton("Suggest interesting paths")
     private var maxInstructions = 50
+    private var maxSymbolicVars = 50
     private val concolicOptionsButton = JButton().apply {
         val gearIcon = FlatSVGIcon(MultiverseDebugger::javaClass.javaClass.getResource("/settings-gear.svg"))
         gearIcon.colorFilter = FlatSVGIcon.ColorFilter()
@@ -482,6 +483,9 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
         addActionListener {
             JOptionPane.showInputDialog("Instruction limit", maxInstructions)?.let {
                 maxInstructions = it.toInt()
+            }
+            JOptionPane.showInputDialog("Max symbolic variables", maxInstructions)?.let {
+                maxSymbolicVars = it.toInt()
             }
         }
     }
@@ -512,9 +516,14 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
         concolicButton.addActionListener {
             val w = BlockingWindow(null, "Analysing program")
             w.location = Point(this.location.x + this.width/2 - w.width/2, this.location.y + this.height/2 - w.height/2)
-            w.run({ multiverseDebugger.predictFuture(maxInstructions) }) { graphChanged ->
-                if (!graphChanged) {
+            w.run({
+                multiverseDebugger.predictFuture(maxInstructions, maxSymbolicVars)
+            }) { graphChanged ->
+                if (graphChanged == MultiverseDebugger.AnalysisOutcome.NoPaths) {
                     JOptionPane.showMessageDialog(this, "No future branching paths could be found")
+                }
+                else if (graphChanged == MultiverseDebugger.AnalysisOutcome.Failed) {
+                    JOptionPane.showMessageDialog(this, "Program analysis failed!")
                 }
             }
         }
@@ -723,6 +732,7 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
     }
 
     fun graphChanged() {
+        //graphPanel.leafCounter.calculateLeafCounts()
         graphPanel.repaint()
         graphPanel.revalidate()
         //customButton.isEnabled = multiverseDebugger.graph.currentNode is PrimitiveNode
@@ -765,6 +775,9 @@ class WatchWindow : JTable() {
     fun update(snapshot: WOODDumpResponse) {
         tableModel.rowCount = 0
         tableModel.addRow(arrayOf("pc", "i32", String.format("0x%x", snapshot.pc)))
+        if (snapshot.globals == null) {
+            return
+        }
         for (global in snapshot.globals!!) {
             tableModel.addRow(arrayOf("global ${global.idx}", global.type, global.value))
         }

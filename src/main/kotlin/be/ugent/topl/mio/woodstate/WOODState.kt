@@ -156,6 +156,7 @@ data class Checkpoint(
     val instructions_executed: Int,
     val fidx_called: Int?,
     val args: List<Int>?,
+    val returns: List<Int>?,
     val snapshot: WOODDumpResponse
 )
 

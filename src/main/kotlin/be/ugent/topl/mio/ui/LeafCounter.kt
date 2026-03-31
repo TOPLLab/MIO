@@ -11,21 +11,24 @@ class LeafCounter(private val graph: MultiverseGraph) {
         println("Calculating leaf counts")
         val time = System.currentTimeMillis()
         cachedHeights.clear()
+        val completedNodes = mutableSetOf<MultiverseNode>()
         val stack = mutableListOf(graph.rootNode)
         while (stack.isNotEmpty()) {
             val currentNode = stack.last()
             if (currentNode.children.isEmpty()) {
-                cachedHeights[currentNode] = 1
+                //cachedHeights[currentNode] = 1
+                completedNodes.add(currentNode)
             }
             // We already calculated the height of our children -> calculate our height!
-            else if (cachedHeights.contains(currentNode.children.first())) {
+            else if (completedNodes.contains(currentNode.children.first())) {
                 var heightSum = 0
                 for (child in currentNode.children) {
-                    heightSum += cachedHeights[child]!!
+                    heightSum += cachedHeights.getOrDefault(child, 1)
                 }
                 cachedHeights[currentNode] = heightSum
+                completedNodes.add(currentNode)
             }
-            if (cachedHeights.containsKey(currentNode)) {
+            if (completedNodes.contains(currentNode)) {
                 stack.removeLast()
             }
             stack.addAll(currentNode.children)
@@ -34,6 +37,6 @@ class LeafCounter(private val graph: MultiverseGraph) {
     }
 
     fun getLeafCount(node: MultiverseNode): Int {
-        return cachedHeights[node]!!
+        return cachedHeights.getOrDefault(node, 1)
     }
 }

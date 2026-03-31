@@ -16,7 +16,7 @@ data class SymbolicValueMapping(val primitive: String, val arg: Int, val value: 
 
 data class ConcolicAnalysisResult(val paths: List<SymbolicValueMapping>)
 
-fun analyse(wdcliPath: String, wasmFile: String, jsonSnapshot: String, maxInstructions: Int = 50, maxSymbolicVariables: Int = -1, maxIterations: Int = -1, stopPc: Int = -1): ConcolicAnalysisResult {
+fun analyse(wdcliPath: String, wasmFile: String, jsonSnapshot: String, maxInstructions: Int = 50, maxSymbolicVariables: Int = -1, maxIterations: Int = -1, stopPc: Int = -1): ConcolicAnalysisResult? {
     val woodState = WOODState.fromLine(jsonSnapshot)
     val messages = woodState.toBinary(io = false, overrides = false).map { it.trim('\n', ' ') }
     for (msg in messages) {
@@ -47,7 +47,7 @@ fun analyse(wdcliPath: String, wasmFile: String, jsonSnapshot: String, maxInstru
         println(line)
     }
     println("Error occurred while running the following command: \"${command.joinToString(" ")}\"")
-    throw Exception("Failed to get result from analysis")
+    return null
 }
 
 fun process(r: ConcolicAnalysisResult): MultiverseNode {

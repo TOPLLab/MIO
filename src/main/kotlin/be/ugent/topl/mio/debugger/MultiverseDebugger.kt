@@ -299,7 +299,8 @@ class MultiverseDebugger(
         if (graph.currentNode.children.isEmpty() && change > 0 && checkpoint?.fidx_called != null) {
             val newNode = if (isAfterChoicePoint(checkpoint.snapshot.pc!!)) {
                 PrimitiveNode(wasmBinary.metadata.primitive_fidx_mapping[checkpoint.fidx_called], checkpoint.args!![0]).apply {
-                    values.add(checkpoint.snapshot.stack!!.last().value.toInt())
+                    values.add(checkpoint.returns!!.first())
+                    //values.add(checkpoint.snapshot.stack!!.last().value.toInt())
                 }
             } else {
                 DeterministicPrimitiveNode(wasmBinary.metadata.primitive_fidx_mapping[checkpoint.fidx_called], checkpoint.args!!)
@@ -315,7 +316,8 @@ class MultiverseDebugger(
         // Don't add new nodes if we are walking on an existing graph section.
         if (graph.currentNode.children.isNotEmpty()) {
             if (checkpoint != null && isAfterChoicePoint(checkpoint.snapshot.pc!!)) {
-                val stackValue = checkpoint.snapshot.stack!!.last()
+                //val stackValue = checkpoint.snapshot.stack!!.last()
+                val stackValue = WasmStackValue(0, "", checkpoint.returns!!.first().toLong())
                 val intValue = stackValue.value.toInt()
                 if (graph.currentNode is PrimitiveNode) {
                     if (!graph.currentNode.values.contains(intValue)) {
@@ -362,7 +364,13 @@ class MultiverseDebugger(
         return pc in wasmBinary.metadata.after_choicepoints
     }
 
-    fun predictFuture(maxInstructions: Int = 50, maxSymbolicVariables: Int = -1, maxIterations: Int = -1, stopPc: Int = -1): Boolean {
+    enum class AnalysisOutcome {
+        Failed,
+        NoPaths,
+        Success
+    }
+
+    fun predictFuture(maxInstructions: Int = 50, maxSymbolicVariables: Int = -1, maxIterations: Int = -1, stopPc: Int = -1): AnalysisOutcome {
         val result = analyse(
             symbolicWdcliPath,
             wasmBinary.file.absolutePath,
@@ -372,8 +380,11 @@ class MultiverseDebugger(
             maxIterations,
             stopPc
         )
+        if (result == null) {
+            return AnalysisOutcome.Failed
+        }
         if (result.paths.isEmpty()) {
-            return false
+            return AnalysisOutcome.NoPaths
         }
 
         val concolicGraphRoot = processPaths(result.paths)
@@ -381,7 +392,7 @@ class MultiverseDebugger(
         // previously predicted future and the newly predicted future.
         graph.replaceCurrentNode(concolicGraphRoot)
         graphUpdated()
-        return true
+        return AnalysisOutcome.Success
     }
 
     // TODO: Remove/move/improve

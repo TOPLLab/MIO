@@ -16,7 +16,9 @@ abstract class DebuggerTestBase {
         val connection = if (emulator) ProcessConnection(wdcliPath, getFile(file).path, "--no-socket") else SerialConnection(config.port ?: throw RuntimeException("Port was not configured!"))
         val debugger = Debugger(connection)
         if (!emulator) {
-            debugger.updateModule(getFile(file).absolutePath)
+            debugger.pause()
+            debugger.reset()
+            //debugger.updateModule(getFile(file).absolutePath)
         } else {
             debugger.pause()
         }

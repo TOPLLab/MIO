@@ -19,17 +19,17 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
     private val requestQueue: Queue<Int> = LinkedList()
     var printListener: ((String) -> Unit)? = null
     private val messageQueue = MessageQueue {
-        for (msg in it) {
+        /*for (msg in it) {
             if (msg.startsWith("EMU: ")) {
                 this.printListener?.invoke(msg.substring(5))
             }
-        }
+        }*/
     }
     private val readThread  = thread(start) {
         while (!Thread.currentThread().isInterrupted) {
             while (connection.bytesAvailable() == 0) {
                 try {
-                    Thread.sleep(10)
+                    Thread.sleep(5)
                 } catch (_: InterruptedException) {
                     Thread.currentThread().interrupt()
                     break
@@ -38,6 +38,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
 
             val readBuffer = ByteArray(connection.bytesAvailable())
             connection.read(readBuffer)
+            //print(String(readBuffer))
             messageQueue.push(String(readBuffer), true)
 
             while (true) {
@@ -48,6 +49,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
                 if (checkpointMessage == null)
                     break;
 
+                break // ignore checkpoints
                 val payloadStr = checkpointMessage.second.groups[1]!!.value
 
                 try {
@@ -55,9 +57,9 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
                     //println(checkpoint)
 
                     if (checkpoint.instructions_executed == 0 && checkpoints.size > 0) {
-                        if (checkpoint.snapshot.pc != checkpoints.last()!!.snapshot.pc) {
+                        /*if (checkpoint.snapshot.pc != checkpoints.last()!!.snapshot.pc) {
                             throw RuntimeException("Received a checkpoint with a different pc but with 0 executed instructions since the last checkpoint!")
-                        }
+                        }*/
                         System.err.println("WARNING: Received a checkpoint that we already have!")
                         continue
                     }
@@ -213,7 +215,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
     }
     fun stepUntil(cond: (WOODDumpResponse) -> Boolean) {
         stepInto()
-        while (!cond(checkpoints.last()!!.snapshot)) {
+        while (!cond(snapshotFull().second)) {
             stepInto()
         }
     }
@@ -241,6 +243,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
     }
 
     fun printCheckpoints(binaryInfo: WasmInfo? = null) {
+        return
         println("Checkpoints:")
         for (checkpoint in checkpoints) {
             if (checkpoint == null) {
