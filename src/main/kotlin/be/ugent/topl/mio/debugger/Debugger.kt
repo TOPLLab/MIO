@@ -6,6 +6,7 @@ import be.ugent.topl.mio.woodstate.Checkpoint
 import be.ugent.topl.mio.woodstate.HexaEncoder
 import be.ugent.topl.mio.woodstate.WOODDumpResponse
 import be.ugent.topl.mio.woodstate.WOODState
+import com.fasterxml.jackson.core.JacksonException
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import java.io.Closeable
@@ -72,7 +73,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
                     checkpoints.add(checkpoint)
 
                     checkpointsUpdated()
-                } catch(e: Exception) {
+                } catch(e: JacksonException) {
                     println("ERROR!")
                     println(payloadStr)
                     println(e)
@@ -453,9 +454,17 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
         class AtEveryInstruction()  : SnapshotPolicy(1) {
             override fun toString() = "Snapshot at every instruction"
         }
-        data class Checkpointing(val interval: Int = 20) : SnapshotPolicy(2) {
+        data class Checkpointing(val interval: Int = 100) : SnapshotPolicy(2) {
             override fun serialize(): String {
                 return super.serialize() + HexaEncoder.serializeUInt32BE(interval)
+            }
+        }
+        data class Tracing(val minimumArgCount: Int = 1, val states: List<ExecutionState>) : SnapshotPolicy(3) {
+            override fun serialize(): String {
+                return super.serialize() +
+                        HexaEncoder.convertToLEB128(minimumArgCount) +
+                        HexaEncoder.convertToLEB128(states.size) +
+                        states.joinToString("") { HexaEncoder.convertToLEB128(it.ordinal + 1) }
             }
         }
     }
