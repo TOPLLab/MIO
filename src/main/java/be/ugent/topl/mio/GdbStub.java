@@ -153,6 +153,13 @@ public class GdbStub {
                 long len = Long.parseUnsignedLong(memArgs[1], 16);
                 log("Read memory " + len + " bytes from " + pos + " with addr type = " + addrType);
 
+                // TODO: Hack to temporarily prevent lldb from using breakpoints when stepping
+                //  https://github.com/llvm/llvm-project/issues/189960
+                if (addrType == 0) {
+                    sendPacket(out, "E01");
+                    continue;
+                }
+
                 byte[] memory = rawCodeSection;
                 if (addrType == 1) {
                     log("Reading from wasm linear memory");
@@ -160,7 +167,7 @@ public class GdbStub {
                 }
 
                 // The reply may contain fewer addressable memory units than requested if the server was reading from a trace frame memory and was able to read only part of the region of memory.
-                if (pos + len >= memory.length) {
+                if (pos >= memory.length) {
                     System.out.println("Out of bounds for length " + memory.length);
                     sendPacket(out, "E01");
                     continue;
@@ -171,10 +178,10 @@ public class GdbStub {
                     // TODO: read from pos + i
                     // also think about little vs big endian
                     int index = (int) pos + i;
-                    /*if (index >= memory.length) {
+                    if (index >= memory.length) {
                         System.out.println("Stop reading, out of bounds");
                         break;
-                    }*/
+                    }
                     int b = memory[index];
                     result.append(String.format("%02x", b & 0xFF));
                     //result.append("00");
@@ -264,9 +271,9 @@ public class GdbStub {
             }
 
             switch (pkt) {
-                case "QStartNoAckMode":
+                /*case "QStartNoAckMode":
                     sendPacket(out, "OK");
-                    break;
+                    break;*/
                 case "qHostInfo":
                     //sendPacket(out, "triple:x86_64-pc-linux-gnu;endian:little;ptrsize:8;");
                     //sendPacket(out, "cputype:16777228;cpusubtype:3;ostype:darwin;vendor:apple;endian:little;ptrsize:8;hostname:hello;");
