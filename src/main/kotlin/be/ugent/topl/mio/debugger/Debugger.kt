@@ -14,8 +14,8 @@ import java.util.*
 import kotlin.concurrent.thread
 import kotlin.streams.toList
 
-open class Debugger(private val connection: Connection, start: Boolean = true, private val onHitBreakpoint: (Int) -> Unit = {}) : Closeable, AutoCloseable {
-    private val requestQueue: Queue<Int> = LinkedList()
+open class Debugger(private val connection: Connection, start: Boolean = true, onHitBreakpoint: (Int) -> Unit = {}) : Closeable, AutoCloseable {
+    var breakpointsListeners:  MutableList<(Int) -> Unit> = mutableListOf(onHitBreakpoint)
     var printListener: ((String) -> Unit)? = null
     private val messageQueue = MessageQueue {
         for (msg in it) {
@@ -39,6 +39,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
             connection.read(readBuffer)
             messageQueue.push(String(readBuffer), true)
 
+            //println(String(readBuffer))
             while (true) {
                 val checkpointMessage = messageQueue.search {
                     val match = Regex("CHECKPOINT (.*)").matchEntire(it.trimEnd('\r')) ?: throw Exception()
@@ -97,7 +98,9 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
                      * incoming messages, so the request would never be completed.
                      */
                     thread {
-                        onHitBreakpoint(searchAtResult.second)
+                        for (breakpointListener in breakpointsListeners) {
+                            breakpointListener(searchAtResult.second)
+                        }
                     }
                 }
             }
@@ -175,7 +178,6 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
 
     private fun send(code: Int, payload: String = "") {
         val str = String.format("%02d$payload\n", code)
-        requestQueue.add(code)
         print("Sending $str")
         val write = str.toByteArray()
         connection.write(write)

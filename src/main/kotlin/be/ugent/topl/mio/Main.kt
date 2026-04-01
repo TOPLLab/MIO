@@ -151,6 +151,17 @@ fun main(args: Array<String>) {
                 config.port!!
             )
         }
+        "gdbstub" -> {
+            //val wasmFilename = "main.wasm"
+            val wasmFilename = "test-dbg.wasm"
+            val debugger = Debugger(ProcessConnection(config.wdcliPath, wasmFilename, "--no-socket", "--paused")) {
+                println("Hit breakpoint!")
+            }
+            debugger.pause()
+            debugger.setSnapshotPolicy(Debugger.SnapshotPolicy.Checkpointing())
+            val stub = GdbStub(debugger, wasmFilename)
+            stub.start()
+        }
         else -> {
             println("Invalid option \"${args[0]}\"!")
             exitProcess(1)
