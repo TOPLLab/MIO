@@ -102,7 +102,8 @@ public class GdbStub {
 
             if (sectionId == 10) { // code section
                 System.out.println("Found code section at address " + i);
-                return new CodeSection(Arrays.copyOfRange(wasmBytes, i, i + size), i);
+                //return new CodeSection(Arrays.copyOfRange(wasmBytes, i, i + size), i);
+                return new CodeSection(wasmBytes, i);
             }
 
             i += size;
@@ -161,20 +162,23 @@ public class GdbStub {
 
                 // TODO: Hack to temporarily prevent lldb from using breakpoints when stepping
                 //  https://github.com/llvm/llvm-project/issues/189960
-                if (addrType == 0) {
+                /*if (addrType == 0) {
                     sendPacket(out, "E01");
                     continue;
-                }
+                }*/
 
                 byte[] memory = codeSection.data;
                 if (addrType == 1) {
                     log("Reading from wasm linear memory");
                     memory = getCurrentState().getMemory().getBytes();
                 }
+                else {
+                    //pos -= codeSection.offset;
+                }
 
                 // The reply may contain fewer addressable memory units than requested if the server was reading from a trace frame memory and was able to read only part of the region of memory.
-                if (pos >= memory.length) {
-                    System.out.println("Out of bounds for length " + memory.length);
+                if (pos >= memory.length || pos < 0) {
+                    System.out.println("Pos " + pos + " out of bounds for length " + memory.length);
                     sendPacket(out, "E01");
                     continue;
                 }
@@ -214,7 +218,8 @@ public class GdbStub {
                 // toHex(codeSection.offset, 4)
                 //"0x00044444"
                 //sendPacket(out, String.format("l<library-list><library name=\"%s\"><section address=\"0x" + toHex(codeSection.offset, 4, false) + "\"/></library></library-list>", new File(binaryLocation).getAbsolutePath()));
-                sendPacket(out, String.format("l<library-list><library name=\"%s\"><section address=\"" + "0x00000000" + "\"/></library></library-list>", new File(binaryLocation).getAbsolutePath()));
+                sendPacket(out, String.format("l<library-list><library name=\"%s\"><section address=\"" + codeSection.offset + "\"/></library></library-list>", new File(binaryLocation).getAbsolutePath()));
+                //sendPacket(out, String.format("l<library-list><library name=\"%s\"><section address=\"" + "0x00000000" + "\"/></library></library-list>", new File(binaryLocation).getAbsolutePath()));
                 continue;
             }
             // TODO: We can probably remove this:
