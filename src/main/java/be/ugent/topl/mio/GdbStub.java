@@ -11,7 +11,6 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
 
 import static be.ugent.topl.mio.sourcemap.DwarfSourceMapKt.getDwarfSourcemap;
 
@@ -81,36 +80,6 @@ public class GdbStub {
         return addr & Long.MAX_VALUE;
     }
 
-    record CodeSection(byte[] data, int offset) {}
-
-    private CodeSection getCodeSection(String filename) throws IOException {
-        byte[] wasmBytes = Files.readAllBytes(Path.of(filename));
-        int i = 8; // skip header
-
-        while (i < wasmBytes.length) {
-            int sectionId = wasmBytes[i++] & 0xFF;
-
-            // LEB128 section size
-            int size = 0;
-            int shift = 0;
-            int b;
-            do {
-                b = wasmBytes[i++] & 0xFF;
-                size |= (b & 0x7F) << shift;
-                shift += 7;
-            } while ((b & 0x80) != 0);
-
-            if (sectionId == 10) { // code section
-                System.out.println("Found code section at address " + i);
-                //return new CodeSection(Arrays.copyOfRange(wasmBytes, i, i + size), i);
-                return new CodeSection(wasmBytes, i);
-            }
-
-            i += size;
-        }
-        return null;
-    }
-
     private String getTriple(String s) {
         String hex = s.chars()
                 .mapToObj(c -> String.format("%02x", c))
@@ -125,11 +94,9 @@ public class GdbStub {
     }
 
     public void start() throws IOException {
-        //System.out.println(stripAddrType(0x800000000000fffcL)); // 65532
         debugger.pause();
 
-        System.out.println(toHex(4508));
-        CodeSection codeSection = getCodeSection(binaryLocation);
+        byte[] wasmData = Files.readAllBytes(Path.of(binaryLocation));
 
         for (int i = 0; i < regs.length; i++) {
             regs[i] = 0x11111111 * (i + 1);
@@ -167,7 +134,7 @@ public class GdbStub {
                     continue;
                 }*/
 
-                byte[] memory = codeSection.data;
+                byte[] memory = wasmData;
                 if (addrType == 1) {
                     log("Reading from wasm linear memory");
                     memory = getCurrentState().getMemory().getBytes();
@@ -215,11 +182,7 @@ public class GdbStub {
                 // +--------------------+--------------------+
                 //  <----- 32 bit -----> <----- 32 bit ----->
                 // Offset 0, module id 0
-                // toHex(codeSection.offset, 4)
-                //"0x00044444"
-                //sendPacket(out, String.format("l<library-list><library name=\"%s\"><section address=\"0x" + toHex(codeSection.offset, 4, false) + "\"/></library></library-list>", new File(binaryLocation).getAbsolutePath()));
-                sendPacket(out, String.format("l<library-list><library name=\"%s\"><section address=\"" + codeSection.offset + "\"/></library></library-list>", new File(binaryLocation).getAbsolutePath()));
-                //sendPacket(out, String.format("l<library-list><library name=\"%s\"><section address=\"" + "0x00000000" + "\"/></library></library-list>", new File(binaryLocation).getAbsolutePath()));
+                sendPacket(out, String.format("l<library-list><library name=\"%s\"><section address=\"0x00000000\"/></library></library-list>", new File(binaryLocation).getAbsolutePath()));
                 continue;
             }
             // TODO: We can probably remove this:
