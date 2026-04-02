@@ -267,15 +267,15 @@ public class GdbStub {
                     sendPacket(out, "PacketSize=4000");
                     break;
                 case "qWasmCallStack:1": // Get the callstack for thread 1.
-                    Checkpoint lastCheckpoint = debugger.getCheckpoints().getLast();
                     WOODDumpResponse state = getCurrentState();
-                    //long currentPc = (long) state.getPc() - codeSection.offset;
-                    long currentPc = (long) state.getPc();
-                    String result = toHex(currentPc);
-                    for (int i = 0; i < state.getCallstack().size() - 1; i++) {
-                        result += toHex(0xdead); // TODO: Add other pc's in the callstack
+                    String result = toHex(state.getPc());
+                    for (int i = state.getCallstack().size() - 1; i >= 0; i--) {
+                        // Only functions are real callstack elements:
+                        Frame f = state.getCallstack().get(i);
+                        if (f.getType() == 0) {
+                            result += toHex(f.getRa());
+                        }
                     }
-                    log("Callstack size: " + state.getCallstack().size() + " pc = " + currentPc);
                     sendPacket(out, result);
 
                     try {
