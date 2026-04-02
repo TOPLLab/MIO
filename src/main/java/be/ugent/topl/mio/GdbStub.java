@@ -52,17 +52,20 @@ public class GdbStub {
         return sb.toString();
     }
 
-    private String toHex(long data, int maxLen) {
+    private String toHex(long data, int maxLen, boolean bigEndian) {
         StringBuilder result = new StringBuilder();
         for (int i = 0; i < maxLen; i++) {
             long b = (data >> i * 8) & 0xff;
+            if (!bigEndian) {
+                b = (data >> (maxLen - i - 1) * 8) & 0xff;
+            }
             result.append(String.format("%02x", b));
         }
         return result.toString();
     }
 
     private String toHex(long data) {
-        return toHex(data, 8);
+        return toHex(data, 8, true);
     }
 
     private long toWasmAddr(long addr) {
@@ -78,7 +81,9 @@ public class GdbStub {
         return addr & Long.MAX_VALUE;
     }
 
-    private byte[] getCodeSection(String filename) throws IOException {
+    record CodeSection(byte[] data, int offset) {}
+
+    private CodeSection getCodeSection(String filename) throws IOException {
         byte[] wasmBytes = Files.readAllBytes(Path.of(filename));
         int i = 8; // skip header
 
@@ -96,7 +101,8 @@ public class GdbStub {
             } while ((b & 0x80) != 0);
 
             if (sectionId == 10) { // code section
-                return Arrays.copyOfRange(wasmBytes, i, i + size);
+                System.out.println("Found code section at address " + i);
+                return new CodeSection(Arrays.copyOfRange(wasmBytes, i, i + size), i);
             }
 
             i += size;
@@ -122,7 +128,7 @@ public class GdbStub {
         debugger.pause();
 
         System.out.println(toHex(4508));
-        byte[] rawCodeSection = getCodeSection(binaryLocation);
+        CodeSection codeSection = getCodeSection(binaryLocation);
 
         for (int i = 0; i < regs.length; i++) {
             regs[i] = 0x11111111 * (i + 1);
@@ -160,7 +166,7 @@ public class GdbStub {
                     continue;
                 }
 
-                byte[] memory = rawCodeSection;
+                byte[] memory = codeSection.data;
                 if (addrType == 1) {
                     log("Reading from wasm linear memory");
                     memory = getCurrentState().getMemory().getBytes();
@@ -205,7 +211,10 @@ public class GdbStub {
                 // +--------------------+--------------------+
                 //  <----- 32 bit -----> <----- 32 bit ----->
                 // Offset 0, module id 0
-                sendPacket(out, String.format("l<library-list><library name=\"%s\"><section address=\"0x00000000\"/></library></library-list>", new File(binaryLocation).getAbsolutePath()));
+                // toHex(codeSection.offset, 4)
+                //"0x00044444"
+                //sendPacket(out, String.format("l<library-list><library name=\"%s\"><section address=\"0x" + toHex(codeSection.offset, 4, false) + "\"/></library></library-list>", new File(binaryLocation).getAbsolutePath()));
+                sendPacket(out, String.format("l<library-list><library name=\"%s\"><section address=\"" + "0x00000000" + "\"/></library></library-list>", new File(binaryLocation).getAbsolutePath()));
                 continue;
             }
             // TODO: We can probably remove this:
@@ -292,6 +301,7 @@ public class GdbStub {
                 case "qWasmCallStack:1": // Get the callstack for thread 1.
                     Checkpoint lastCheckpoint = debugger.getCheckpoints().getLast();
                     WOODDumpResponse state = getCurrentState();
+                    //long currentPc = (long) state.getPc() - codeSection.offset;
                     long currentPc = (long) state.getPc();
                     String result = toHex(currentPc);
                     for (int i = 0; i < state.getCallstack().size() - 1; i++) {

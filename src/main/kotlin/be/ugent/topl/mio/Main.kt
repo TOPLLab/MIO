@@ -153,10 +153,8 @@ fun main(args: Array<String>) {
         }
         "gdbstub" -> {
             //val wasmFilename = "main.wasm"
-            val wasmFilename = "test-dbg.wasm"
-            val debugger = Debugger(ProcessConnection(config.wdcliPath, wasmFilename, "--no-socket", "--paused")) {
-                println("Hit breakpoint!")
-            }
+            val wasmFilename = "tmp/test-dbg.wasm"
+            val debugger = Debugger(ProcessConnection(config.wdcliPath, wasmFilename, "--no-socket", "--paused"))
             debugger.pause()
             debugger.setSnapshotPolicy(Debugger.SnapshotPolicy.Checkpointing())
             val stub = GdbStub(debugger, wasmFilename)
