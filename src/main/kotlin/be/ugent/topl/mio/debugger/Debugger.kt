@@ -223,14 +223,14 @@ open class Debugger(private val connection: Connection, start: Boolean = true, o
         return checkpoints.size > 1
     }
 
-    fun stepBackUntil(binaryInfo: WasmInfo, cond: (WOODDumpResponse) -> Boolean) {
-        stepBack(1, binaryInfo) {}
+    fun stepBackUntil(cond: (WOODDumpResponse) -> Boolean) {
+        stepBack()
         while (!cond(checkpoints.last()!!.snapshot)) {
             if (!canStepBack()) {
                 System.err.println("WARNING: Can't go back further!")
                 return
             }
-            stepBack(1, binaryInfo)
+            stepBack()
         }
     }
 
@@ -263,7 +263,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, o
         println("count = ${checkpoints.size}")
     }
 
-    open fun stepBack(n: Int, binaryInfo: WasmInfo, stepDone: () -> Unit = {}) {
+    open fun stepBack(n: Int = 1, stepDone: () -> Unit = {}) {
         if (n == 0) {
             return
         }
@@ -271,7 +271,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, o
         val currentState = checkpoints.removeLast() // Remove current state, we don't need to restore this, we are already in this state.
         val nSnapshots = checkpoints.subList(checkpoints.size - n, checkpoints.size).toList()
         for (checkpoint in nSnapshots.reversed()) {
-            if (checkpoint != null && (checkpoint.snapshot.pc in binaryInfo.after_primitive_calls || nSnapshots.first() == checkpoint)) {
+            if (checkpoint != null && (checkpoint.fidx_called != null || nSnapshots.first() == checkpoint)) {
             //if (snapshot != null) {
                 println("Snapshot to ${checkpoint.snapshot.pc}")
                 val s = checkpoint.snapshot
