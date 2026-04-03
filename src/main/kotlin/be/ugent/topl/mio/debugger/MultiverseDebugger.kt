@@ -1,7 +1,6 @@
 package be.ugent.topl.mio.debugger
 
 import WasmBinary
-import WasmInfo
 import be.ugent.topl.mio.concolic.analyse
 import be.ugent.topl.mio.concolic.processPaths
 import be.ugent.topl.mio.connections.Connection
@@ -202,12 +201,12 @@ class MultiverseDebugger(
         }*/
     }
 
-    override fun stepBack(n: Int, binaryInfo: WasmInfo, stepDone: () -> Unit) {
+    override fun stepBack(n: Int, stepDone: () -> Unit) {
         var destinationNode = graph.currentNode
         for (i in 0 ..< n) {
             destinationNode = destinationNode.parent!!
         }
-        super.stepBack(n, binaryInfo, stepDone)
+        super.stepBack(n, stepDone)
 
         graph.currentNode = destinationNode
         graphUpdated()
