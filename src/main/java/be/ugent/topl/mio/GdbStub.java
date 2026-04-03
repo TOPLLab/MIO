@@ -302,12 +302,16 @@ public class GdbStub {
                     debugger.stepInto();
                     //sendPacket(out, "T05thread:1;pc:" + toHex(getCurrentState().getPc()) + ";");
                     //sendPacket(out, "S05");
-                    sendPacket(out, "T05thread:1;name:warduino;thread-pcs:" + toHex(getCurrentState().getPc()) + ";00:" + toHex(getCurrentState().getPc()) + ";reason:trace");
+                    sendStopPacket(out, "05");
                     break;
                 case "c":
                     // Pretend to run, then stop immediately
                     debugger.run();
                     //sendPacket(out, "S05");
+                    break;
+                case "pause":
+                    debugger.pause();
+                    sendStopPacket(out, "02");
                     break;
                 case "D":
                     attached = false;
@@ -321,6 +325,10 @@ public class GdbStub {
                     break;
             }
         }
+    }
+
+    private void sendStopPacket(OutputStream out, String signal) throws IOException {
+        sendPacket(out, "T" + signal + "thread:1;name:warduino;thread-pcs:" + toHex(getCurrentState().getPc()) + ";00:" + toHex(getCurrentState().getPc()) + ";reason:trace");
     }
 
     private void log(String s) {
@@ -337,7 +345,11 @@ public class GdbStub {
         do {
             c = in.read();
             if (c == -1) return null;
-        } while (c != '$');
+        } while (c != '$' && c != 0x03); // 0x03 == pause request
+
+        if (c == 0x03) {
+            return "pause";
+        }
 
         ByteArrayOutputStream payload = new ByteArrayOutputStream();
 
