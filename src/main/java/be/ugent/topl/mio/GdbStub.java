@@ -302,6 +302,10 @@ public class GdbStub {
                     debugger.stepInto();
                     sendStopPacket(out, "05");
                     break;
+                case "sb":
+                    debugger.stepBack(1, () -> null);
+                    sendStopPacket(out, "05");
+                    break;
                 case "c":
                     debugger.run();
                     break;
