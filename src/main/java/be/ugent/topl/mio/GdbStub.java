@@ -2,7 +2,6 @@ package be.ugent.topl.mio;
 
 import be.ugent.topl.mio.debugger.Debugger;
 import be.ugent.topl.mio.sourcemap.SourceMap;
-import be.ugent.topl.mio.woodstate.Checkpoint;
 import be.ugent.topl.mio.woodstate.Frame;
 import be.ugent.topl.mio.woodstate.WOODDumpResponse;
 
@@ -34,9 +33,6 @@ public class GdbStub {
             return null;
         });
     }
-
-    // Dummy register file (16 x 32-bit)
-    static int[] regs = new int[16];
 
     private static final char[] HEX = "0123456789abcdef".toCharArray();
     private String toHex(byte[] data, int offset, int length) {
@@ -97,10 +93,6 @@ public class GdbStub {
         debugger.pause();
 
         byte[] wasmData = Files.readAllBytes(Path.of(binaryLocation));
-
-        for (int i = 0; i < regs.length; i++) {
-            regs[i] = 0x11111111 * (i + 1);
-        }
 
         ServerSocket server = new ServerSocket(1234);
         System.out.println("Waiting for GDB on port 1234...");
@@ -395,9 +387,7 @@ public class GdbStub {
 
     private String encodeRegs() {
         StringBuilder sb = new StringBuilder();
-        for (int r : regs) {
-            sb.append(String.format("%08x", r));
-        }
+        sb.append(String.format("%08x", getCurrentState().getPc()));
         return sb.toString();
     }
 }
