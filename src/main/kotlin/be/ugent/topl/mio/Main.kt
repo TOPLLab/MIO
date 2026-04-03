@@ -151,9 +151,9 @@ fun main(args: Array<String>) {
                 config.port!!
             )
         }
-        "gdbstub" -> {
-            //val wasmFilename = "main.wasm"
-            val wasmFilename = "tmp/test-dbg.wasm"
+        "debug-server" -> {
+            expectNArguments(args, 2)
+            val wasmFilename = args[1]
             val debugger = Debugger(ProcessConnection(config.wdcliPath, wasmFilename, "--no-socket", "--paused"))
             debugger.pause()
             debugger.setSnapshotPolicy(Debugger.SnapshotPolicy.Checkpointing())

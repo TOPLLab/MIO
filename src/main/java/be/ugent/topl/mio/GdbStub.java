@@ -300,14 +300,10 @@ public class GdbStub {
                 case "s":
                     log("Received step command from lldb");
                     debugger.stepInto();
-                    //sendPacket(out, "T05thread:1;pc:" + toHex(getCurrentState().getPc()) + ";");
-                    //sendPacket(out, "S05");
                     sendStopPacket(out, "05");
                     break;
                 case "c":
-                    // Pretend to run, then stop immediately
                     debugger.run();
-                    //sendPacket(out, "S05");
                     break;
                 case "pause":
                     debugger.pause();
@@ -321,7 +317,7 @@ public class GdbStub {
                     break;
                 default:
                     System.out.println("Unknown packet: " + pkt);
-                    sendPacket(out, ""); // unsupported
+                    sendPacket(out, "");
                     break;
             }
         }
