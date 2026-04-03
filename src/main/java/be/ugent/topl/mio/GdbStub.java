@@ -110,7 +110,9 @@ public class GdbStub {
         InputStream in = sock.getInputStream();
         out = sock.getOutputStream();
 
-        while (true) {
+        boolean attached = true;
+
+        while (attached) {
             String pkt = recvPacket(in, out);
             if (pkt == null) {
                 System.out.println("GDB closed");
@@ -246,6 +248,11 @@ public class GdbStub {
                 sendPacket(out, "OK");
                 continue;
             }
+            else if (pkt.startsWith("stackInfo")) {
+                //debugger.stepBack(1, wasmData);
+                sendPacket(out, getCurrentState().getStack().toString());
+                continue;
+            }
 
             switch (pkt) {
                 /*case "QStartNoAckMode":
@@ -310,7 +317,12 @@ public class GdbStub {
                     debugger.run();
                     //sendPacket(out, "S05");
                     break;
-
+                case "D":
+                    attached = false;
+                    log("Detach from target");
+                    debugger.close();
+                    sendPacket(out, "OK");
+                    break;
                 default:
                     System.out.println("Unknown packet: " + pkt);
                     sendPacket(out, ""); // unsupported
