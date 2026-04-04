@@ -10,6 +10,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 import static be.ugent.topl.mio.sourcemap.DwarfSourceMapKt.getDwarfSourcemap;
 
@@ -189,11 +191,12 @@ public class GdbStub {
                 int frameIdx =  Integer.parseInt(args[0]);
                 int localIdx =  Integer.parseInt(args[1]);
                 log("Reading local " + localIdx + " from frame " + frameIdx);
-                Frame frame = getCurrentState().getCallstack().get(getCurrentState().getCallstack().size() - frameIdx - 1);
+                Frame frame = getCallStack(getCurrentState()).get(frameIdx);
+                System.out.println(getCallStack(getCurrentState()));
                 System.out.println(frame);
                 System.out.println(getCurrentState().getStack());
                 int fp = frame.getFp();
-                long value = getCurrentState().getStack().get(fp + localIdx).getValue();
+                long value = getCurrentState().getStack().get(fp + localIdx + 1).getValue();
                 sendPacket(out, toHex(toWasmAddr(value))); // If a pointer on the stack is an address it will be clear it's a wasm memory pointer.
                 continue;
             }
@@ -401,5 +404,16 @@ public class GdbStub {
         StringBuilder sb = new StringBuilder();
         sb.append(String.format("%08x", getCurrentState().getPc()));
         return sb.toString();
+    }
+
+    private List<Frame> getCallStack(WOODDumpResponse state) {
+        List<Frame> callStack = new ArrayList<Frame>();
+        for (int i = state.getCallstack().size() - 1; i >= 0; i--) {
+            Frame f = state.getCallstack().get(i);
+            if (f.getType() == 0) {
+                callStack.add(state.getCallstack().get(i));
+            }
+        }
+        return callStack;
     }
 }
