@@ -52,6 +52,19 @@ fun main(args: Array<String>) {
     }
     expectNArguments(args, 1)
     val config = DebuggerConfig()
+
+    if (args[0].startsWith("-p=") || args[0].startsWith("--port=")) {
+        expectNArguments(args, 2)
+        val wasmFilename = args[1]
+        val port = args[0].split("=")[1].toInt()
+        val debugger = Debugger(ProcessConnection(config.wdcliPath, wasmFilename, "--no-socket", "--paused"))
+        debugger.pause()
+        debugger.setSnapshotPolicy(Debugger.SnapshotPolicy.Checkpointing())
+        val stub = GdbStub(debugger, wasmFilename)
+        stub.start(port)
+        return
+    }
+
     when (args[0]) {
         "debug" -> {
             expectNArguments(args, 2)
@@ -150,15 +163,6 @@ fun main(args: Array<String>) {
                 config.fqbn,
                 config.port!!
             )
-        }
-        "debug-server" -> {
-            expectNArguments(args, 2)
-            val wasmFilename = args[1]
-            val debugger = Debugger(ProcessConnection(config.wdcliPath, wasmFilename, "--no-socket", "--paused"))
-            debugger.pause()
-            debugger.setSnapshotPolicy(Debugger.SnapshotPolicy.Checkpointing())
-            val stub = GdbStub(debugger, wasmFilename)
-            stub.start()
         }
         else -> {
             println("Invalid option \"${args[0]}\"!")

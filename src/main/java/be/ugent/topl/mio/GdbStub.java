@@ -91,13 +91,13 @@ public class GdbStub {
         return debugger.getCheckpoints().getLast().getSnapshot();
     }
 
-    public void start() throws IOException {
+    public void start(int port) throws IOException {
         debugger.pause();
 
         byte[] wasmData = Files.readAllBytes(Path.of(binaryLocation));
 
-        ServerSocket server = new ServerSocket(1234);
-        System.out.println("Waiting for GDB on port 1234...");
+        ServerSocket server = new ServerSocket(port);
+        System.out.printf("Waiting for GDB on port %d...", port);
         Socket sock = server.accept();
         System.out.println("GDB connected!");
 
