@@ -31,6 +31,7 @@ public class GdbStub {
 
         debugger.getBreakpointsListeners().add((pc) -> {
             try {
+                logger.info("Stopped at breakpoint {}", pc);
                 sendPacket(out, "S05");
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -214,7 +215,7 @@ public class GdbStub {
                 debugger.addBreakpoint((int) addr);
 
                 try {
-                    logger.info("Breakpoint line {} {}", debugSourceMap.getLineForPc((int) addr), debugSourceMap.getSourceFileName((int) addr));
+                    logger.info("Add breakpoint at {}:{}", debugSourceMap.getSourceFileName((int) addr), debugSourceMap.getLineForPc((int) addr));
                 } catch(Exception _) {}
 
                 // A remote target shall return an empty string for an unrecognized breakpoint or watchpoint packet type.
@@ -231,8 +232,8 @@ public class GdbStub {
                 debugger.removeBreakpoint((int) addr);
 
                 try {
-                    logger.info("Breakpoint line {} {}", debugSourceMap.getLineForPc((int) addr), debugSourceMap.getSourceFileName((int) addr));
-                } catch(Exception e) {}
+                    logger.info("Remove breakpoint at {}:{}", debugSourceMap.getSourceFileName((int) addr), debugSourceMap.getLineForPc((int) addr));
+                } catch(Exception _) {}
 
                 // A remote target shall return an empty string for an unrecognized breakpoint or watchpoint packet type.
                 sendPacket(out, "OK");
@@ -274,8 +275,8 @@ public class GdbStub {
                     sendPacket(out, result);
 
                     try {
-                        logger.info("Current line {} {}", debugSourceMap.getLineForPc(state.getPc()), debugSourceMap.getSourceFileName(state.getPc()));
-                    } catch(Exception e) {}
+                        logger.info("At {}:{}", debugSourceMap.getSourceFileName(state.getPc()), debugSourceMap.getLineForPc(state.getPc()));
+                    } catch(Exception _) {}
 
                     break;
                 case "qC": // Get thread id
@@ -303,6 +304,7 @@ public class GdbStub {
                     sendStopPacket(out, "05");
                     break;
                 case "c":
+                    logger.info("Continue execution");
                     debugger.run();
                     break;
                 case "pause":
