@@ -101,7 +101,7 @@ public class GdbStub {
         ServerSocket server = new ServerSocket(port);
         logger.info("Waiting for LLDB connection on port {}...", port);
         Socket sock = server.accept();
-        logger.info("LLDB connected!");
+        logger.info("LLDB connected! {}", sock.getInetAddress());
 
         InputStream in = sock.getInputStream();
         out = sock.getOutputStream();
@@ -164,7 +164,7 @@ public class GdbStub {
                 continue;
             }
             else if (pkt.startsWith("qSupported")) {
-                sendPacket(out, "qXfer:libraries:read+;vContSupported-;wasm+;");
+                sendPacket(out, "qXfer:libraries:read+;vContSupported-;wasm+;ReverseStep+;");
                 continue;
             }
             else if (pkt.startsWith("qXfer:libraries:read")) {
@@ -299,7 +299,7 @@ public class GdbStub {
                     debugger.stepInto();
                     sendStopPacket(out, "05");
                     break;
-                case "sb":
+                case "bs":
                     debugger.stepBack(1, () -> null);
                     sendStopPacket(out, "05");
                     break;
