@@ -219,8 +219,8 @@ open class Debugger(private val connection: Connection, start: Boolean = true, o
         }
     }
 
-    private fun canStepBack(): Boolean {
-        return checkpoints.size > 1
+    fun canStepBack(n: Int = 1): Boolean {
+        return checkpoints.size > n
     }
 
     fun stepBackUntil(cond: (WOODDumpResponse) -> Boolean) {

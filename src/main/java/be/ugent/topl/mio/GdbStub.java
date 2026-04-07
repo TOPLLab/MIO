@@ -22,6 +22,7 @@ public class GdbStub {
     private final String binaryLocation;
     private OutputStream out;
     private final Logger logger = LoggerFactory.getLogger(GdbStub.class);
+    private boolean stepForward = true;
     private final SourceMap debugSourceMap; // Remove later, lldb doesn't need this.
 
     public GdbStub(Debugger debugger, String binaryLocation) {
@@ -164,6 +165,7 @@ public class GdbStub {
                 continue;
             }
             else if (pkt.startsWith("qSupported")) {
+                //ReverseContinue+;
                 sendPacket(out, "qXfer:libraries:read+;vContSupported-;wasm+;ReverseStep+;");
                 continue;
             }
@@ -243,6 +245,20 @@ public class GdbStub {
                 //debugger.stepBack(1, wasmData);
                 sendPacket(out, getCurrentState().getStack().toString());
                 continue;
+            } else if (pkt.startsWith("bs")) {
+                if (pkt.equals("bs")) {
+                    stepBack(1);
+                } else {
+                    int n = Integer.parseInt(pkt.split(" ")[1]);
+                    logger.info("Step back {} instruction(s)", n);
+                    stepBack(n);
+                }
+                continue;
+            } else if (pkt.startsWith("QSetStepDir:")) {
+                stepForward = Integer.parseInt(pkt.substring("QSetStepDir:".length())) == 0;
+                logger.info("Change step direction to {}", stepForward ? "forward" : "backward");
+                sendPacket(out, "OK");
+                continue;
             }
 
             switch (pkt) {
@@ -296,12 +312,15 @@ public class GdbStub {
                     break;
                 case "s":
                     logger.info("Received step command from lldb");
-                    debugger.stepInto();
-                    sendStopPacket(out, "05");
-                    break;
-                case "bs":
-                    debugger.stepBack(1, () -> null);
-                    sendStopPacket(out, "05");
+                    if (stepForward) {
+                        logger.info("Step forward");
+                        debugger.stepInto();
+                        sendStopPacket(out, "05");
+                    }
+                    else {
+                        logger.info("Step backward");
+                        stepBack(1);
+                    }
                     break;
                 case "c":
                     logger.info("Continue execution");
@@ -323,6 +342,16 @@ public class GdbStub {
                     break;
             }
         }
+    }
+
+    private void stepBack(int n) throws IOException {
+        if (!debugger.canStepBack(n)) {
+            sendPacket(out, "E01");
+            return;
+        }
+
+        debugger.stepBack(n, () -> null);
+        sendStopPacket(out, "05");
     }
 
     private void sendStopPacket(OutputStream out, String signal) throws IOException {
