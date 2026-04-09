@@ -346,7 +346,7 @@ public class GdbStub {
 
     private void stepBack(int n) throws IOException {
         if (!debugger.canStepBack(n)) {
-            sendPacket(out, "E01");
+            sendPacket(out, "T" + "05" + "thread:1;name:warduino;thread-pcs:" + toHex(getCurrentState().getPc()) + ";00:" + toHex(getCurrentState().getPc()) + ";replaylog:begin;");
             return;
         }
 
