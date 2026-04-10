@@ -4,6 +4,7 @@ import be.ugent.topl.mio.DebuggerConfig
 import be.ugent.topl.mio.connections.ProcessConnection
 import be.ugent.topl.mio.connections.SerialConnection
 import be.ugent.topl.mio.sourcemap.AsSourceMapping
+import be.ugent.topl.mio.sourcemap.getDwarfSourcemap
 import com.fazecast.jSerialComm.SerialPort
 import com.formdev.flatlaf.extras.FlatSVGIcon
 import com.formdev.flatlaf.util.SystemFileChooser
@@ -11,6 +12,7 @@ import java.awt.Dimension
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileWriter
+import java.io.IOException
 import java.util.*
 import javax.swing.*
 
@@ -87,11 +89,17 @@ open class StartScreen(config: DebuggerConfig) : AboutScreen(config) {
         }
         val sourceMapFile = File(binary.path + ".map")
         if (!sourceMapFile.exists()) {
-            JOptionPane.showMessageDialog(this, "File does not have an associated sourcemap (.map) file!", "Missing sourcemaps", JOptionPane.ERROR_MESSAGE)
-            return false
+            try {
+                val sourceMapping = getDwarfSourcemap(binary.path)
+                InteractiveDebugger(connection, sourceMapping, binary.path, config = config)
+                return true
+            } catch(e: IOException) {
+                JOptionPane.showMessageDialog(this, "Could not obtain DWARF debug info from \"${binary}\". Sourcemaps (.map) are also supported but no valid sourcemap was found for this binary.\n\nDetails:\n${e.message}\n", "Failed to get debug info", JOptionPane.ERROR_MESSAGE)
+                return false
+            }
         }
         val sourceMapping = AsSourceMapping(File(binary.path + ".map").readText())
-        InteractiveDebugger(connection, config.symbolicWdcliPath, sourceMapping, binary.path, config = config)
+        InteractiveDebugger(connection, sourceMapping, binary.path, config = config)
         return true
     }
 }
