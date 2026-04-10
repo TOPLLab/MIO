@@ -326,6 +326,10 @@ public class GdbStub {
                     logger.info("Continue execution");
                     debugger.run();
                     break;
+                /*case "bc":
+                    // TODO: Actual backwards continue in MIO
+                    stepBack(1);
+                    break;*/
                 case "pause":
                     debugger.pause();
                     sendStopPacket(out, "02");
