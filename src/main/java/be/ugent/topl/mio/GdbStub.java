@@ -95,21 +95,30 @@ public class GdbStub {
     }
 
     public void start(int port) throws IOException {
+        start(port, false);
+    }
+
+    public void start(int port, boolean closeOnDetach) throws IOException {
         debugger.pause();
 
         byte[] wasmData = Files.readAllBytes(Path.of(binaryLocation));
 
         ServerSocket server = new ServerSocket(port);
-        logger.info("Waiting for LLDB connection on port {}...", port);
-        Socket sock = server.accept();
-        logger.info("LLDB connected! {}", sock.getInetAddress());
+        Socket sock;
+        InputStream in = null;
+        boolean attached = false;
 
-        InputStream in = sock.getInputStream();
-        out = sock.getOutputStream();
+        do {
+            if (!attached) {
+                logger.info("Waiting for LLDB connection on port {}...", port);
+                sock = server.accept();
+                logger.info("LLDB connected! {}", sock.getInetAddress());
 
-        boolean attached = true;
+                in = sock.getInputStream();
+                out = sock.getOutputStream();
+                attached = true;
+            }
 
-        while (attached) {
             String pkt = recvPacket(in, out);
             if (pkt == null) {
                 logger.info("Connection closed");
@@ -337,7 +346,6 @@ public class GdbStub {
                 case "D":
                     attached = false;
                     logger.info("Detach from target");
-                    debugger.close();
                     sendPacket(out, "OK");
                     break;
                 default:
@@ -345,7 +353,8 @@ public class GdbStub {
                     sendPacket(out, "");
                     break;
             }
-        }
+        } while(!closeOnDetach || attached);
+        debugger.close();
     }
 
     private void stepBack(int n) throws IOException {
