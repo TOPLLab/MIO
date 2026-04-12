@@ -33,7 +33,7 @@ public class GdbStub {
         debugger.getBreakpointsListeners().add((pc) -> {
             try {
                 logger.info("Stopped at breakpoint {}", pc);
-                sendPacket(out, "S05");
+                sendStopPacket(out, "05");
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
