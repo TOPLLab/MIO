@@ -239,7 +239,11 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
         }
     }
 
+    private val checkpointLogging = false
     fun printCheckpoints(binaryInfo: WasmInfo? = null) {
+        if (!checkpointLogging)
+            return
+
         println("Checkpoints:")
         for (checkpoint in checkpoints) {
             if (checkpoint == null) {
