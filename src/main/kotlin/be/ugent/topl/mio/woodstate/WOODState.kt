@@ -660,69 +660,69 @@ class WOODState(woodResponse: WOODDumpResponse) {
         }
     }
 
+    fun serializeValue(value: WasmStackValue, includeType: Boolean = true): String {
+        // |   Type      |       value       |
+        // | 1 * 2 bytes |  4*2 or 8*2 bytes |
+        var type = -1
+        var v = ""
+        var type_str = ""
+
+        if (value.type == "i32" || value.type == "I32") {
+            if (value.value < 0) {
+            v = HexaEncoder.serializeInt32LE(value.value.toInt())
+        }
+            else {
+            v = HexaEncoder.serializeUInt32LE(value.value.toInt())
+        }
+            type = 0
+            type_str = "i32"
+        }
+        else if (value.type == "i64" || value.type == "I64") {
+            if (value.value < 0) {
+            v = HexaEncoder.serializeBigUInt64LE(value.value)
+        }
+            else {
+            v = HexaEncoder.serializeBigUInt64LE(value.value)
+        }
+            type = 1
+            type_str = "i64"
+        }
+        else if (value.type == "f32" || value.type == "F32") {
+            v = HexaEncoder.serializeFloatLE(value.value.toFloat())
+            type = 2
+            type_str = "f32"
+        }
+        else if (value.type == "f64" || value.type == "F64") {
+            v = HexaEncoder.serializeDoubleLE(value.value.toDouble())
+            type = 3
+            type_str = "f64"
+        }
+        else {
+            throw Error("Got unexisting stack Value type ${value.type} value ${value.value}")
+        }
+        logger.trace("Value: type=${type_str}(idx ${type}) val=${value.value}")
+        if (includeType) {
+            val typeHex = HexaEncoder.serializeUInt8(type)
+            return "${typeHex}${v}"
+        }
+        else {
+            return v
+        }
+    }
+
+    fun serializeStackValueUpdate(value: WasmStackValue): String {
+        val stackIDx = HexaEncoder.convertToLEB128(value.idx)
+        val valueHex = HexaEncoder.convertToLEB128(value.value.toInt())
+        return "${InterruptTypes.interruptUPDATEStackValue}${stackIDx}${valueHex}"
+    }
+
+    fun serializeGlobalValueUpdate(value: WasmStackValue): String {
+        val globalIDX = HexaEncoder.convertToLEB128(value.idx)
+        val valueHex = HexaEncoder.convertToLEB128(value.value.toInt())
+        return "${InterruptTypes.interruptUPDATEGlobal}${globalIDX}${valueHex}"
+    }
+
     companion object {
-        fun serializeValue(value: WasmStackValue, includeType: Boolean = true): String {
-            // |   Type      |       value       |
-            // | 1 * 2 bytes |  4*2 or 8*2 bytes |
-            var type = -1
-            var v = ""
-            var type_str = ""
-
-            if (value.type == "i32" || value.type == "I32") {
-                if (value.value < 0) {
-                v = HexaEncoder.serializeInt32LE(value.value.toInt())
-            }
-                else {
-                v = HexaEncoder.serializeUInt32LE(value.value.toInt())
-            }
-                type = 0
-                type_str = "i32"
-            }
-            else if (value.type == "i64" || value.type == "I64") {
-                if (value.value < 0) {
-                v = HexaEncoder.serializeBigUInt64LE(value.value)
-            }
-                else {
-                v = HexaEncoder.serializeBigUInt64LE(value.value)
-            }
-                type = 1
-                type_str = "i64"
-            }
-            else if (value.type == "f32" || value.type == "F32") {
-                v = HexaEncoder.serializeFloatLE(value.value.toFloat())
-                type = 2
-                type_str = "f32"
-            }
-            else if (value.type == "f64" || value.type == "F64") {
-                v = HexaEncoder.serializeDoubleLE(value.value.toDouble())
-                type = 3
-                type_str = "f64"
-            }
-            else {
-                throw Error("Got unexisting stack Value type ${value.type} value ${value.value}")
-            }
-            println("Value: type=${type_str}(idx ${type}) val=${value.value}")
-            if (includeType) {
-                val typeHex = HexaEncoder.serializeUInt8(type)
-                return "${typeHex}${v}"
-            }
-            else {
-                return v
-            }
-        }
-
-        fun serializeStackValueUpdate(value: WasmStackValue): String {
-            val stackIDx = HexaEncoder.convertToLEB128(value.idx)
-            val valueHex = HexaEncoder.convertToLEB128(value.value.toInt())
-            return "${InterruptTypes.interruptUPDATEStackValue}${stackIDx}${valueHex}"
-        }
-
-        fun serializeGlobalValueUpdate(value: WasmStackValue): String {
-            val globalIDX = HexaEncoder.convertToLEB128(value.idx)
-            val valueHex = HexaEncoder.convertToLEB128(value.value.toInt())
-            return "${InterruptTypes.interruptUPDATEGlobal}${globalIDX}${valueHex}"
-        }
-
         fun parseSnapshot(line: String): WOODDumpResponse {
             val trimmed = line.trimEnd()
             val objectMapper = ObjectMapper()
