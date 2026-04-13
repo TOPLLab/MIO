@@ -29,6 +29,9 @@ dependencies {
     // Needed for AssemblyScript source mapping:
     //implementation("com.atlassian.sourcemap:sourcemap:2.0.0")
     implementation("com.google.code.gson:gson:2.11.0")
+
+    // Logging
+    implementation("ch.qos.logback:logback-classic:1.5.32")
 }
 
 tasks.test {
