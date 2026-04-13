@@ -106,12 +106,29 @@ tasks.register<Copy>("setup") {
     // Setup configuration file.
     val file = File("${System.getenv("HOME")}/.mio/debugger.properties")
     if (!file.exists()) {
-        file.parentFile.mkdirs()
-        println("Generating a default configuration file ${file.absolutePath}")
-        val properties = Properties()
-        properties.setProperty("wdcli", wdcliPath)
-        properties.setProperty("wdcli-symbolic", wdcliSymbolicPath)
-        properties.setProperty("concolic", "true")
-        properties.store(file.writer(), null)
+        writeDefaultConfig(file)
+    } else {
+        println("Config already exists, do you want to overwrite it? y/n")
+        var answer = readln()
+        while (answer != "y" && answer != "n") {
+            answer = readln()
+            println("Please enter y or n")
+        }
+        if (answer == "y") {
+            writeDefaultConfig(file)
+        }
+        else {
+            println("Keeping existing config $file")
+        }
     }
+}
+
+fun writeDefaultConfig(file: File) {
+    file.parentFile.mkdirs()
+    println("Generating a default configuration file ${file.absolutePath}")
+    val properties = Properties()
+    properties.setProperty("wdcli", wdcliPath)
+    properties.setProperty("wdcli-symbolic", wdcliSymbolicPath)
+    properties.setProperty("concolic", "true")
+    properties.store(file.writer(), null)
 }
