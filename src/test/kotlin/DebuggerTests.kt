@@ -22,7 +22,7 @@ class DebuggerTests : DebuggerTestBase() {
         val beforeSnapshot = debugger.snapshot()
         debugger.stepInto()
         val stepAfter = debugger.snapshot()
-        debugger.stepBack(1, binaryInfo)
+        debugger.stepBack(1)
         assertEquals(beforeSnapshot, debugger.snapshot())
         debugger.stepInto()
         assertEquals(stepAfter, debugger.snapshot())
@@ -149,9 +149,9 @@ class DebuggerTests : DebuggerTestBase() {
                         //val x1 = debugger.inspect(ExecutionState.ProgramCounter).pc!!
                         debugger.continueFor(len)
                         time += timeElapsed {
-                            debugger.stepBack(n, binaryInfo) {}
+                            debugger.stepBack(n) {}
                         }
-                        debugger.stepBack(len - n, binaryInfo) {}
+                        debugger.stepBack(len - n) {}
                         /*val x2 = debugger.inspect(ExecutionState.ProgramCounter).pc!!
                         debugger.printCheckpoints(binaryInfo)
                         assert(x1 == x2) {
@@ -199,7 +199,7 @@ class DebuggerTests : DebuggerTestBase() {
 
                     for (i in 0 ..< (n / stepSize)) {
                         timings.add(timeElapsed {
-                            debugger.stepBack(stepSize, binaryInfo) {}
+                            debugger.stepBack(stepSize) {}
                         })
                         if (i % 10 == 0) {
                             println("Progress $i/$n")
@@ -269,7 +269,7 @@ class DebuggerTests : DebuggerTestBase() {
                 it.stepInto()
                 it.checkpoints[it.checkpoints.size - 1] = null
                 timings.add(Pair(t, timeElapsed {
-                    it.stepBack(1, binaryInfo) {}
+                    it.stepBack(1) {}
                 }))
                 //it.printCheckpoints()
 
@@ -280,7 +280,7 @@ class DebuggerTests : DebuggerTestBase() {
                     it.checkpoints[it.checkpoints.size - 1] = null
                     t += 999
                     timings.add(Pair(t, timeElapsed {
-                        it.stepBack(1, binaryInfo) {}
+                        it.stepBack(1) {}
                     }))
                     it.checkpoints[it.checkpoints.size - 1] = null
                     //it.printCheckpoints()
@@ -317,7 +317,7 @@ class DebuggerTests : DebuggerTestBase() {
         //debugger.continueFor(5)
         debugger.step(5)
         debugger.printCheckpoints(binaryInfo)
-        debugger.stepBack(1, binaryInfo)
+        debugger.stepBack(1)
         debugger.step(1)
         debugger.close()
     }

@@ -75,7 +75,7 @@ class Benchmarks : DebuggerTestBase() {
                 it.stepInto()
                 it.checkpoints[it.checkpoints.size - 1] = null
                 timings.add(Pair(t, timeElapsed {
-                    it.stepBack(1, binaryInfo) {}
+                    it.stepBack(1) {}
                 }))
 
                 (0..30).forEach { i ->
@@ -83,7 +83,7 @@ class Benchmarks : DebuggerTestBase() {
                     it.checkpoints[it.checkpoints.size - 1] = null
                     t += 999
                     timings.add(Pair(t, timeElapsed {
-                        it.stepBack(1, binaryInfo) {}
+                        it.stepBack(1) {}
                     }))
                     it.checkpoints[it.checkpoints.size - 1] = null
                 }
