@@ -1,7 +1,6 @@
 package be.ugent.topl.mio;
 
 import be.ugent.topl.mio.debugger.Debugger;
-import be.ugent.topl.mio.sourcemap.SourceMap;
 import be.ugent.topl.mio.woodstate.Frame;
 import be.ugent.topl.mio.woodstate.WOODDumpResponse;
 import org.slf4j.Logger;
@@ -15,20 +14,16 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-import static be.ugent.topl.mio.sourcemap.DwarfSourceMapKt.getDwarfSourcemap;
-
 public class GdbStub {
     private final Debugger debugger;
     private final String binaryLocation;
     private OutputStream out;
     private final Logger logger = LoggerFactory.getLogger(GdbStub.class);
     private boolean stepForward = true;
-    private final SourceMap debugSourceMap; // Remove later, lldb doesn't need this.
 
     public GdbStub(Debugger debugger, String binaryLocation) {
         this.debugger = debugger;
         this.binaryLocation = binaryLocation;
-        this.debugSourceMap = getDwarfSourcemap(binaryLocation);
 
         debugger.getBreakpointsListeners().add((pc) -> {
             try {
@@ -225,10 +220,6 @@ public class GdbStub {
                 logger.info("Add breakpoint on {}", addr);
                 debugger.addBreakpoint((int) addr);
 
-                try {
-                    logger.info("Add breakpoint at {}:{}", debugSourceMap.getSourceFileName((int) addr), debugSourceMap.getLineForPc((int) addr));
-                } catch(Exception _) {}
-
                 // A remote target shall return an empty string for an unrecognized breakpoint or watchpoint packet type.
                 sendPacket(out, "OK");
                 continue;
@@ -241,10 +232,6 @@ public class GdbStub {
                 int kind = Integer.parseInt(args[2]);
                 logger.info("Remove breakpoint on {}", addr);
                 debugger.removeBreakpoint((int) addr);
-
-                try {
-                    logger.info("Remove breakpoint at {}:{}", debugSourceMap.getSourceFileName((int) addr), debugSourceMap.getLineForPc((int) addr));
-                } catch(Exception _) {}
 
                 // A remote target shall return an empty string for an unrecognized breakpoint or watchpoint packet type.
                 sendPacket(out, "OK");
@@ -298,10 +285,6 @@ public class GdbStub {
                         }
                     }
                     sendPacket(out, result);
-
-                    try {
-                        logger.info("At {}:{}", debugSourceMap.getSourceFileName(state.getPc()), debugSourceMap.getLineForPc(state.getPc()));
-                    } catch(Exception _) {}
 
                     break;
                 case "qC": // Get thread id
