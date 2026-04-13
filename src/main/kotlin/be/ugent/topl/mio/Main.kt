@@ -3,14 +3,14 @@ package be.ugent.topl.mio
 import be.ugent.topl.mio.connections.ProcessConnection
 import be.ugent.topl.mio.connections.SerialConnection
 import be.ugent.topl.mio.debugger.Debugger
-import com.formdev.flatlaf.FlatDarkLaf
-import com.formdev.flatlaf.FlatIntelliJLaf
 import be.ugent.topl.mio.sourcemap.AsSourceMapping
 import be.ugent.topl.mio.sourcemap.compileAndFlash
 import be.ugent.topl.mio.sourcemap.compileWat
 import be.ugent.topl.mio.sourcemap.getDwarfSourcemap
 import be.ugent.topl.mio.ui.InteractiveDebugger
 import be.ugent.topl.mio.ui.StartScreen
+import com.formdev.flatlaf.FlatDarkLaf
+import com.formdev.flatlaf.FlatIntelliJLaf
 import com.formdev.flatlaf.util.SystemInfo
 import java.io.File
 import java.io.FileNotFoundException
@@ -52,6 +52,20 @@ fun main(args: Array<String>) {
     }
     expectNArguments(args, 1)
     val config = DebuggerConfig()
+
+    if (args[0].startsWith("-p=") || args[0].startsWith("--port=")) {
+        expectNArguments(args, 2)
+        val wasmFilename = args[1]
+        val port = args[0].split("=")[1].toInt()
+        val connection = if(config.useEmulator) ProcessConnection(config.wdcliPath, wasmFilename, "--no-socket", "--paused") else SerialConnection(config.port!!)
+        val debugger = Debugger(connection)
+        debugger.pause()
+        debugger.setSnapshotPolicy(Debugger.SnapshotPolicy.Checkpointing())
+        val stub = GdbStub(debugger, wasmFilename)
+        stub.start(port)
+        return
+    }
+
     when (args[0]) {
         "debug" -> {
             expectNArguments(args, 2)

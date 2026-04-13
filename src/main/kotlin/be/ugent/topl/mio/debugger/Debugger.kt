@@ -14,8 +14,8 @@ import java.util.*
 import kotlin.concurrent.thread
 import kotlin.streams.toList
 
-open class Debugger(private val connection: Connection, start: Boolean = true, private val onHitBreakpoint: (Int) -> Unit = {}) : Closeable, AutoCloseable {
-    private val requestQueue: Queue<Int> = LinkedList()
+open class Debugger(private val connection: Connection, start: Boolean = true, onHitBreakpoint: (Int) -> Unit = {}) : Closeable, AutoCloseable {
+    var breakpointsListeners:  MutableList<(Int) -> Unit> = mutableListOf(onHitBreakpoint)
     var printListener: ((String) -> Unit)? = null
     private val messageQueue = MessageQueue {
         for (msg in it) {
@@ -39,6 +39,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
             connection.read(readBuffer)
             messageQueue.push(String(readBuffer), true)
 
+            //println(String(readBuffer))
             while (true) {
                 val checkpointMessage = messageQueue.search {
                     val match = Regex("CHECKPOINT (.*)").matchEntire(it.trimEnd('\r')) ?: throw Exception()
@@ -97,7 +98,9 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
                      * incoming messages, so the request would never be completed.
                      */
                     thread {
-                        onHitBreakpoint(searchAtResult.second)
+                        for (breakpointListener in breakpointsListeners) {
+                            breakpointListener(searchAtResult.second)
+                        }
                     }
                 }
             }
@@ -175,7 +178,6 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
 
     private fun send(code: Int, payload: String = "") {
         val str = String.format("%02d$payload\n", code)
-        requestQueue.add(code)
         print("Sending $str")
         val write = str.toByteArray()
         connection.write(write)
@@ -217,18 +219,18 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
         }
     }
 
-    private fun canStepBack(): Boolean {
-        return checkpoints.size > 1
+    fun canStepBack(n: Int = 1): Boolean {
+        return checkpoints.size > n
     }
 
-    fun stepBackUntil(binaryInfo: WasmInfo, cond: (WOODDumpResponse) -> Boolean) {
-        stepBack(1, binaryInfo) {}
+    fun stepBackUntil(cond: (WOODDumpResponse) -> Boolean) {
+        stepBack()
         while (!cond(checkpoints.last()!!.snapshot)) {
             if (!canStepBack()) {
                 System.err.println("WARNING: Can't go back further!")
                 return
             }
-            stepBack(1, binaryInfo)
+            stepBack()
         }
     }
 
@@ -261,7 +263,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
         println("count = ${checkpoints.size}")
     }
 
-    open fun stepBack(n: Int, binaryInfo: WasmInfo, stepDone: () -> Unit = {}) {
+    open fun stepBack(n: Int = 1, stepDone: () -> Unit = {}) {
         if (n == 0) {
             return
         }
@@ -269,7 +271,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
         val currentState = checkpoints.removeLast() // Remove current state, we don't need to restore this, we are already in this state.
         val nSnapshots = checkpoints.subList(checkpoints.size - n, checkpoints.size).toList()
         for (checkpoint in nSnapshots.reversed()) {
-            if (checkpoint != null && (checkpoint.snapshot.pc in binaryInfo.after_primitive_calls || nSnapshots.first() == checkpoint)) {
+            if (checkpoint != null && (checkpoint.fidx_called != null || nSnapshots.first() == checkpoint)) {
             //if (snapshot != null) {
                 println("Snapshot to ${checkpoint.snapshot.pc}")
                 val s = checkpoint.snapshot

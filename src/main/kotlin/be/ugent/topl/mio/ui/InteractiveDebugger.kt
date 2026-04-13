@@ -136,7 +136,7 @@ class InteractiveDebugger(
         stepBackButton.addActionListener {
             println("Step back")
             //debugger.stepBack()
-            debugger.stepBack(1, binaryInfo) {}
+            debugger.stepBack()
             updateStepBackButton()
             updatePcLabel()
         }
@@ -193,7 +193,7 @@ class InteractiveDebugger(
             } catch(re: RuntimeException) {
                 System.err.println("WARNING: " + re.message)
             }
-            debugger.stepBackUntil(binaryInfo) {
+            debugger.stepBackUntil {
                 try {
                     sourceMapping.getLineForPc(it.pc!!) != startLine
                 } catch(re: RuntimeException) {
@@ -541,7 +541,7 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
                 val totalLength = backwardsLength + forwardsLength
                 val backwardPath = graphPanel.selectedPath!!.first.toMutableList()
                 var finishedSteps = 0
-                multiverseDebugger.stepBack(backwardPath.size, multiverseDebugger.wasmBinary.metadata) {
+                multiverseDebugger.stepBack(backwardPath.size) {
                     graphPanel.completedPath.add(backwardPath.removeFirst())
                     graphPanel.repaint()
                     val remaining = forwardsLength + backwardPath.size
