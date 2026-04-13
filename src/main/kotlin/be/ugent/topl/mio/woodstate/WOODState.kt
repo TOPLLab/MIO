@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import org.slf4j.LoggerFactory
 import java.io.IOException
 import java.util.*
 
@@ -163,6 +164,7 @@ class WOODState(woodResponse: WOODDumpResponse) {
     private val unparsedJSON = ""
     public val callbacks = ""
     private val woodResponse: WOODDumpResponse = woodResponse
+    private val logger = LoggerFactory.getLogger(WOODState::class.java)
 
     fun getState(): WOODDumpResponse {
         return this.woodResponse
@@ -202,9 +204,9 @@ class WOODState(woodResponse: WOODDumpResponse) {
         if (bps == null) {
             return
         }
-        println("==============")
-        println("Breakpoints")
-        println("--------------")
+        logger.trace("==============")
+        logger.trace("Breakpoints")
+        logger.trace("--------------")
         val ws = this
         val nrBytesUsedForAmountBPs = 1 * 2
         val headerSize = ExecutionStateType.breakpointState.hexStr.length + nrBytesUsedForAmountBPs
@@ -217,7 +219,7 @@ class WOODState(woodResponse: WOODDumpResponse) {
             }
             val bps = breakpoints.slice(0 ..< fits).joinToString("")
             val amountBPs = HexaEncoder.serializeUInt8(fits)
-            println("Breakpoints: amount=${breakpoints.size}")
+            logger.trace("Breakpoints: amount=${breakpoints.size}")
             val payload = "${ExecutionStateType.breakpointState}${amountBPs}${bps}"
             stateMsgs.addPayload(payload)
             breakpoints = breakpoints.slice(fits ..< breakpoints.size)
@@ -231,12 +233,11 @@ class WOODState(woodResponse: WOODDumpResponse) {
         if (this.woodResponse.stack == null) {
             return
         }
-        println("==============")
-        println("STACK")
-        println("--------------")
-        println("Total Stack length ${this.woodResponse.stack.size}")
+        logger.trace("==============")
+        logger.trace("STACK")
+        logger.trace("--------------")
+        logger.trace("Total Stack length {}", this.woodResponse.stack.size)
 
-        val ws = this
         var stack = this.woodResponse.stack.map{ v -> serializeValue(v) }
         val nrBytesUsedForAmountVals = 2 * 2
         val headerSize = ExecutionStateType.stackState.length + nrBytesUsedForAmountVals
@@ -250,7 +251,7 @@ class WOODState(woodResponse: WOODDumpResponse) {
             val payload = "${ExecutionStateType.stackState}${amountVals}${vals}"
             stateMsgs.addPayload(payload)
             stack = stack.slice(fit ..< stack.size)
-            println("msg: AmountStackValues ${fit}")
+            logger.trace("msg: AmountStackValues ${fit}")
         }
     }
 
@@ -261,23 +262,23 @@ class WOODState(woodResponse: WOODDumpResponse) {
         if (this.woodResponse.table == null) {
             return
         }
-        println("==============")
-        println("TABLE")
-        println("--------------")
+        logger.trace("==============")
+        logger.trace("TABLE")
+        logger.trace("--------------")
         var elements = this.woodResponse.table.elements.map{ HexaEncoder.serializeUInt32BE(it) }
-        println("Total Elements ${this.woodResponse.table.elements.size}")
+        logger.trace("Total Elements ${this.woodResponse.table.elements.size}")
         val nrBytesUsedForAmountElements = 4 * 2
         val headerSize = ExecutionStateType.tableState.length + nrBytesUsedForAmountElements
         while (elements.size != 0) {
             val fit = stateMsgs.howManyFit(headerSize, elements)
-            if (fit === 0) {
+            if (fit == 0) {
                 stateMsgs.forceNewMessage()
                 continue
             }
             val amountElements = HexaEncoder.serializeUInt32BE(fit)
             val elems = elements.slice(0 ..< fit).joinToString("")
             val el_str = this.woodResponse.table.elements .slice(0 ..< fit).map{ e -> e.toString() }.joinToString(", ")
-            println("msg: amountElements ${fit} elements ${el_str}")
+            logger.trace("msg: amountElements ${fit} elements ${el_str}")
             val payload = "${ExecutionStateType.tableState}${amountElements}${elems}"
             stateMsgs.addPayload(payload)
             elements = elements .slice(fit ..< elements.size)
@@ -291,10 +292,10 @@ class WOODState(woodResponse: WOODDumpResponse) {
         if (this.woodResponse.callstack == null) {
             return
         }
-        println("==============")
-        println("CallStack")
-        println("--------------")
-        println("Total Frames ${this.woodResponse.callstack.size}")
+        logger.trace("==============")
+        logger.trace("CallStack")
+        logger.trace("--------------")
+        logger.trace("Total Frames {}", this.woodResponse.callstack.size)
 
         var frames = this.woodResponse.callstack.map{ f -> serializeFrame(f) }
         val nrBytesUsedForAmountFrames = 2 * 2
@@ -307,7 +308,7 @@ class WOODState(woodResponse: WOODDumpResponse) {
             }
             val amountFrames = HexaEncoder.serializeUInt16BE(fit)
             val fms = frames.slice(0 ..< fit).joinToString("")
-            println("msg: amountFrames=${fit}")
+            logger.trace("msg: amountFrames={}", fit)
             val payload = "${ExecutionStateType.callstackState}${amountFrames}${fms}"
             stateMsgs.addPayload(payload)
             frames = frames .slice(fit ..< frames.size)
@@ -321,18 +322,18 @@ class WOODState(woodResponse: WOODDumpResponse) {
         if (this.woodResponse.globals == null) {
             return
         }
-        println("==============")
-        println("GLOBALS")
-        println("--------------")
+        logger.trace("==============")
+        logger.trace("GLOBALS")
+        logger.trace("--------------")
 
-        println("Total Globals ${this.woodResponse.globals.size}")
+        logger.trace("Total Globals {}", this.woodResponse.globals.size)
         val ws = this
         var globals = this.woodResponse.globals.map{ v -> serializeValue(v) }
         val nrBytesNeededForAmountGlbs = 4 * 2
         val headerSize = ExecutionStateType.globalsState.length + nrBytesNeededForAmountGlbs
         while (globals.size != 0) {
             val fit = stateMsgs.howManyFit(headerSize, globals)
-            if (fit === 0) {
+            if (fit == 0) {
                 stateMsgs.forceNewMessage()
                 continue
             }
@@ -341,7 +342,7 @@ class WOODState(woodResponse: WOODDumpResponse) {
             val payload = "${ExecutionStateType.globalsState}${amountGlobals}${glbs}"
             stateMsgs.addPayload(payload)
             globals = globals .slice(fit ..< globals.size)
-            println("msg: AmountGlobals ${fit}")
+            logger.trace("msg: AmountGlobals {}", fit)
         }
     }
 
@@ -352,29 +353,29 @@ class WOODState(woodResponse: WOODDumpResponse) {
         if (this.woodResponse.memory == null) {
             return
         }
-        println("==============")
-        println("Memory")
-        println("--------------")
+        logger.trace("==============")
+        logger.trace("Memory")
+        logger.trace("--------------")
         val sizeHeader = ExecutionStateType.memState.length + 4 * 2 + 4 * 2 + 4 * 2
         /*val testArray = ByteArray(65536 / 2)
         Random(42).nextBytes(testArray)
         var bytes = testArray.map{ b -> HexFormat.of().formatHex(byteArrayOf(b)) }*/
         var bytes = this.woodResponse.memory.bytes.map{ b -> HexFormat.of().formatHex(byteArrayOf(b)) }
-        println("Total Memory Bytes ${this.woodResponse.memory.bytes.size}")
+        logger.trace("Total Memory Bytes {}", this.woodResponse.memory.bytes.size)
         var startMemIdx = 0
         var endMemIdx = 0
         while (bytes.isNotEmpty()) {
             // Step 1. Check how much space we still have.
             val freeSpace = stateMsgs.getFreeSpace() - sizeHeader
-            println("Free space = $freeSpace")
+            logger.trace("Free space = {}", freeSpace)
             // Step 2. Compress the remaining bytes so that the compressed output is at most length freeSpace
             val (compressed, consumed) = compressRLE(bytes, freeSpace)
-            println("Compressed = ${compressed.size}, consumed = $consumed")
+            logger.trace("Compressed = {}, consumed = {}", compressed.size, consumed)
 
             compressed.forEach {
                 if (it.length != 2) throw Exception()
             }
-            println(stateMsgs.howManyFit(sizeHeader, compressed))
+            logger.trace("Fit = {}", stateMsgs.howManyFit(sizeHeader, compressed))
             if (stateMsgs.howManyFit(sizeHeader, compressed) != compressed.size) {
                 throw Exception("Invalid")
             }
@@ -385,8 +386,8 @@ class WOODState(woodResponse: WOODDumpResponse) {
             val endMemIdxHexa = HexaEncoder.serializeUInt32BE(endMemIdx)
             val count = HexaEncoder.serializeUInt32BE(bytesHexa.length/2)
             val payload = "${ExecutionStateType.memState}${startMemIdxHexa}${endMemIdxHexa}${count}${bytesHexa}"
-            println("Start position = $startMemIdx $startMemIdxHexa ${startMemIdx + consumed - 1} $endMemIdxHexa")
-            println("Bytes payload: $payload")
+            logger.trace("Start position = $startMemIdx $startMemIdxHexa ${startMemIdx + consumed - 1} $endMemIdxHexa")
+            logger.trace("Bytes payload: $payload")
             stateMsgs.addPayload(payload)
             startMemIdx = endMemIdx + 1
 
@@ -405,10 +406,10 @@ class WOODState(woodResponse: WOODDumpResponse) {
         if (this.woodResponse.br_table == null) {
             return
         }
-        println("==============")
-        println("BRTable")
-        println("--------------")
-        println("Total Labels ${this.woodResponse.br_table.labels.size}")
+        logger.trace("==============")
+        logger.trace("BRTable")
+        logger.trace("--------------")
+        logger.trace("Total Labels ${this.woodResponse.br_table.labels.size}")
 
         var elements = this.woodResponse.br_table.labels.map{ HexaEncoder.serializeUInt32BE(it) }
         val sizeHeader = ExecutionStateType.branchingTableState.length + 2 * 2 + 2 * 2
@@ -416,7 +417,7 @@ class WOODState(woodResponse: WOODDumpResponse) {
         var endTblIdx = 0
         while (startTblIdx < this.woodResponse.br_table.labels.size) {
             var fit = stateMsgs.howManyFit(sizeHeader, elements)
-            if (fit === 0) {
+            if (fit == 0) {
                 stateMsgs.forceNewMessage()
                 continue
             }
@@ -426,7 +427,7 @@ class WOODState(woodResponse: WOODDumpResponse) {
             val endTblIdxHexa = HexaEncoder.serializeUInt16BE(endTblIdx)
             val payload = "${ExecutionStateType.branchingTableState}${startTblIdxHexa}${endTblIdxHexa}${elems}"
             stateMsgs.addPayload(payload)
-            println("msg: startTblIdx=${startTblIdx} endTblIdx=${endTblIdx}")
+            logger.trace("msg: startTblIdx=${startTblIdx} endTblIdx=${endTblIdx}")
             startTblIdx = endTblIdx + 1
 
             elements = elements .slice(fit ..< elements.size)
@@ -439,11 +440,11 @@ class WOODState(woodResponse: WOODDumpResponse) {
         if (this.woodResponse.pc == null) {
             return
         }
-        println("==========")
-        println("PC")
-        println("----------")
+        logger.trace("==========")
+        logger.trace("PC")
+        logger.trace("----------")
         val ser = this.serializePointer(this.woodResponse.pc)
-        println("PC: pc=${this.woodResponse.pc}")
+        logger.trace("PC: pc=${this.woodResponse.pc}")
         val payload = "${ExecutionStateType.pcState}${ser}"
         stateMsgs.addPayload(payload)
     }
@@ -454,14 +455,14 @@ class WOODState(woodResponse: WOODDumpResponse) {
             throw Error("cannot serialise Allocaton Message when state is missing")
         }
 
-        println("==============")
-        println("Allocate MSG")
-        println("--------------")
+        logger.trace("==============")
+        logger.trace("Allocate MSG")
+        logger.trace("--------------")
 
         // Globals
 
         val gblsAmountHex = HexaEncoder.serializeUInt32BE(wr.globals.size)
-        println("Globals: total=${wr.globals.size}")
+        logger.trace("Globals: total=${wr.globals.size}")
         val globals = "${ExecutionStateType.globalsState}${gblsAmountHex}"
 
         // Table
@@ -470,13 +471,13 @@ class WOODState(woodResponse: WOODDumpResponse) {
         val tblSizeHex = HexaEncoder.serializeUInt32BE(wr.table.elements.size)
         val tbl = "${ExecutionStateType.tableState}${tblInitHex}${tblMaxHex}${tblSizeHex}"
 
-        println("Table:  init=${wr.table.init} max=${wr.table.max} size=${wr.table.elements.size}")
+        logger.trace("Table:  init=${wr.table.init} max=${wr.table.max} size=${wr.table.elements.size}")
         // Memory
         val memInitHex = HexaEncoder.serializeUInt32BE(wr.memory.init)
         val memMaxHex = HexaEncoder.serializeUInt32BE(wr.memory.max)
         val memPagesHex = HexaEncoder.serializeUInt32BE(wr.memory.pages)
         val mem = "${ExecutionStateType.memState}${memMaxHex}${memInitHex}${memPagesHex}"
-        println("Mem: max=${wr.memory.max} init=${wr.memory.init}  pages=${wr.memory.pages}")
+        logger.trace("Mem: max=${wr.memory.max} init=${wr.memory.init}  pages=${wr.memory.pages}")
         val payload = "${globals}${tbl}${mem}"
 
         stateMsgs.addPayload(payload)
@@ -515,7 +516,7 @@ class WOODState(woodResponse: WOODDumpResponse) {
             rest = this.serializePointer(frame.block_key)
             res_str = "block_key=${frame.block_key}"
         }
-        println("Frame: type=${frame.type} sp=${frame.sp} fp=${frame.fp} ra=${frame.ra} ${res_str}")
+        logger.trace("Frame: type=${frame.type} sp=${frame.sp} fp=${frame.fp} ra=${frame.ra} ${res_str}")
         return "${type}${sp}${fp}${ra}${rest}"
     }
 
@@ -523,9 +524,9 @@ class WOODState(woodResponse: WOODDumpResponse) {
         if (this.woodResponse.pc_error == null) {
             return
         }
-        println("==========")
-        println("PC_ERROR")
-        println("----------")
+        logger.trace("==========")
+        logger.trace("PC_ERROR")
+        logger.trace("----------")
         val pcError = this.serializePointer(this.woodResponse.pc_error)
         var exceptionMsg = ""
         var exceptionMsgSize = 0
@@ -533,7 +534,7 @@ class WOODState(woodResponse: WOODDumpResponse) {
             exceptionMsg = this.woodResponse.exception_msg
             exceptionMsgSize = exceptionMsg.length
         }
-        println("PC_ERROR: pc_error=${this.woodResponse.pc_error} exception_msg(#${exceptionMsgSize} chars)=${exceptionMsg}")
+        logger.trace("PC_ERROR: pc_error=${this.woodResponse.pc_error} exception_msg(#${exceptionMsgSize} chars)=${exceptionMsg}")
         val sizeInHexa = HexaEncoder.serializeUInt32BE(exceptionMsgSize)
         val msgInHexa = HexaEncoder.serializeString(exceptionMsg)
         val payload = "${ExecutionStateType.errorState}${pcError}${sizeInHexa}${msgInHexa}"
@@ -548,10 +549,10 @@ class WOODState(woodResponse: WOODDumpResponse) {
         if (this.woodResponse.callbacks == null) {
             return
         }
-        println("==============")
-        println("CallbackMapping")
-        println("--------------")
-        println("Total Mappings ${this.woodResponse.callbacks.size}")
+        logger.trace("==============")
+        logger.trace("CallbackMapping")
+        logger.trace("--------------")
+        logger.trace("Total Mappings ${this.woodResponse.callbacks.size}")
 
         val ws = this
         var mappings = this.woodResponse.callbacks.map{ f -> ws.serializeCallbackMapping(f) }
@@ -565,7 +566,7 @@ class WOODState(woodResponse: WOODDumpResponse) {
             }
             val amountMappings = HexaEncoder.serializeUInt32BE(fit)
             val fms = mappings .slice(0 ..< fit).joinToString("")
-            println("msg: amountMappings=${fit}")
+            logger.trace("msg: amountMappings=${fit}")
             val payload = "${ExecutionStateType.callbacksState}${amountMappings}${fms}"
             stateMsgs.addPayload(payload)
             mappings = mappings .slice(fit ..< mappings.size)
@@ -595,11 +596,11 @@ class WOODState(woodResponse: WOODDumpResponse) {
         if (woodResponse.io == null) {
             return
         }
-        println("==============")
-        println("IO")
-        println("--------------")
+        logger.trace("==============")
+        logger.trace("IO")
+        logger.trace("--------------")
         for (ioState in woodResponse.io) {
-            println(HexaEncoder.serializeString(ioState.key) + HexaEncoder.serializeString("\u0000"))
+            logger.trace(HexaEncoder.serializeString(ioState.key) + HexaEncoder.serializeString("\u0000"))
         }
         serializeList(stateMsgs, ExecutionStateType.ioState, woodResponse.io) {
             HexaEncoder.serializeString(it.key) + HexaEncoder.serializeString("\u0000") + HexaEncoder.serializeBool(it.output) + HexaEncoder.serializeUInt32BE(it.value)
@@ -610,10 +611,10 @@ class WOODState(woodResponse: WOODDumpResponse) {
         if (woodResponse.overrides == null) {
             return
         }
-        println("==============")
-        println("Overrides")
-        println("--------------")
-        println("Found ${woodResponse.overrides.size} active overrides.")
+        logger.trace("==============")
+        logger.trace("Overrides")
+        logger.trace("--------------")
+        logger.trace("Found ${woodResponse.overrides.size} active overrides.")
         serializeList(stateMsgs, ExecutionStateType.overridesState, woodResponse.overrides) {
             HexaEncoder.serializeUInt32BE(it.fidx) + HexaEncoder.serializeUInt32BE(it.arg) + HexaEncoder.serializeUInt32BE(it.return_value)
         }
@@ -631,7 +632,7 @@ class WOODState(woodResponse: WOODDumpResponse) {
      */
     private fun <T> serializeList(stateMsgs: HexaStateMessages, execState: ExecutionStateType, list: List<T>, serializeElement: (T) -> String) {
         if (list.size >= 256) {
-            System.err.println("WARNING: count might not fit!")
+            logger.warn("WARNING: count might not fit!")
         }
         val elementCount = HexaEncoder.serializeUInt8(list.size)
         val headerSize = execState.length + elementCount.length
@@ -652,9 +653,9 @@ class WOODState(woodResponse: WOODDumpResponse) {
             val partialListPayload = serializedElements.slice(0 ..< fitCount).joinToString("")
             serializedElements = serializedElements.slice(fitCount ..< serializedElements.size)
             val payload = "${execState}${HexaEncoder.serializeUInt8(fitCount)}${partialListPayload}"
-            println("execState = $execState")
-            println("elementCount = $elementCount")
-            println("partialListPayload = $partialListPayload")
+            logger.trace("execState = {}", execState)
+            logger.trace("elementCount = {}", elementCount)
+            logger.trace("partialListPayload = {}", partialListPayload)
             stateMsgs.addPayload(payload)
         }
     }
@@ -667,7 +668,7 @@ class WOODState(woodResponse: WOODDumpResponse) {
             var v = ""
             var type_str = ""
 
-            if (value.type == "i32" || value.type === "I32") {
+            if (value.type == "i32" || value.type == "I32") {
                 if (value.value < 0) {
                 v = HexaEncoder.serializeInt32LE(value.value.toInt())
             }
