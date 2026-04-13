@@ -36,19 +36,6 @@ public class GdbStub {
         });
     }
 
-    private static final char[] HEX = "0123456789abcdef".toCharArray();
-    private String toHex(byte[] data, int offset, int length) {
-        StringBuilder sb = new StringBuilder(length * 2);
-
-        for (int i = 0; i < length; i++) {
-            int b = data[offset + i] & 0xFF;
-            sb.append(HEX[b >>> 4]);
-            sb.append(HEX[b & 0x0F]);
-        }
-
-        return sb.toString();
-    }
-
     private String toHex(long data, int maxLen, boolean bigEndian) {
         StringBuilder result = new StringBuilder();
         for (int i = 0; i < maxLen; i++) {
@@ -79,10 +66,9 @@ public class GdbStub {
     }
 
     private String getTriple(String s) {
-        String hex = s.chars()
+        return s.chars()
                 .mapToObj(c -> String.format("%02x", c))
                 .reduce("", String::concat);
-        return hex;
     }
 
     public WOODDumpResponse getCurrentState() {
@@ -141,9 +127,6 @@ public class GdbStub {
                 if (addrType == 1) {
                     logger.info("Reading from wasm linear memory");
                     memory = getCurrentState().getMemory().getBytes();
-                }
-                else {
-                    //pos -= codeSection.offset;
                 }
 
                 // The reply may contain fewer addressable memory units than requested if the server was reading from a trace frame memory and was able to read only part of the region of memory.
@@ -266,7 +249,6 @@ public class GdbStub {
                     break;
                 case "qProcessInfo":
                     sendPacket(out, "pid:1;parent-pid:1;vendor:wamr;ostype:wasi;arch:wasm32;triple:" + getTriple("wasm32-unknown-unknown-wasm") + ";endian:little;ptrsize:4;");
-                    //sendPacket(out, "pid:1;parent-pid:1;vendor:wamr;ostype:wasi;arch:wasm32;triple:7761736d33322d77616d722d776173692d7761736d;endian:little;ptrsize:4;");
                     break;
                 case "qGetWorkingDir":
                     sendPacket(out, "/tmp");
@@ -276,15 +258,15 @@ public class GdbStub {
                     break;
                 case "qWasmCallStack:1": // Get the callstack for thread 1.
                     WOODDumpResponse state = getCurrentState();
-                    String result = toHex(state.getPc());
+                    StringBuilder result = new StringBuilder(toHex(state.getPc()));
                     for (int i = state.getCallstack().size() - 1; i >= 0; i--) {
                         // Only functions are real callstack elements:
                         Frame f = state.getCallstack().get(i);
                         if (f.getType() == 0) {
-                            result += toHex(f.getRa());
+                            result.append(toHex(f.getRa()));
                         }
                     }
-                    sendPacket(out, result);
+                    sendPacket(out, result.toString());
 
                     break;
                 case "qC": // Get thread id
@@ -300,7 +282,7 @@ public class GdbStub {
                     sendPacket(out, "S05"); // SIGTRAP
                     break;
                 case "g":
-                    sendPacket(out, encodeRegs());
+                    sendPacket(out, String.format("%08x", getCurrentState().getPc()));
                     break;
                 case "s":
                     logger.info("Received step command from lldb");
@@ -411,12 +393,6 @@ public class GdbStub {
             sum = (sum + (b & 0xFF)) & 0xFF;
         }
         return sum;
-    }
-
-    private String encodeRegs() {
-        StringBuilder sb = new StringBuilder();
-        sb.append(String.format("%08x", getCurrentState().getPc()));
-        return sb.toString();
     }
 
     private List<Frame> getCallStack(WOODDumpResponse state) {
