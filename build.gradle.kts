@@ -108,7 +108,11 @@ tasks.register<Copy>("setup") {
     if (!file.exists()) {
         writeDefaultConfig(file)
     } else {
-        println("Config already exists, do you want to overwrite it? y/n")
+        val padding = 2
+        val s = "Config already exists, do you want to overwrite it? type y/n"
+        println("┌" + "─".repeat(s.length + padding * 2) + "┐")
+        println("│\u001b[34;1m${" ".repeat(padding)}$s${" ".repeat(padding)}\u001b[0m│")
+        println("└" + "─".repeat(s.length + padding * 2) + "┘")
         var answer = readln()
         while (answer != "y" && answer != "n") {
             answer = readln()
