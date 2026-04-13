@@ -401,12 +401,14 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
     }
 
     fun snapshot(): String {
+        println("Taking snapshot")
         send(60)
         return messageQueue.waitForResponse {
             WOODState.fromLine(it)
         }.first
     }
     fun snapshotFull(): Pair<String, WOODDumpResponse> {
+        println("Taking snapshot")
         send(60)
         return messageQueue.waitForResponse {
             WOODState.parseSnapshot(it)
