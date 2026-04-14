@@ -304,7 +304,7 @@ class MultiverseDebugger(
         if (graph.currentNode.children.isEmpty() && change > 0 && checkpoint?.fidx_called != null) {
             val newNode = if (isAfterChoicePoint(checkpoint.snapshot.pc!!)) {
                 PrimitiveNode(wasmBinary.metadata.primitive_fidx_mapping[checkpoint.fidx_called], checkpoint.args!![0]).apply {
-                    values.add(checkpoint.snapshot.stack!!.last().value.toInt())
+                    values.add(checkpoint.returns!!.first())
                 }
             } else {
                 DeterministicPrimitiveNode(wasmBinary.metadata.primitive_fidx_mapping[checkpoint.fidx_called], checkpoint.args!!)
@@ -320,7 +320,7 @@ class MultiverseDebugger(
         // Don't add new nodes if we are walking on an existing graph section.
         if (graph.currentNode.children.isNotEmpty()) {
             if (checkpoint != null && isAfterChoicePoint(checkpoint.snapshot.pc!!)) {
-                val stackValue = checkpoint.snapshot.stack!!.last()
+                val stackValue = WasmStackValue(0, "I32", checkpoint.returns!!.first().toLong())
                 val intValue = stackValue.value.toInt()
                 if (graph.currentNode is PrimitiveNode) {
                     if (!graph.currentNode.values.contains(intValue)) {
