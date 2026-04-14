@@ -107,6 +107,26 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
     private val stateListeners = mutableListOf<(WOODDumpResponse) -> Unit>()
     private var commandBreakpoint = false
 
+    /**
+     * Fetch the current state, if [fetchFullState] is true a new full state will be fetched and will replace the
+     * current last state. This is great for when the execution is paused, and you need all data but the VM was using a
+     * limited tracing mode.
+     */
+    fun getCurrentState(fetchFullState: Boolean = false): WOODDumpResponse {
+        val idx = checkpoints.size - 1
+        if (fetchFullState) {
+            val currentCheckpoint = checkpoints[idx]!!
+            checkpoints[idx] = Checkpoint(
+                currentCheckpoint.instructions_executed,
+                currentCheckpoint.fidx_called,
+                currentCheckpoint.args,
+                snapshotFull().second,
+                currentCheckpoint.returns
+            )
+        }
+        return checkpoints[idx]!!.snapshot
+    }
+
     init {
         Runtime.getRuntime().addShutdownHook(thread(false) {
             println("Closing debugger connection...")

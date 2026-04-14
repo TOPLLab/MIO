@@ -5,6 +5,7 @@ import be.ugent.topl.mio.DebuggerConfig
 import be.ugent.topl.mio.connections.Connection
 import be.ugent.topl.mio.debugger.ConstraintParser
 import be.ugent.topl.mio.debugger.Debugger
+import be.ugent.topl.mio.debugger.ExecutionState
 import be.ugent.topl.mio.debugger.MultiverseDebugger
 import be.ugent.topl.mio.debugger.PrimitiveNode
 import be.ugent.topl.mio.sourcemap.SourceMap
@@ -363,7 +364,7 @@ class InteractiveDebugger(
 
     init {
         debugger.startReading()
-        debugger.setSnapshotPolicy(Debugger.SnapshotPolicy.Checkpointing())
+        debugger.setSnapshotPolicy(Debugger.SnapshotPolicy.Tracing(listOf(ExecutionState.ProgramCounter)))
         pause()
     }
 
@@ -395,9 +396,7 @@ class InteractiveDebugger(
             return
         }
 
-        //val snapshot = debugger.currentSnapshot!!
-        val snapshot = debugger.checkpoints.last()!!.snapshot
-        //val snapshot = debugger.snapshotFull().second
+        val snapshot = debugger.getCurrentState(true)
         watchWindow.update(snapshot)
 
         if (sourceMapping == null)
