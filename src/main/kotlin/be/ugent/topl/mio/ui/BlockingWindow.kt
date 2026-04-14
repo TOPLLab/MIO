@@ -1,5 +1,6 @@
 package be.ugent.topl.mio.ui
 
+import com.formdev.flatlaf.util.SystemInfo
 import java.awt.BorderLayout
 import java.awt.Dimension
 import javax.swing.*
@@ -11,13 +12,25 @@ class BlockingWindow(parent: JFrame?, actionTitle: String = "Please wait") : JDi
         val p = JProgressBar()
         p.isIndeterminate = true
         val panel = JPanel().apply {
-            border = BorderFactory.createEmptyBorder(3, 3, 3, 3)
+            val spacing = 10
+            border = BorderFactory.createEmptyBorder(spacing, spacing, spacing, spacing)
         }
-        panel.layout = BorderLayout(3, 3)
+        panel.layout = BorderLayout(10, 10)
         panel.add(p)
         panel.add(JLabel(actionTitle), BorderLayout.NORTH)
-        add(panel)
-        minimumSize = Dimension(200, 65)
+        if (SystemInfo.isMacFullWindowContentSupported) {
+            getRootPane().putClientProperty("apple.awt.fullWindowContent", true)
+            getRootPane().putClientProperty("apple.awt.transparentTitleBar", true)
+            getRootPane().putClientProperty("apple.awt.windowTitleVisible", false)
+            val box = Box.createVerticalBox()
+            box.add(Box.createVerticalStrut(25))
+            box.add(panel)
+            add(box)
+        }
+        else {
+            add(panel)
+        }
+        minimumSize = Dimension(225, 85)
         isResizable = false
         isVisible = false
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE)
