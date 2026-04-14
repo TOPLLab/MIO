@@ -157,7 +157,8 @@ data class Checkpoint(
     val instructions_executed: Int,
     val fidx_called: Int?,
     val args: List<Int>?,
-    val snapshot: WOODDumpResponse
+    val snapshot: WOODDumpResponse,
+    val returns: List<Int>?
 )
 
 class WOODState(woodResponse: WOODDumpResponse) {

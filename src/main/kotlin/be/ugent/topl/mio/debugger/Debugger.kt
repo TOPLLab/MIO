@@ -470,6 +470,14 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
                 return super.serialize() + HexaEncoder.serializeUInt32BE(interval)
             }
         }
+        data class Tracing(val states: List<ExecutionState>, val minimumArgCount: Int = 1) : SnapshotPolicy(3) {
+            override fun serialize(): String {
+                return super.serialize() +
+                        HexaEncoder.convertToLEB128(minimumArgCount) +
+                        HexaEncoder.convertToLEB128(states.size) +
+                        states.joinToString("") { HexaEncoder.convertToLEB128(it.ordinal + 1) }
+            }
+        }
     }
 
     fun setSnapshotPolicy(policy: SnapshotPolicy) {
