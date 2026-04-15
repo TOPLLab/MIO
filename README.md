@@ -4,6 +4,14 @@
 
 The MIO _/maː.joː/_ debugger is a first of its kind multiverse debugger designed for debugging WebAssembly programs on the WARDuino virtual machine.
 
+## Dependencies
+To build MIO + WARDuino you will need the following dependencies:
+
+- Java 21
+- A modern C++ compiler
+- Cmake
+- Z3 for WARDuino's concolic mode
+
 ## Getting started
 > [!NOTE]
 > Currently only Linux and macOS are supported.

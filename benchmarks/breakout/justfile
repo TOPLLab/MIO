@@ -1,0 +1,2 @@
+build:
+    asc breakout-analog.ts -o upload.wasm --disable mutable-globals --disable sign-extension --disable nontrapping-f2i --disable bulk-memory --sourceMap --debug

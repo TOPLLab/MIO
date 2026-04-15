@@ -77,7 +77,7 @@ fun cmakeBuildTask(dir: String): String {
 
     tasks.register<Exec>("cmake-$name") {
         workingDir(buildDir)
-        commandLine("sh", "-c", "cmake .. -DBUILD_EMULATOR=ON")
+        commandLine("sh", "-c", "cmake .. -DBUILD_EMULATOR=ON -DCMAKE_BUILD_TYPE=Release")
     }
 
     tasks.register<Exec>("make-$name") {
