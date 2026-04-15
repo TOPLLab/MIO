@@ -56,7 +56,7 @@ export function main(): void {
     //print("the box is unlocked!\n");
 
     //while (true) {
-    //while (true) {
+    // Run the test for two loop iterations.
     for (let i = 0; i < 2; i++) {
         if (!locked) {
             switchVal = chip_digital_read(Pin.switchPin);
