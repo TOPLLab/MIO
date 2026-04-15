@@ -137,5 +137,6 @@ fun writeDefaultConfig(file: File) {
     properties.setProperty("wdcli", wdcliPath)
     properties.setProperty("wdcli-symbolic", wdcliSymbolicPath)
     properties.setProperty("concolic", "true")
+    properties.setProperty("useEmulator", "true")
     properties.store(file.writer(), null)
 }
