@@ -31,8 +31,7 @@ let prevSwitchState: i32 = 0;
 let reply: i32;
 
 function random(max: i32): i32 {
-    //return Math.floor(Math.random() * max);
-    return chip_analog_read(0);
+    return chip_analog_read(0) % max;
 }
 
 export function main(): void {
