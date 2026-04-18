@@ -23,7 +23,7 @@ open class AboutScreen(protected val config: DebuggerConfig) : JFrame() {
         mainPanel.setLayout(BoxLayout(mainPanel, BoxLayout.Y_AXIS))
         mainPanel.border = BorderFactory.createEmptyBorder(20, 20, 20, 20)
         mainPanel.add(Box.createVerticalGlue())
-        mainPanel.add(JLabel(FlatSVGIcon(this.javaClass.getResourceAsStream("/rCMD_Logo.svg"))).apply {
+        mainPanel.add(JLabel(FlatSVGIcon(this.javaClass.getResourceAsStream("/rCMD_Logo2.svg"))).apply {
             setAlignmentX(CENTER_ALIGNMENT)
         })
         mainPanel.add(JLabel("rCMD Debugger").apply {
