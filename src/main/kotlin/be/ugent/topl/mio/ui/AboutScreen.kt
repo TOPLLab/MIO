@@ -16,8 +16,8 @@ import javax.swing.*
 open class AboutScreen(protected val config: DebuggerConfig) : JFrame() {
     init {
         configureTheme()
-        setSize(400, 300)
-        minimumSize = Dimension(400, 300)
+        setSize(450, 350)
+        minimumSize = Dimension(450, 350)
         val mainPanel = JPanel()
         mainPanel.setLayout(BoxLayout(mainPanel, BoxLayout.Y_AXIS))
         mainPanel.border = BorderFactory.createEmptyBorder(20, 20, 20, 20)

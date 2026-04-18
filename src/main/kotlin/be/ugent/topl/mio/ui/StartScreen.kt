@@ -34,6 +34,7 @@ open class StartScreen(config: DebuggerConfig) : AboutScreen(config) {
             }
         }
         val portBox = Box.createHorizontalBox()
+        portBox.border = BorderFactory.createEmptyBorder(10, 20, 0, 20)
         portBox.add(portComboBox)
         portBox.add(JButton(FlatSVGIcon(javaClass.getResource("/refresh.svg"))).apply {
             addActionListener {
