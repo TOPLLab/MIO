@@ -7,4 +7,4 @@ RUN git clone --recursive https://github.com/TOPLLab/MIO.git -b verder
 WORKDIR /app/MIO
 RUN ./gradlew setup
 WORKDIR /app/MIO/benchmarks
-CMD ["python3", "test.py"]
+CMD ["python3", "evaluation.py"]
