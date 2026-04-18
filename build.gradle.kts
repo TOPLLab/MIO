@@ -54,7 +54,7 @@ application {
 
 
 tasks.register<Jar>("fatJar") {
-    archiveFileName.set("mio.jar")
+    archiveFileName.set("rcmd.jar")
 
     from(sourceSets.main.get().output)
 
@@ -107,7 +107,7 @@ tasks.register<Copy>("setup") {
     setDefaultZephyrWasmBinary()
 
     // Setup configuration file.
-    val file = File("${System.getenv("HOME")}/.mio/debugger.properties")
+    val file = File("${System.getenv("HOME")}/.rcmd/debugger.properties")
     if (!file.exists()) {
         writeDefaultConfig(file)
     } else {

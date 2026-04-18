@@ -4,6 +4,7 @@ import be.ugent.topl.mio.DebuggerConfig
 import com.formdev.flatlaf.FlatDarkLaf
 import com.formdev.flatlaf.FlatIntelliJLaf
 import com.formdev.flatlaf.FlatLaf
+import com.formdev.flatlaf.extras.FlatSVGIcon
 import com.formdev.flatlaf.themes.FlatMacDarkLaf
 import com.formdev.flatlaf.themes.FlatMacLightLaf
 import com.formdev.flatlaf.util.SystemInfo
@@ -22,10 +23,10 @@ open class AboutScreen(protected val config: DebuggerConfig) : JFrame() {
         mainPanel.setLayout(BoxLayout(mainPanel, BoxLayout.Y_AXIS))
         mainPanel.border = BorderFactory.createEmptyBorder(20, 20, 20, 20)
         mainPanel.add(Box.createVerticalGlue())
-        mainPanel.add(JLabel(ImageIcon(ImageIcon(this.javaClass.getResource("/warduino-logo.png")).image.getScaledInstance(100, 100, Image.SCALE_SMOOTH))).apply {
+        mainPanel.add(JLabel(FlatSVGIcon(this.javaClass.getResourceAsStream("/rCMD_Logo.svg"))).apply {
             setAlignmentX(CENTER_ALIGNMENT)
         })
-        mainPanel.add(JLabel("MIO Debugger").apply {
+        mainPanel.add(JLabel("rCMD Debugger").apply {
             setAlignmentX(CENTER_ALIGNMENT)
             putClientProperty( "FlatLaf.style", "font: 250% \$semibold.font")
         })
@@ -39,7 +40,7 @@ open class AboutScreen(protected val config: DebuggerConfig) : JFrame() {
     }
 
     protected open fun addOptions(mainPanel: JPanel) {
-        mainPanel.add(JLabel("Copyright © 2023-2025 TOPL@Ghent University").apply {
+        mainPanel.add(JLabel("Copyright © 2023-2026 TOPL@Ghent University").apply {
             setAlignmentX(CENTER_ALIGNMENT)
         })
     }

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created by AtomCrusher for the English Wikipedia -->
+
+<svg
+   version="1.1"
+   width="128"
+   height="128"
+   id="svg2"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs2" />
+  <!-- Block -->
+  <path
+     d="m 78.64052,0 c 0,0.22588 0,0.45176 0,0.6902 0,8.10666 -6.5715,14.67607 -14.67608,14.67607 -8.10666,0 -14.67607,-6.5715 -14.67607,-14.67607 v 0 c 0,-0.23844 0,-0.46432 0,-0.6902 H 0 V 128 H 128 V 0 Z"
+     fill="#654ff0"
+     id="path1"
+     style="fill:#545050;fill-opacity:1;stroke-width:0.20915" />
+  <!-- Letters -->
+  <path
+     d="m 27.98876,85.71405 q 0.53921,0 1.05392,0.098 0.51471,0.0735 1.20098,0.26961 l -0.58823,6.96078 q -0.4902,-0.19608 -1.07843,-0.2696 -0.56373,-0.0735 -1.25,-0.0735 -1.12746,0 -2.00981,0.49019 -0.88235,0.4902 -1.4951,1.42157 -0.58823,0.90686 -0.90686,2.20588 -0.29412,1.27451 -0.29412,2.86765 v 13.9951 h -6.5196 V 86.22875 h 5.02451 l 0.93137,4.5098 h 0.31862 q 0.53922,-1.29902 1.34804,-2.45098 0.80883,-1.15196 1.88726,-1.86274 1.07843,-0.71079 2.37745,-0.71079 z"
+     id="text5"
+     style="font-weight:bold;font-stretch:condensed;font-size:240px;font-family:'Open Sans';-inkscape-font-specification:'Open Sans Bold Condensed';text-align:center;fill:#ffffff;stroke-width:0.20915;stroke-miterlimit:9;stroke-dasharray:0.836605, 0.418303"
+     aria-label="r" />
+  <path
+     d="m 46.17503,83.26307 q -1.56862,0 -2.74509,0.93137 -1.17647,0.93138 -1.96079,2.64706 -0.7598,1.69118 -1.15196,3.9951 -0.36765,2.30392 -0.36765,5.02451 0,3.9951 0.75981,6.76471 0.7598,2.7451 2.23039,4.16666 1.47059,1.42157 3.57843,1.42157 1.66667,0 3.16177,-0.56372 1.49509,-0.56373 2.96568,-1.34804 v 6.12745 q -1.54412,0.85784 -3.33333,1.29902 -1.76471,0.44117 -3.79902,0.44117 -4.04412,0 -6.88726,-2.13235 -2.81862,-2.15686 -4.31372,-6.25 -1.4951,-4.11765 -1.4951,-9.97549 0,-4.01961 0.83333,-7.37745 0.85785,-3.38235 2.50001,-5.85784 1.64215,-2.5 4.0196,-3.87255 2.40196,-1.37255 5.4902,-1.37255 2.15686,0 4.16667,0.53921 2.0098,0.53922 3.87255,1.66667 l -1.96079,5.68628 q -1.32353,-0.90687 -2.67157,-1.42157 -1.34804,-0.53922 -2.89216,-0.53922 z"
+     id="text4"
+     style="font-weight:bold;font-stretch:condensed;font-size:240px;font-family:'Open Sans';-inkscape-font-specification:'Open Sans Bold Condensed';text-align:center;fill:#ffffff;stroke-width:0.20915;stroke-miterlimit:9;stroke-dasharray:0.836605, 0.418303"
+     aria-label="C" />
+  <path
+     d="M 71.46915,113.67974 64.38582,87.23366 h -0.19608 q 0.12255,1.64216 0.19608,3.08823 0.0735,1.44608 0.098,2.67157 0.049,1.22549 0.049,2.20589 v 18.48039 H 58.11125 V 77.8464 h 9.48529 l 6.61765,24.53432 h 0.17157 L 81.00341,77.8464 h 9.43627 v 35.83334 H 83.87105 V 95.15033 q 0,-1.10294 0.0245,-2.30393 0.049,-1.22548 0.098,-2.59803 0.0735,-1.39706 0.17157,-2.96569 h -0.19608 l -7.13235,26.39706 z"
+     id="text3"
+     style="font-weight:bold;font-stretch:condensed;font-size:240px;font-family:'Open Sans';-inkscape-font-specification:'Open Sans Bold Condensed';text-align:center;fill:#ffffff;stroke-width:0.20915;stroke-miterlimit:9;stroke-dasharray:0.836605, 0.418303"
+     aria-label="M" />
+  <path
+     d="m 119.55739,95.10131 q 0,6.0049 -1.66667,10.14706 -1.64216,4.14215 -4.82843,6.29902 -3.16177,2.13235 -7.76961,2.13235 H 96.86131 V 77.8464 h 8.94608 q 4.41176,0 7.47549,1.9853 3.08823,1.98529 4.68137,5.83333 1.59314,3.84804 1.59314,9.43628 z m -7.08334,0.31862 q 0,-4.0196 -0.7598,-6.59313 -0.7598,-2.57353 -2.27941,-3.79902 -1.4951,-1.22549 -3.72549,-1.22549 h -1.96079 v 23.84804 h 1.4951 q 3.72549,0 5.46569,-3.01471 1.7647,-3.0147 1.7647,-9.21569 z"
+     id="text1"
+     style="font-weight:bold;font-stretch:condensed;font-size:240px;font-family:'Open Sans';-inkscape-font-specification:'Open Sans Bold Condensed';text-align:center;fill:#ffffff;stroke-width:0.20915;stroke-miterlimit:9;stroke-dasharray:0.836605, 0.418303"
+     aria-label="D" />
+</svg>

@@ -37,7 +37,7 @@ fun main(args: Array<String>) {
             val config = DebuggerConfig()
             if (SystemInfo.isMacOS) {
                 System.setProperty("apple.laf.useScreenMenuBar", "true")
-                System.setProperty("apple.awt.application.name", "MIO")
+                System.setProperty("apple.awt.application.name", "rCMD")
                 System.setProperty("apple.awt.application.appearance", if (config.lightMode) "NSAppearanceNameAqua" else "NSAppearanceNameDarkAqua")
             }
             else {
