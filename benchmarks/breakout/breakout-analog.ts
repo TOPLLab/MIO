@@ -44,7 +44,7 @@ const DC = 15
 const SDA = 7
 const SCK = 6
 // Arduino constants
-const OUTPUT = 1
+const OUTPUT = 2
 const INPUT = 0
 const LOW = 0
 const HIGH = 1
