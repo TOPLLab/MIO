@@ -55,6 +55,7 @@ open class AboutScreen(protected val config: DebuggerConfig) : JFrame() {
             if (desktop.isSupported(Desktop.Action.APP_ABOUT)) {
                 desktop.setAboutHandler {
                     AboutScreen(config).apply {
+                        setLocationRelativeTo(null)
                         isVisible = true
                     }
                 }
