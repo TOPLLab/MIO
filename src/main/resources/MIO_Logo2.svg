@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created by AtomCrusher for the English Wikipedia -->
+
+<svg
+   version="1.1"
+   width="128"
+   height="143.366"
+   id="svg2"
+   sodipodi:docname="MIO_Logo2.svg"
+   inkscape:version="1.4.3 (0d15f75, 2025-12-25)"
+   inkscape:export-filename="rCMD_Logo2.svg"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs2" />
+  <sodipodi:namedview
+     id="namedview2"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="2.8284271"
+     inkscape:cx="94.575532"
+     inkscape:cy="104.47503"
+     inkscape:window-width="2544"
+     inkscape:window-height="1366"
+     inkscape:window-x="8"
+     inkscape:window-y="38"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg2" />
+  <!-- Block -->
+  <path
+     d="m 78.64052,128 v 0.69 c 0,8.10666 -6.5715,14.676 -14.67608,14.676 -8.10666,0 -14.674602,-7.35762 -14.67607,-14.676 L 49.288,126.84576 V 128 H 0 V 0 h 128 v 128 z"
+     fill="#654ff0"
+     id="path1"
+     style="fill:#f05f4f;fill-opacity:1;stroke-width:0.20915"
+     inkscape:export-filename="path1.svg"
+     inkscape:export-xdpi="20.078432"
+     inkscape:export-ydpi="20.078432"
+     sodipodi:nodetypes="csssccccccc" />
+  <!-- Letters -->
+  <path
+     style="font-weight:bold;font-stretch:condensed;font-size:63.5817px;font-family:'Open Sans';-inkscape-font-specification:'Open Sans Bold Condensed';text-align:center;text-anchor:middle;fill:#ffffff;stroke-width:0.20915;stroke-miterlimit:9;stroke-dasharray:0.836605, 0.418303"
+     d="M 36.645613,59.802284 27.673391,26.303918 h -0.248366 q 0.155229,2.080066 0.248366,3.911765 0.09314,1.831699 0.124183,3.383987 0.06209,1.552287 0.06209,2.794117 V 59.802284 H 19.725679 V 14.413395 h 12.014706 l 8.382353,31.076798 h 0.21732 L 48.722411,14.413395 H 60.675025 V 59.802284 H 52.354764 V 36.331696 q 0,-1.397059 0.03104,-2.918301 0.06209,-1.552287 0.124184,-3.290849 0.09314,-1.769608 0.21732,-3.756536 h -0.248366 l -9.034314,33.436274 z m 32.163398,0 V 14.413395 h 8.723856 V 59.802284 Z M 116.55738,37.045748 q 0,5.401961 -0.99347,9.748366 -0.99346,4.31536 -2.98039,7.357843 -1.98693,3.042484 -5.02941,4.656863 -3.01144,1.614379 -7.07843,1.614379 -4.09804,0 -7.140523,-1.614379 -3.042484,-1.645425 -5.029412,-4.718954 -1.986928,-3.073529 -2.980392,-7.388889 -0.993464,-4.315359 -0.993464,-9.71732 0,-7.637255 1.831699,-12.821896 1.8317,-5.18464 5.433007,-7.823529 3.601307,-2.638889 8.879085,-2.638889 5.4951,0 9.03431,2.825163 3.57026,2.825164 5.30883,8.071896 1.73856,5.215686 1.73856,12.449346 z m -23.191177,0 q 0,5.215687 0.807189,8.723856 0.80719,3.477125 2.390523,5.246733 1.583333,1.738562 3.911765,1.738562 2.35948,0 3.91176,-1.707517 1.58334,-1.707516 2.35948,-5.18464 0.80719,-3.477124 0.80719,-8.816994 0,-7.978758 -1.76961,-11.859477 -1.7696,-3.911765 -5.30882,-3.911765 -2.328432,0 -3.911765,1.769608 -1.583333,1.769608 -2.390523,5.277778 -0.807189,3.50817 -0.807189,8.723856 z"
+     id="text2"
+     aria-label="MIO" />
+</svg>

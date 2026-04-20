@@ -4,12 +4,12 @@ import be.ugent.topl.mio.DebuggerConfig
 import com.formdev.flatlaf.FlatDarkLaf
 import com.formdev.flatlaf.FlatIntelliJLaf
 import com.formdev.flatlaf.FlatLaf
+import com.formdev.flatlaf.extras.FlatSVGIcon
 import com.formdev.flatlaf.themes.FlatMacDarkLaf
 import com.formdev.flatlaf.themes.FlatMacLightLaf
 import com.formdev.flatlaf.util.SystemInfo
 import java.awt.Desktop
 import java.awt.Dimension
-import java.awt.Image
 import javax.swing.*
 
 
@@ -22,7 +22,7 @@ open class AboutScreen(protected val config: DebuggerConfig) : JFrame() {
         mainPanel.setLayout(BoxLayout(mainPanel, BoxLayout.Y_AXIS))
         mainPanel.border = BorderFactory.createEmptyBorder(20, 20, 20, 20)
         mainPanel.add(Box.createVerticalGlue())
-        mainPanel.add(JLabel(ImageIcon(ImageIcon(this.javaClass.getResource("/warduino-logo.png")).image.getScaledInstance(100, 100, Image.SCALE_SMOOTH))).apply {
+        mainPanel.add(JLabel(FlatSVGIcon(javaClass.getResource("/MIO_Logo2.svg"))).apply {
             setAlignmentX(CENTER_ALIGNMENT)
         })
         mainPanel.add(JLabel("MIO Debugger").apply {

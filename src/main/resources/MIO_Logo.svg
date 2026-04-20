@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created by AtomCrusher for the English Wikipedia -->
+
+<svg
+   version="1.1"
+   width="612"
+   height="612"
+   id="svg2"
+   sodipodi:docname="MIO_Logo.svg"
+   inkscape:version="1.4.3 (0d15f75, 2025-12-25)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs2" />
+  <sodipodi:namedview
+     id="namedview2"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="1.0167549"
+     inkscape:cx="229.65221"
+     inkscape:cy="234.56982"
+     inkscape:window-width="2544"
+     inkscape:window-height="1366"
+     inkscape:window-x="8"
+     inkscape:window-y="30"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg2" />
+  <!-- Block -->
+  <path
+     d="m376 0c0 1.08 0 2.16 0 3.3 0 38.76-31.42 70.17-70.17 70.17-38.76 0-70.17-31.42-70.17-70.17l0 0c0-1.14 0-2.22 0-3.3L0 0l0 612 612 0 0-612z"
+     fill="#654ff0"
+     id="path1"
+     style="fill:#f05f4f;fill-opacity:1" />
+  <!-- Letters -->
+  <text
+     xml:space="preserve"
+     style="font-size:304px;font-family:Sans;-inkscape-font-specification:Sans;text-align:center;writing-mode:lr-tb;direction:ltr;text-anchor:middle;fill:#f05f4f;fill-opacity:1;stroke-miterlimit:9;stroke-dasharray:4.00002, 2.00001"
+     x="322.61032"
+     y="543.53125"
+     id="text2"><tspan
+       sodipodi:role="line"
+       id="tspan2"
+       x="322.61032"
+       y="543.53125"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:condensed;font-size:304px;font-family:'Open Sans';-inkscape-font-specification:'Open Sans Bold Condensed';fill:#ffffff;fill-opacity:1">MIO</tspan></text>
+</svg>
