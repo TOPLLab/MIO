@@ -24,8 +24,8 @@ rCMD uses the Gradle build system. To get started, `./gradlew setup` can be used
 The debugger can then be started by running `java -jar rcmd.jar` in the `build/libs` directory. To run rCMD you will need Java 21 or higher.
 
 ```bash
-git clone --recursive git@github.com:TOPLLab/MIO.git
-cd MIO
+git clone --recursive git@github.com:TOPLLab/MIO.git -b rcmd rcmd
+cd rcmd
 ./gradlew setup
 cd build/libs
 java -jar rcmd.jar
