@@ -10,6 +10,11 @@ To build rCMD + WARDuino you will need the following dependencies:
 - Cmake 3.15+
 - Z3
 
+On Ubuntu all dependencies can be installed with the following command:
+```bash
+sudo apt install openjdk-21-jdk build-essential cmake libz3-dev
+```
+
 ## Getting started
 > [!NOTE]
 > Currently only Linux and macOS are supported.
