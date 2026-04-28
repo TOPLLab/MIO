@@ -16,8 +16,8 @@ import javax.swing.*
 
 open class AboutScreen(protected val config: DebuggerConfig) : JFrame() {
     init {
-        configureTheme()
-        setSize(450, 350)
+        val fullWindowContents = configureTheme()
+        setSize(450, 350 + if (!fullWindowContents) 20 else 0)
         minimumSize = Dimension(450, 350)
         val mainPanel = JPanel()
         mainPanel.setLayout(BoxLayout(mainPanel, BoxLayout.Y_AXIS))
@@ -45,7 +45,7 @@ open class AboutScreen(protected val config: DebuggerConfig) : JFrame() {
         })
     }
 
-    private fun configureTheme() {
+    private fun configureTheme(): Boolean {
         if (SystemInfo.isMacFullWindowContentSupported) {
             rootPane.putClientProperty("apple.awt.transparentTitleBar", true)
             rootPane.putClientProperty("apple.awt.fullWindowContent", true)
@@ -72,5 +72,6 @@ open class AboutScreen(protected val config: DebuggerConfig) : JFrame() {
             }
             else FlatDarkLaf.setup()
         }
+        return SystemInfo.isMacFullWindowContentSupported
     }
 }
