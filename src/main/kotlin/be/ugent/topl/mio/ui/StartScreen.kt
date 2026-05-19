@@ -15,6 +15,16 @@ import java.io.FileWriter
 import java.io.IOException
 import java.util.*
 import javax.swing.*
+import javax.swing.event.PopupMenuEvent
+import javax.swing.event.PopupMenuListener
+
+data class PortElement(val portPath: String, val portInfo: String) {
+    override fun toString(): String {
+        if (portInfo == "Unknown")
+            return portPath
+        return "$portInfo ($portPath)"
+    }
+}
 
 open class StartScreen(config: DebuggerConfig) : AboutScreen(config) {
     init {
@@ -22,27 +32,58 @@ open class StartScreen(config: DebuggerConfig) : AboutScreen(config) {
         defaultCloseOperation = EXIT_ON_CLOSE
     }
 
+    fun updatePortOptions(comboBox: JComboBox<PortElement>) {
+        comboBox.removeAllItems()
+        for (port in SerialPort.getCommPorts()) {
+            comboBox.addItem(PortElement(port.systemPortPath, port.portDescription))
+        }
+    }
+
+    /**
+     * If the config file specifies a port to use, use that one. Otherwise, try to find a WARDuino microcontroller.
+     */
+    fun determinePreferredOption(comboBox: JComboBox<PortElement>) {
+        if (config.port != null) {
+            comboBox.selectedItem = config.port
+        }
+        else {
+            var i = 0
+            while (i < comboBox.itemCount && !comboBox.getItemAt(i).portInfo.startsWith("WARDuino")) {
+                i++
+            }
+            if (i < comboBox.itemCount) {
+                comboBox.selectedItem = comboBox.getItemAt(i)
+            }
+        }
+    }
+
     override fun addOptions(mainPanel: JPanel) {
-        val portComboBox = JComboBox<String>().apply {
+        val portComboBox = JComboBox<PortElement>().apply {
+            prototypeDisplayValue = PortElement("", "   ")
             setAlignmentX(CENTER_ALIGNMENT)
-            maximumSize = Dimension(250, 500)
-            for (port in SerialPort.getCommPorts()) {
-                addItem(port.systemPortPath)
-            }
-            if (config.port != null) {
-                selectedItem = config.port
-            }
+            maximumSize = Dimension(Integer.MAX_VALUE, 500)
+            updatePortOptions(this)
+            determinePreferredOption(this)
+            addPopupMenuListener(object : PopupMenuListener {
+                override fun popupMenuWillBecomeVisible(e: PopupMenuEvent?) {
+                    val currentItem = selectedItem as PortElement
+                    updatePortOptions(this@apply)
+                    selectedItem = currentItem
+                }
+
+                override fun popupMenuWillBecomeInvisible(e: PopupMenuEvent?) {}
+
+                override fun popupMenuCanceled(e: PopupMenuEvent?) {}
+            })
         }
         val portBox = Box.createHorizontalBox()
         portBox.border = BorderFactory.createEmptyBorder(10, 20, 0, 20)
+        portBox.add(JLabel("Port: "))
         portBox.add(portComboBox)
         portBox.add(JButton(FlatSVGIcon(javaClass.getResource("/refresh.svg"))).apply {
             addActionListener {
-                val currentItem = portComboBox.selectedItem as String
-                portComboBox.removeAllItems()
-                for (port in SerialPort.getCommPorts()) {
-                    portComboBox.addItem(port.systemPortPath) // TODO: We can use the device name CONFIG_USB_DEVICE_PRODUCT
-                }
+                val currentItem = portComboBox.selectedItem as PortElement
+                updatePortOptions(portComboBox)
                 portComboBox.selectedItem = currentItem
             }
         })
@@ -67,7 +108,7 @@ open class StartScreen(config: DebuggerConfig) : AboutScreen(config) {
                 if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
                     recentProperties.setProperty("lastDir", chooser.selectedFile.parent)
                     recentProperties.store(FileWriter(recentConfig), null)
-                    if(!startDebugger(chooser.selectedFile, emulatorCheckbox.isSelected, portComboBox.selectedItem as String?)) {
+                    if(!startDebugger(chooser.selectedFile, emulatorCheckbox.isSelected, (portComboBox.selectedItem as PortElement).portPath)) {
                         return@addActionListener
                     }
                     isVisible = false
