@@ -32,6 +32,7 @@ import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 import javax.swing.table.DefaultTableModel
 import kotlin.concurrent.thread
+import kotlin.system.exitProcess
 
 
 class InteractiveDebugger(
@@ -40,7 +41,10 @@ class InteractiveDebugger(
     private val wasmFile: String = "/home/maarten/Documents/School/Thesis/thesis-git/wardbg/simple-sym-test.wasm",
     private val config: DebuggerConfig
 ) : JFrame("WARDuino Debugger") {
-    private val binaryInfo = getBinaryInfo(config.wdcliPath, File(wasmFile).absolutePath)
+    private val binaryInfo = getBinaryInfo(config.wdcliPath, File(wasmFile).absolutePath).getOrElse {
+        JOptionPane.showMessageDialog(this, it.message, "Error obtaining binary info", JOptionPane.ERROR_MESSAGE)
+        exitProcess(1)
+    }
     private val debugger = MultiverseDebugger(
         connection,
         WasmBinary(File(wasmFile), binaryInfo),
