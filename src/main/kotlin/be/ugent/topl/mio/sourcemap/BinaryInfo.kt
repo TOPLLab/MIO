@@ -12,7 +12,7 @@ data class WasmInfo(
 )
 data class WasmBinary(val file: File, val metadata: WasmInfo)
 
-fun getBinaryInfo(wdcliPath: String, wasmFile: String): WasmInfo {
+fun getBinaryInfo(wdcliPath: String, wasmFile: String): Result<WasmInfo> {
     println("Get binary info using $wdcliPath")
     val process = ProcessBuilder(wdcliPath, wasmFile, "--no-socket", "--dump-info").redirectErrorStream(true).start()
     val lineScanner = Scanner(process.inputStream)
@@ -24,7 +24,7 @@ fun getBinaryInfo(wdcliPath: String, wasmFile: String): WasmInfo {
             val objectMapper = ObjectMapper()
             objectMapper.registerKotlinModule()
             process.destroy()
-            return objectMapper.readValue(currentLine, WasmInfo::class.java)
+            return Result.success(objectMapper.readValue(currentLine, WasmInfo::class.java))
         }
     }
     process.destroy()
@@ -32,5 +32,5 @@ fun getBinaryInfo(wdcliPath: String, wasmFile: String): WasmInfo {
     for (line in lines) {
         println(line)
     }
-    throw Exception("Failed to get info")
+    return Result.failure(Exception(lines.joinToString("\n")))
 }
