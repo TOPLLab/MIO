@@ -24,11 +24,10 @@ class MultiverseGraph(var rootNode: MultiverseNode = MultiverseNode(), var curre
     fun replaceNode(node: MultiverseNode, newNode: MultiverseNode) {
         if (node == rootNode) {
             rootNode = newNode
-            return
+        } else {
+            node.parent!!.children.remove(node)
+            node.parent!!.addChild(newNode)
         }
-
-        node.parent!!.children.remove(node)
-        node.parent!!.addChild(newNode)
 
         for (child in node.children) {
             newNode.addChild(child)
@@ -310,7 +309,13 @@ class MultiverseDebugger(
                 DeterministicPrimitiveNode(wasmBinary.metadata.primitive_fidx_mapping[checkpoint.fidx_called], checkpoint.args!!)
             }
 
-            graph.replaceNode(graph.currentNode.parent!!, newNode)
+            if (graph.currentNode.parent != null) {
+                graph.replaceNode(graph.currentNode.parent!!, newNode)
+            } else {
+                // Current node has no parent -> it is the root node!
+                graph.currentNode = newNode
+                graph.rootNode = newNode
+            }
         }
 
         graphUpdated()
