@@ -501,9 +501,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
 
     fun setSnapshotPolicy(policy: SnapshotPolicy) {
         sendRaw("61${policy.serialize()}\n")
-        messageQueue.searchForResponse {
-            "Interrupt: 61"
-        }
+        messageQueue.waitForResponse("ack61")
     }
 }
 
