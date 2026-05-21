@@ -100,32 +100,35 @@ val wdcliSymbolicPath = projectDir.absolutePath + "/WARDuino-symbolic/build-emu/
 private val compileWdcliTask = cmakeBuildTask(wdcliPath)
 private val compileWdcliSymbolicTask = cmakeBuildTask(wdcliSymbolicPath)
 
-tasks.register<Copy>("setup") {
+tasks.register("setup") {
     dependsOn("fatJar")
     dependsOn(compileWdcliTask)
     dependsOn(compileWdcliSymbolicTask)
-    setDefaultZephyrWasmBinary()
 
-    // Setup configuration file.
-    val file = File("${System.getenv("HOME")}/.rcmd/debugger.properties")
-    if (!file.exists()) {
-        writeDefaultConfig(file)
-    } else {
-        val padding = 2
-        val s = "Config already exists, do you want to overwrite it? type y/n"
-        println("┌" + "─".repeat(s.length + padding * 2) + "┐")
-        println("│\u001b[34;1m${" ".repeat(padding)}$s${" ".repeat(padding)}\u001b[0m│")
-        println("└" + "─".repeat(s.length + padding * 2) + "┘")
-        var answer = readln()
-        while (answer != "y" && answer != "n") {
-            answer = readln()
-            println("Please enter y or n")
-        }
-        if (answer == "y") {
+    doLast {
+        setDefaultZephyrWasmBinary()
+
+        // Setup configuration file.
+        val file = File("${System.getenv("HOME")}/.rcmd/debugger.properties")
+        if (!file.exists()) {
             writeDefaultConfig(file)
-        }
-        else {
-            println("Keeping existing config $file")
+        } else {
+            val padding = 2
+            val s = "Config already exists, do you want to overwrite it? type y/n"
+            println("┌" + "─".repeat(s.length + padding * 2) + "┐")
+            println("│\u001b[34;1m${" ".repeat(padding)}$s${" ".repeat(padding)}\u001b[0m│")
+            println("└" + "─".repeat(s.length + padding * 2) + "┘")
+            var answer = readln()
+            while (answer != "y" && answer != "n") {
+                answer = readln()
+                println("Please enter y or n")
+            }
+            if (answer == "y") {
+                writeDefaultConfig(file)
+            }
+            else {
+                println("Keeping existing config $file")
+            }
         }
     }
 }
