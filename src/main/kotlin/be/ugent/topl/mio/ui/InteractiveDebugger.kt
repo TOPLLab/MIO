@@ -369,6 +369,8 @@ class InteractiveDebugger(
     init {
         debugger.startReading()
         debugger.setSnapshotPolicy(Debugger.SnapshotPolicy.Tracing(listOf(ExecutionState.ProgramCounter)))
+        debugger.reset()
+        debugger.graph.currentNode.removeAllChildren()
         pause()
     }
 
