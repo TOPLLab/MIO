@@ -421,6 +421,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
         checkpoints.clear()
         checkpoints.add(firstState)
         send(13)
+        messageQueue.waitForResponse("Reset WARDuino.")
         checkpointsUpdated()
     }
 
