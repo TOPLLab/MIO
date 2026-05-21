@@ -87,18 +87,21 @@ fun setDefaultZephyrWasmBinary() {
     File(projectDir.absolutePath + "/examples/binary-counter/upload.wasm.map").copyTo(File(zephyrBuildDir.absolutePath + "/upload.wasm.map"), overwrite = true)
 }
 
-tasks.register<Copy>("setup") {
+tasks.register("setup") {
     dependsOn("fatJar")
     dependsOn("makeWARDuino")
-    setDefaultZephyrWasmBinary()
 
-    // Setup configuration file.
-    val file = File("${System.getenv("HOME")}/.mio/debugger.properties")
-    if (!file.exists()) {
-        file.parentFile.mkdirs()
-        println("Generating a default configuration file ${file.absolutePath}")
-        val properties = Properties()
-        properties.setProperty("wdcli", wdcliPath)
-        properties.store(file.writer(), null)
+    doLast {
+        setDefaultZephyrWasmBinary()
+
+        // Setup configuration file.
+        val file = File("${System.getenv("HOME")}/.mio/debugger.properties")
+        if (!file.exists()) {
+            file.parentFile.mkdirs()
+            println("Generating a default configuration file ${file.absolutePath}")
+            val properties = Properties()
+            properties.setProperty("wdcli", wdcliPath)
+            properties.store(file.writer(), null)
+        }
     }
 }
