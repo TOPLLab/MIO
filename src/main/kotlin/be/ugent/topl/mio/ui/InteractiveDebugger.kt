@@ -7,6 +7,7 @@ import be.ugent.topl.mio.debugger.ConstraintParser
 import be.ugent.topl.mio.debugger.Debugger
 import be.ugent.topl.mio.debugger.ExecutionState
 import be.ugent.topl.mio.debugger.MultiverseDebugger
+import be.ugent.topl.mio.debugger.MultiverseNode
 import be.ugent.topl.mio.debugger.PrimitiveNode
 import be.ugent.topl.mio.sourcemap.SourceMap
 import be.ugent.topl.mio.woodstate.Checkpoint
@@ -375,7 +376,7 @@ class InteractiveDebugger(
         debugger.startReading()
         debugger.setSnapshotPolicy(Debugger.SnapshotPolicy.Tracing(listOf(ExecutionState.ProgramCounter)))
         debugger.reset()
-        debugger.graph.currentNode.removeAllChildren()
+        debugger.graph.currentNode = MultiverseNode()
         pause()
     }
 
