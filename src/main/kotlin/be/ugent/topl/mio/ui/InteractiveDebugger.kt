@@ -45,7 +45,7 @@ class InteractiveDebugger(
     private val config: DebuggerConfig
 ) : JFrame("WARDuino Debugger") {
     private val binaryInfo = getBinaryInfo(config.wdcliPath, File(wasmFile).absolutePath).getOrElse {
-        JOptionPane.showMessageDialog(this, it.message, "Error obtaining binary info", JOptionPane.ERROR_MESSAGE)
+        JOptionPane.showMessageDialog(this, it.message, "Error obtaining binary info", ERROR_MESSAGE)
         exitProcess(1)
     }
     private val debugger = MultiverseDebugger(
@@ -56,7 +56,12 @@ class InteractiveDebugger(
         this::onGraphUpdate,
         this::onMockingUpdate,
         this::onHitBreakpoint
-    )
+    ).apply {
+        errorHandlers.add {
+            JOptionPane.showMessageDialog(this@InteractiveDebugger, it, "An error occurred", ERROR_MESSAGE)
+            exitProcess(1)
+        }
+    }
     private val pauseButton = JButton().apply {
         toolTipText = "Pause/Continue"
     }
