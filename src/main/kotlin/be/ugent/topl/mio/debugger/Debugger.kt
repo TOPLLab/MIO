@@ -24,18 +24,30 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
             }
         }
     }
+    val errorHandlers = mutableListOf<(String) -> Unit>()
     private val readThread  = thread(start) {
         while (!Thread.currentThread().isInterrupted) {
-            while (connection.bytesAvailable() == 0) {
+            var available = connection.bytesAvailable()
+            while (available == 0) {
                 try {
                     Thread.sleep(10)
                 } catch (_: InterruptedException) {
                     Thread.currentThread().interrupt()
                     break
                 }
+                available = connection.bytesAvailable()
+            }
+            if (available == -1) {
+                println("WARDuino disconnected")
+                thread {
+                    for (el in errorHandlers) {
+                        el.invoke("WARDuino disconnected")
+                    }
+                }
+                return@thread
             }
 
-            val readBuffer = ByteArray(connection.bytesAvailable())
+            val readBuffer = ByteArray(available)
             connection.read(readBuffer)
             messageQueue.push(String(readBuffer), true)
 
