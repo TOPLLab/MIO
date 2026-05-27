@@ -311,12 +311,12 @@ class DebuggerTests : DebuggerTestBase() {
         val wasmFile = "/home/maarten/Documents/Projects/maarten-thesis-23-24/samples/led_demo/led_demo.wasm"
         val connection = ProcessConnection(wdcliPath, getFile(wasmFile).path, "--no-socket")
         val binaryInfo = getBinaryInfo(config.symbolicWdcliPath, getFile(wasmFile).absolutePath)
-        val debugger = MultiverseDebugger(connection, WasmBinary(File(wasmFile), binaryInfo), config.symbolicWdcliPath)
+        val debugger = MultiverseDebugger(connection, WasmBinary(File(wasmFile), binaryInfo.getOrThrow()), config.symbolicWdcliPath)
         debugger.setSnapshotPolicy(Debugger.SnapshotPolicy.Checkpointing(10))
         debugger.pause()
         //debugger.continueFor(5)
         debugger.step(5)
-        debugger.printCheckpoints(binaryInfo)
+        debugger.printCheckpoints(binaryInfo.getOrThrow())
         debugger.stepBack(1)
         debugger.step(1)
         debugger.close()
@@ -327,7 +327,7 @@ class DebuggerTests : DebuggerTestBase() {
         val wasmFile = "blink.wasm"
         val connection = ProcessConnection(wdcliPath, getFile(wasmFile).path, "--no-socket")
         val binaryInfo = getBinaryInfo(config.symbolicWdcliPath, getFile(wasmFile).absolutePath)
-        val debugger = MultiverseDebugger(connection, WasmBinary(File(wasmFile), binaryInfo), config.symbolicWdcliPath)
+        val debugger = MultiverseDebugger(connection, WasmBinary(File(wasmFile), binaryInfo.getOrThrow()), config.symbolicWdcliPath)
         println("Running $wdcliPath")
         debugger.pause()
         //debugger.addPrimitiveOverride("chip_digital_read", 0, 5)
