@@ -138,15 +138,15 @@ class DeterministicPrimitiveNode(val primitive: String, val args: List<Int>, chi
         get() = primitive.length * 8 + args.joinToString(", ").length * 8 + children.size * 10
 }
 
-class PrimitiveNode(val primitive: String, val arg: Int, children: MutableList<MultiverseNode> = mutableListOf(), values: MutableList<Int> = mutableListOf()) : MultiverseNode(children, values) {
+class PrimitiveNode(val primitive: String, val arg: List<Int>, children: MutableList<MultiverseNode> = mutableListOf(), values: MutableList<Int> = mutableListOf()) : MultiverseNode(children, values) {
     override val displayName: String
-        get() = "$primitive($arg)"
+        get() = "$primitive(${arg.joinToString(", ")})"
 
     override val edgeLength: Int
         get() = 25 + primitive.length * 8
 
     override fun nextNode(overrides: Map<String,Map<Int, Int>>): MultiverseNode {
-        val returnValue = overrides[primitive]?.get(arg)
+        val returnValue = overrides[primitive]?.get(arg.first())
         if (returnValue != null) {
             return children[values.indexOf(returnValue)]
         }
@@ -257,7 +257,7 @@ class MultiverseDebugger(
             currentNode.addChild(MultiverseNode())
             graphUpdated()
             if (override) {
-                addPrimitiveOverride(currentNode.primitive, currentNode.arg, returnValue)
+                addPrimitiveOverride(currentNode.primitive, currentNode.arg.first(), returnValue)
             }
         }
     }
@@ -291,6 +291,8 @@ class MultiverseDebugger(
         val change = newCheckpoints.size - len
         len = newCheckpoints.size
 
+        println("$change instructions added, total = ${checkpoints.size}")
+
         for (i in len - change ..< len) {
             // A multiverse graph always starts as just a single node, we already have a first node so no need to add it.
             if (i != 0) {
@@ -304,8 +306,8 @@ class MultiverseDebugger(
         val checkpoint = newCheckpoints.last()
         if (graph.currentNode.children.isEmpty() && change > 0 && checkpoint?.fidx_called != null) {
             val newNode = if (isAfterChoicePoint(checkpoint.snapshot.pc!!)) {
-                PrimitiveNode(wasmBinary.metadata.primitive_fidx_mapping[checkpoint.fidx_called], checkpoint.args!![0]).apply {
-                    values.add(checkpoint.snapshot.stack!!.last().value.toInt())
+                PrimitiveNode(wasmBinary.metadata.primitive_fidx_mapping[checkpoint.fidx_called], checkpoint.args!!).apply {
+                    values.add(checkpoint.returns!!.first())
                 }
             } else {
                 DeterministicPrimitiveNode(wasmBinary.metadata.primitive_fidx_mapping[checkpoint.fidx_called], checkpoint.args!!)
@@ -342,7 +344,7 @@ class MultiverseDebugger(
                 }
                 else {
                     // Current node was actually non-deterministic, but it is currently just a regular node so we replace it with a non-deterministic one.
-                    val node = PrimitiveNode(wasmBinary.metadata.primitive_fidx_mapping[checkpoint.fidx_called!!], checkpoint.args!!.first(), values=mutableListOf(checkpoint.returns!!.first()))
+                    val node = PrimitiveNode(wasmBinary.metadata.primitive_fidx_mapping[checkpoint.fidx_called!!], checkpoint.args!!, values=mutableListOf(checkpoint.returns!!.first()))
                     graph.replaceNode(graph.currentNode, node)
                     graph.currentNode = node.nextNode(stackValue)
                 }

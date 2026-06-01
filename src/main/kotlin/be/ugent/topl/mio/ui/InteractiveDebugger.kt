@@ -28,6 +28,7 @@ import java.awt.event.WindowEvent
 import java.io.File
 import java.io.IOException
 import javax.swing.*
+import javax.swing.JOptionPane.ERROR_MESSAGE
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 import javax.swing.table.DefaultTableModel
@@ -467,7 +468,7 @@ interface MultiverseAction {
 
 class OverrideAction(val debugger: Debugger, val node: PrimitiveNode, val index: Int) : MultiverseAction {
     override fun doAction() {
-        debugger.addPrimitiveOverride(node.primitive, node.arg, node.values[index])
+        debugger.addPrimitiveOverride(node.primitive, node.arg.first(), node.values[index])
     }
 
 }
