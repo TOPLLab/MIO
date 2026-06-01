@@ -20,7 +20,7 @@ open class AboutScreen(protected val config: DebuggerConfig) : JFrame() {
         minimumSize = Dimension(450, 350)
         val mainPanel = JPanel()
         mainPanel.setLayout(BoxLayout(mainPanel, BoxLayout.Y_AXIS))
-        mainPanel.border = BorderFactory.createEmptyBorder(20, 20, 20, 20)
+        mainPanel.border = BorderFactory.createEmptyBorder(0, 0, 0, 0)
         mainPanel.add(Box.createVerticalGlue())
         mainPanel.add(JLabel(FlatSVGIcon(javaClass.getResource("/MIO_Logo2.svg"))).apply {
             setAlignmentX(CENTER_ALIGNMENT)
@@ -34,9 +34,13 @@ open class AboutScreen(protected val config: DebuggerConfig) : JFrame() {
             putClientProperty( "FlatLaf.style", "font: 160% \$light.font")
         })
         addOptions(mainPanel)
-        mainPanel.add(Box.createVerticalGlue())
+        if (addTrailingGlue()) {
+            mainPanel.add(Box.createVerticalGlue())
+        }
         add(mainPanel)
     }
+
+    protected open fun addTrailingGlue(): Boolean = true
 
     protected open fun addOptions(mainPanel: JPanel) {
         mainPanel.add(JLabel("Copyright © 2023-2025 TOPL@Ghent University").apply {
