@@ -376,7 +376,7 @@ class InteractiveDebugger(
         debugger.startReading()
         debugger.setSnapshotPolicy(Debugger.SnapshotPolicy.Tracing(listOf(ExecutionState.ProgramCounter)))
         debugger.reset()
-        debugger.graph.currentNode = MultiverseNode()
+        debugger.graph.reset()
         pause()
     }
 
@@ -478,7 +478,7 @@ interface MultiverseAction {
 
 class OverrideAction(val debugger: Debugger, val node: PrimitiveNode, val index: Int) : MultiverseAction {
     override fun doAction() {
-        debugger.addPrimitiveOverride(node.primitive, node.arg, node.values[index])
+        debugger.addPrimitiveOverride(node.primitive, node.arg.first(), node.values[index])
     }
 
 }

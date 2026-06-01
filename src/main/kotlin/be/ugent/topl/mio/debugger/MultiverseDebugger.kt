@@ -48,6 +48,11 @@ class MultiverseGraph(var rootNode: MultiverseNode = MultiverseNode(), var curre
         currentNode = last
         return currentNode
     }
+
+    fun reset() {
+        currentNode = MultiverseNode()
+        rootNode = currentNode
+    }
 }
 
 open class MultiverseNode(val children: MutableList<MultiverseNode> = mutableListOf(), val values: MutableList<Int> = mutableListOf(), var parent: MultiverseNode? = null) {
