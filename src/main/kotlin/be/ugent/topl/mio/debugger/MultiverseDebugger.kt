@@ -135,15 +135,15 @@ class DeterministicPrimitiveNode(val primitive: String, val args: List<Int>, chi
         get() = 130 + children.size * 10
 }
 
-class PrimitiveNode(val primitive: String, val arg: Int, children: MutableList<MultiverseNode> = mutableListOf(), values: MutableList<Int> = mutableListOf()) : MultiverseNode(children, values) {
+class PrimitiveNode(val primitive: String, val arg: List<Int>, children: MutableList<MultiverseNode> = mutableListOf(), values: MutableList<Int> = mutableListOf()) : MultiverseNode(children, values) {
     override val displayName: String
-        get() = "$primitive($arg)"
+        get() = "$primitive(${arg.joinToString(", ")})"
 
     override val edgeLength: Int
         get() = 135
 
     override fun nextNode(overrides: Map<String,Map<Int, Int>>): MultiverseNode {
-        val returnValue = overrides[primitive]?.get(arg)
+        val returnValue = overrides[primitive]?.get(arg.first())
         if (returnValue != null) {
             return children[values.indexOf(returnValue)]
         }
@@ -260,7 +260,7 @@ class MultiverseDebugger(
             currentNode.addChild(MultiverseNode())
             graphUpdated()
             if (override) {
-                addPrimitiveOverride(currentNode.primitive, currentNode.arg, returnValue)
+                addPrimitiveOverride(currentNode.primitive, currentNode.arg.first(), returnValue)
             }
         }
     }
@@ -294,6 +294,8 @@ class MultiverseDebugger(
         val change = newCheckpoints.size - len
         len = newCheckpoints.size
 
+        println("$change instructions added, total = ${checkpoints.size}")
+
         for (i in len - change ..< len) {
             // A multiverse graph always starts as just a single node, we already have a first node so no need to add it.
             if (i != 0) {
@@ -307,7 +309,7 @@ class MultiverseDebugger(
         val checkpoint = newCheckpoints.last()
         if (graph.currentNode.children.isEmpty() && change > 0 && checkpoint?.fidx_called != null) {
             val newNode = if (isAfterChoicePoint(checkpoint.snapshot.pc!!)) {
-                PrimitiveNode(wasmBinary.metadata.primitive_fidx_mapping[checkpoint.fidx_called], checkpoint.args!![0]).apply {
+                PrimitiveNode(wasmBinary.metadata.primitive_fidx_mapping[checkpoint.fidx_called], checkpoint.args!!).apply {
                     values.add(checkpoint.returns!!.first())
                 }
             } else {
