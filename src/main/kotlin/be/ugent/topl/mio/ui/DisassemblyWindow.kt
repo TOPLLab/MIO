@@ -3,6 +3,7 @@ package be.ugent.topl.mio.ui
 import be.ugent.topl.mio.debugger.Debugger
 import be.ugent.topl.mio.woodstate.WOODDumpResponse
 import com.formdev.flatlaf.FlatLaf
+import com.formdev.flatlaf.extras.FlatSVGIcon
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants
 import org.fife.ui.rtextarea.RTextScrollPane
@@ -18,9 +19,14 @@ class DisassemblyWindow(debugger: Debugger, wasmFile: String) : JFrame("Disassem
         syntaxEditingStyle = SyntaxConstants.SYNTAX_STYLE_ASSEMBLER_X86
         isEditable = false
     }
+    private val scrollPane = RTextScrollPane(disassemblyTextArea).apply {
+        isIconRowHeaderEnabled = true
+        gutter.iconRowHeaderInheritsGutterBackground = true
+    }
+    private val lineIcon = FlatSVGIcon(javaClass.getResource("/debug-stackframe.svg"))
 
     init {
-        add(RTextScrollPane(disassemblyTextArea))
+        add(scrollPane)
         minimumSize = Dimension(200, 200)
         preferredSize = Dimension(400, 600)
         isVisible = true
@@ -61,6 +67,9 @@ class DisassemblyWindow(debugger: Debugger, wasmFile: String) : JFrame("Disassem
             if (line.trim().startsWith(String.format("%06x", pc))) {
                 disassemblyTextArea.removeAllLineHighlights()
                 disassemblyTextArea.addLineHighlight(lineIndex, if (!FlatLaf.isLafDark()) Color(255, 255, 186, 255) else Color(207, 207, 131, 75))
+
+                scrollPane.gutter.removeAllTrackingIcons()
+                scrollPane.gutter.addLineTrackingIcon(lineIndex, lineIcon, "Current pc")
             }
         }
     }
