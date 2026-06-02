@@ -397,8 +397,6 @@ class InteractiveDebugger(
         if (sourceMapping == null)
             return
 
-        updateBreakPoints(snapshot)
-
         val pc = snapshot.pc!!
         try {
             val lineNumber = sourceMapping.getLineForPc(pc)
@@ -425,6 +423,9 @@ class InteractiveDebugger(
              */
             System.err.println("WARNING: " + iae.message)
         }
+
+        // Should happen after switching files
+        updateBreakPoints(snapshot)
     }
 
     private fun updateBreakPoints(snapshot: WOODDumpResponse) {
