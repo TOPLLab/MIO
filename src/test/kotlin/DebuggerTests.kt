@@ -331,7 +331,7 @@ class DebuggerTests : DebuggerTestBase() {
         println("Running $wdcliPath")
         debugger.pause()
         //debugger.addPrimitiveOverride("chip_digital_read", 0, 5)
-        debugger.addPrimitiveOverride("chip_digital_write", 0, 5)
+        debugger.addPrimitiveOverride("chip_digital_write", listOf(0), 5)
         debugger.snapshot()
         Thread.sleep(1000)
         debugger.close()
