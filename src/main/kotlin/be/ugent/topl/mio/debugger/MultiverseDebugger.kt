@@ -120,7 +120,7 @@ class DeterministicPrimitiveNode(val primitive: String, val args: List<Int>, chi
         get() = "$primitive(${args.joinToString(", ")})"
 
     override val edgeLength: Int
-        get() = 130 + children.size * 10
+        get() = primitive.length * 8 + args.joinToString(", ").length * 8 + children.size * 10
 }
 
 class PrimitiveNode(val primitive: String, val arg: List<Int>, children: MutableList<MultiverseNode> = mutableListOf(), values: MutableList<Int> = mutableListOf()) : MultiverseNode(children, values) {
@@ -128,7 +128,7 @@ class PrimitiveNode(val primitive: String, val arg: List<Int>, children: Mutable
         get() = "$primitive(${arg.joinToString(", ")})"
 
     override val edgeLength: Int
-        get() = 135
+        get() = 25 + primitive.length * 8
 
     override fun nextNode(stackValue: WasmStackValue): MultiverseNode {
         return children[values.indexOf(stackValue.value.toInt())]
