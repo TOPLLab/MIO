@@ -468,7 +468,7 @@ interface MultiverseAction {
 
 class OverrideAction(val debugger: Debugger, val node: PrimitiveNode, val index: Int) : MultiverseAction {
     override fun doAction() {
-        debugger.addPrimitiveOverride(node.primitive, node.arg.first(), node.values[index])
+        debugger.addPrimitiveOverride(node.primitive, node.arg, node.values[index])
     }
 
 }
@@ -613,32 +613,56 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
         customButton.addActionListener {
             val currentNode = multiverseDebugger.graph.currentNode
             val mainPanel = JPanel()
-            val primitiveNameTextField = JComboBox<String>()
+            val primitiveSelector = JComboBox<String>()
             multiverseDebugger.wasmBinary.metadata.primitive_fidx_mapping.forEach {
-                primitiveNameTextField.addItem(it)
+                primitiveSelector.addItem(it)
             }
-            mainPanel.add(primitiveNameTextField)
+            mainPanel.add(primitiveSelector)
             mainPanel.add(JLabel("("))
-            val argTextField = JTextField()
-            mainPanel.add(argTextField)
+            val argBox = Box.createHorizontalBox()
+            mainPanel.add(argBox)
+
+            val argTextFields = mutableListOf<JTextField>()
+            fun updateArgFields() {
+                argTextFields.clear()
+                // TODO: Determine the count based on binary info from WARDuino
+                val argCount = if (
+                    primitiveSelector.selectedItem.toString() == "display_width" ||
+                    primitiveSelector.selectedItem.toString() == "display_height" ||
+                    primitiveSelector.selectedItem.toString() == "random_int") 0 else 1
+                repeat(argCount) {
+                    argTextFields.add(JTextField())
+                }
+                argBox.removeAll()
+                for (textField in argTextFields) {
+                    argBox.add(textField)
+                }
+                argBox.revalidate()
+                argBox.repaint()
+            }
+
             mainPanel.add(JLabel(") = "))
             val returnValueTextField = JTextField()
             mainPanel.add(returnValueTextField)
 
             if (currentNode is PrimitiveNode) {
-                argTextField.isEnabled = false
-                argTextField.text = currentNode.arg.toString()
-                primitiveNameTextField.isEnabled = false
-                primitiveNameTextField.selectedItem = currentNode.primitive
+                for (i in currentNode.arg.indices) {
+                    argTextFields[i].isEnabled = false
+                    argTextFields[i].text = currentNode.arg[i].toString()
+                }
+                primitiveSelector.isEnabled = false
+                primitiveSelector.selectedItem = currentNode.primitive
             }
+            // Update the number of argument fields based on the currently selected primitive
+            updateArgFields()
 
             val relations = if (File(DebuggerConfig.configDir + "/program.constraints").exists()) ConstraintParser.parseFile("test.constraints") else listOf()
 
             fun handleRelations() {
                 returnValueTextField.isEnabled = true
                 for (relation in relations) {
-                    if (primitiveNameTextField.selectedItem == relation.override.primName &&
-                        argTextField.text == relation.override.arg.toString()
+                    if (primitiveSelector.selectedItem == relation.override.primName &&
+                        argTextFields[0].text == relation.override.arg.toString()
                     ) {
                         val state = multiverseDebugger.getCurrentState()
                         val realValue = state.io!!.find { it.key == relation.io.key }?.value
@@ -651,22 +675,25 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
             }
 
             // Re-check relations when changing primitive or argument.
-            primitiveNameTextField.addActionListener {
+            primitiveSelector.addActionListener {
                 handleRelations()
+                updateArgFields()
             }
-            argTextField.document.addDocumentListener(object : DocumentListener {
-                override fun insertUpdate(e: DocumentEvent?) {
-                    handleRelations()
-                }
+            for (textField in argTextFields) {
+                textField.document.addDocumentListener(object : DocumentListener {
+                    override fun insertUpdate(e: DocumentEvent?) {
+                        handleRelations()
+                    }
 
-                override fun removeUpdate(e: DocumentEvent?) {
-                    handleRelations()
-                }
+                    override fun removeUpdate(e: DocumentEvent?) {
+                        handleRelations()
+                    }
 
-                override fun changedUpdate(e: DocumentEvent?) {
-                    handleRelations()
-                }
-            })
+                    override fun changedUpdate(e: DocumentEvent?) {
+                        handleRelations()
+                    }
+                })
+            }
 
             val pauseIcon = ImageIcon(javaClass.getResource("/logo-small.png"))
 
@@ -695,10 +722,13 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
             dialog.isVisible = true
             val x = optionPane.value
             if (x == allOptions[1]) {
-                val primitiveName = primitiveNameTextField.selectedItem as String
-                val arg = argTextField.text.toInt()
+                val primitiveName = primitiveSelector.selectedItem as String
+                val args = mutableListOf<Int>()
+                for (textField in argTextFields) {
+                    args.add(textField.text.toInt())
+                }
                 val returnValue = (returnValueTextField.text as String).toInt()
-                multiverseDebugger.addPrimitiveOverride(primitiveName, arg, returnValue)
+                multiverseDebugger.addPrimitiveOverride(primitiveName, args, returnValue)
             } else if (x == allOptions[0]) {
                 showPathRangeWindow()
             }
@@ -747,7 +777,7 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
         mockPanel.clear()
         for (primMocks in multiverseDebugger.overrides) {
             for (argResultPair in primMocks.value) {
-                mockPanel.addItem(primMocks.key, listOf(argResultPair.key), argResultPair.value) {
+                mockPanel.addItem(primMocks.key, argResultPair.key, argResultPair.value) {
                     multiverseDebugger.removePrimitiveOverride(primMocks.key, argResultPair.key)
                 }
             }

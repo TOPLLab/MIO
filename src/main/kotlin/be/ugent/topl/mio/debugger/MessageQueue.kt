@@ -110,4 +110,12 @@ class MessageQueue(private val notifyAdded: (List<String>) -> Unit = {}) {
             if (it.trimEnd('\r') != str) throw Exception()
         }
     }
+
+    fun waitForAck(str: String): List<String> {
+        val ackMsg = waitForResponse {
+            if (!it.trimEnd('\r').startsWith("ack$str")) throw Exception()
+        }.first
+        val splitMsg = ackMsg.split(";")
+        return splitMsg.subList(1, splitMsg.size)
+    }
 }

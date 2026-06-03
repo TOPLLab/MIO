@@ -113,18 +113,6 @@ open class MultiverseNode(val children: MutableList<MultiverseNode> = mutableLis
         values.clear()
     }
 
-    open fun nextNode(overrides: Map<String,Map<Int, Int>>): MultiverseNode {
-        return children[0]
-    }
-
-    fun nextNode(overrides: Map<String, Map<Int, Int>>, n: Int): MultiverseNode {
-        var dest = this
-        for (i in 0 ..< n) {
-            dest = dest.nextNode(overrides)
-        }
-        return dest
-    }
-
     open fun nextNode(stackValue: WasmStackValue): MultiverseNode {
         return children[0]
     }
@@ -145,14 +133,6 @@ class PrimitiveNode(val primitive: String, val arg: List<Int>, children: Mutable
     override val edgeLength: Int
         get() = 25 + primitive.length * 8
 
-    override fun nextNode(overrides: Map<String,Map<Int, Int>>): MultiverseNode {
-        val returnValue = overrides[primitive]?.get(arg.first())
-        if (returnValue != null) {
-            return children[values.indexOf(returnValue)]
-        }
-        throw Exception("Unknown destination!")
-    }
-
     override fun nextNode(stackValue: WasmStackValue): MultiverseNode {
         return children[values.indexOf(stackValue.value.toInt())]
     }
@@ -169,7 +149,7 @@ class MultiverseDebugger(
 ) : Debugger(connection, start, onHitBreakpoint) {
     val graph = MultiverseGraph()
     private var len = 0
-    val overrides = mutableMapOf<String, MutableMap<Int, Int>>()
+    val overrides = mutableMapOf<String, MutableMap<List<Int>, Int>>()
 
     // TODO: Remove, just for testing
     init {
@@ -236,18 +216,26 @@ class MultiverseDebugger(
         super.run()
     }
 
-    override fun addPrimitiveOverride(primName: String, arg: Int, returnValue: Int) {
-        super.addPrimitiveOverride(primName, arg, returnValue)
-        if (!overrides.containsKey(primName))
-            overrides[primName] = mutableMapOf()
-        overrides[primName]!![arg] = returnValue
-        mockingUpdated()
+    override fun reset() {
+        super.reset()
+        graph.currentNode = graph.rootNode
+        graphUpdated()
     }
 
-    override fun removePrimitiveOverride(primName: String, arg: Int) {
-        super.removePrimitiveOverride(primName, arg)
-        overrides[primName]?.remove(arg)
+    override fun addPrimitiveOverride(primName: String, args: List<Int>, returnValue: Int): Boolean {
+        val result = super.addPrimitiveOverride(primName, args, returnValue)
+        if (!overrides.containsKey(primName))
+            overrides[primName] = mutableMapOf()
+        overrides[primName]!![args] = returnValue
         mockingUpdated()
+        return result
+    }
+
+    override fun removePrimitiveOverride(primName: String, args: List<Int>): Boolean {
+        val result = super.removePrimitiveOverride(primName, args)
+        overrides[primName]?.remove(args)
+        mockingUpdated()
+        return result
     }
 
     fun createNewPath(returnValue: Int, override: Boolean = true) {
@@ -257,7 +245,7 @@ class MultiverseDebugger(
             currentNode.addChild(MultiverseNode())
             graphUpdated()
             if (override) {
-                addPrimitiveOverride(currentNode.primitive, currentNode.arg.first(), returnValue)
+                addPrimitiveOverride(currentNode.primitive, currentNode.arg, returnValue)
             }
         }
     }
@@ -279,7 +267,7 @@ class MultiverseDebugger(
                 if (!overrides.containsKey(primitiveName)) {
                     overrides[primitiveName] = mutableMapOf()
                 }
-                overrides[primitiveName]?.set(snapshotOverrides.arg, snapshotOverrides.return_value)
+                overrides[primitiveName]?.set(snapshotOverrides.args, snapshotOverrides.return_value)
             }
             mockingUpdated()
         }

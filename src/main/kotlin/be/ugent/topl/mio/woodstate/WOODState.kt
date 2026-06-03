@@ -123,15 +123,15 @@ data class BRTable(
 
 data class PrimitiveOverride(
     val fidx: Int,
-    val arg: Int,
+    val args: List<Int>,
     val return_value: Int,
 ) {
     constructor(
         metadata: WasmInfo,
         primitiveName: String,
-        arg: Int,
+        args: List<Int>,
         returnValue: Int
-    ) : this(metadata.primitive_fidx_mapping.indexOf(primitiveName), arg, returnValue)
+    ) : this(metadata.primitive_fidx_mapping.indexOf(primitiveName), args, returnValue)
 
     fun getPrimitiveName(metadata: WasmInfo): String = metadata.primitive_fidx_mapping[fidx]
 }
@@ -617,7 +617,7 @@ class WOODState(woodResponse: WOODDumpResponse) {
         logger.trace("--------------")
         logger.trace("Found ${woodResponse.overrides.size} active overrides.")
         serializeList(stateMsgs, ExecutionStateType.overridesState, woodResponse.overrides) {
-            HexaEncoder.serializeUInt32BE(it.fidx) + HexaEncoder.serializeUInt32BE(it.arg) + HexaEncoder.serializeUInt32BE(it.return_value)
+            HexaEncoder.serializeUInt32BE(it.fidx) + it.args.joinToString { HexaEncoder.serializeUInt32BE(it) } + HexaEncoder.serializeUInt32BE(it.return_value)
         }
     }
 
