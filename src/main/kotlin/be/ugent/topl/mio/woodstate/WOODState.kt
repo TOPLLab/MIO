@@ -131,9 +131,9 @@ data class PrimitiveOverride(
         primitiveName: String,
         args: List<Int>,
         returnValue: Int
-    ) : this(metadata.primitive_fidx_mapping.indexOf(primitiveName), args, returnValue)
+    ) : this(metadata.primitives.find { it.name == primitiveName }!!.fidx, args, returnValue)
 
-    fun getPrimitiveName(metadata: WasmInfo): String = metadata.primitive_fidx_mapping[fidx]
+    fun getPrimitiveName(metadata: WasmInfo): String = metadata.primitives[fidx].name
 }
 
 data class WOODDumpResponse(

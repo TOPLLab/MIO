@@ -257,10 +257,10 @@ class MultiverseDebugger(
             overrides.clear()
             for (snapshotOverrides in snapshot.overrides) {
                 // Ignore overrides that don't appear in this program. Maybe they were for another program that we hot loaded.
-                if (snapshotOverrides.fidx >= wasmBinary.metadata.primitive_fidx_mapping.size)
+                if (snapshotOverrides.fidx >= wasmBinary.metadata.primitives.size)
                     continue
 
-                val primitiveName = wasmBinary.metadata.primitive_fidx_mapping[snapshotOverrides.fidx]
+                val primitiveName = wasmBinary.metadata.primitives[snapshotOverrides.fidx].name
                 if (!overrides.containsKey(primitiveName)) {
                     overrides[primitiveName] = mutableMapOf()
                 }
@@ -291,11 +291,11 @@ class MultiverseDebugger(
         val checkpoint = newCheckpoints.last()
         if (graph.currentNode.children.isEmpty() && change > 0 && checkpoint?.fidx_called != null) {
             val newNode = if (isAfterChoicePoint(checkpoint.snapshot.pc!!)) {
-                PrimitiveNode(wasmBinary.metadata.primitive_fidx_mapping[checkpoint.fidx_called], checkpoint.args!!).apply {
+                PrimitiveNode(wasmBinary.metadata.primitives[checkpoint.fidx_called].name, checkpoint.args!!).apply {
                     values.add(checkpoint.returns!!.first())
                 }
             } else {
-                DeterministicPrimitiveNode(wasmBinary.metadata.primitive_fidx_mapping[checkpoint.fidx_called], checkpoint.args!!)
+                DeterministicPrimitiveNode(wasmBinary.metadata.primitives[checkpoint.fidx_called].name, checkpoint.args!!)
             }
 
             if (graph.currentNode.parent != null) {

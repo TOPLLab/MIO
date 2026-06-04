@@ -1,6 +1,7 @@
 package be.ugent.topl.mio.ui
 
 import WasmBinary
+import WasmPrimitive
 import be.ugent.topl.mio.DebuggerConfig
 import be.ugent.topl.mio.connections.Connection
 import be.ugent.topl.mio.debugger.ConstraintParser
@@ -638,8 +639,10 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
             val currentNode = multiverseDebugger.graph.currentNode
             val mainPanel = JPanel()
             val primitiveSelector = JComboBox<String>()
-            multiverseDebugger.wasmBinary.metadata.primitive_fidx_mapping.forEach {
-                primitiveSelector.addItem(it)
+            multiverseDebugger.wasmBinary.metadata.primitives.forEach {
+                if (it.return_types.isNotEmpty()) {
+                    primitiveSelector.addItem(it.name)
+                }
             }
             mainPanel.add(primitiveSelector)
             mainPanel.add(JLabel("("))
@@ -649,11 +652,9 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
             val argTextFields = mutableListOf<JTextField>()
             fun updateArgFields() {
                 argTextFields.clear()
-                // TODO: Determine the count based on binary info from WARDuino
-                val argCount = if (
-                    primitiveSelector.selectedItem.toString() == "display_width" ||
-                    primitiveSelector.selectedItem.toString() == "display_height" ||
-                    primitiveSelector.selectedItem.toString() == "random_int") 0 else 1
+                val argCount = multiverseDebugger.wasmBinary.metadata.primitives.find {
+                    it.name ==  primitiveSelector.selectedItem as String
+                }!!.arg_types.size
                 repeat(argCount) {
                     argTextFields.add(JTextField())
                 }
