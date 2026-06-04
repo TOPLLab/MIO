@@ -137,7 +137,7 @@ data class CheckpointNode(val t: Int, val binaryInfo: WasmInfo, val checkpoint: 
     init {
         var str = "Checkpoint t = $t"
         if (checkpoint.fidx_called != null) {
-            str += ", fidx = ${checkpoint.fidx_called}, ${binaryInfo.primitive_fidx_mapping[checkpoint.fidx_called]}(${checkpoint.args?.joinToString(",")})"
+            str += ", fidx = ${checkpoint.fidx_called}, ${binaryInfo.primitives[checkpoint.fidx_called].name}(${checkpoint.args?.joinToString(",")})"
         }
         userObject = str
     }

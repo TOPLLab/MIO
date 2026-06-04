@@ -8,7 +8,15 @@ data class WasmInfo(
     val after_choicepoints: Set<Int>,
     val primitive_calls: Set<Int>,
     val after_primitive_calls: Set<Int>,
-    val primitive_fidx_mapping: List<String>
+    val primitives: List<WasmPrimitive>
+)
+
+data class WasmPrimitive(
+    val fidx: Int,
+    val name: String,
+    val module: String,
+    val arg_types: List<String>,
+    val return_types: List<String>
 )
 data class WasmBinary(val file: File, val metadata: WasmInfo)
 
