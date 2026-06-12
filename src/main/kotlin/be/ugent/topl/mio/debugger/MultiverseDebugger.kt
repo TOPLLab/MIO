@@ -155,43 +155,6 @@ class MultiverseDebugger(
     private var len = 0
     val overrides = mutableMapOf<String, MutableMap<List<Int>, Int>>()
 
-    // TODO: Remove, just for testing
-    init {
-        //pause()
-    }
-
-    override fun stepInto() {
-        super.stepInto()
-        println("Step!")
-
-        // If a checkpoint is received an a new node is created then we will be at that node and then it won't have children
-        /*if (graph.currentNode.children.isNotEmpty()) {
-            // TODO: What if no override is set, how do we know where to go?
-            val primitiveResult = getCurrentState().stack!!.last()
-            graph.currentNode.values.indexOf(primitiveResult.value.toInt())
-            graph.currentNode = graph.currentNode.nextNode(primitiveResult)
-            //graph.currentNode = graph.currentNode.nextNode(overrides)
-            graphUpdated()
-        }*/
-        printCheckpoints(wasmBinary.metadata)
-    }
-
-    override fun stepOver() {
-        super.stepOver()
-        /*val startSize = checkpoints.size
-        val startNode = graph.currentNode
-        val pathExists = startNode.children.isNotEmpty()
-        super.stepOver()
-        // TODO: What if the path only exists partially?
-        // TODO: VM doesn't take snapshots on step over currently.
-        if (pathExists) {
-            val instructionsExecuted = checkpoints.size - startSize
-            println(instructionsExecuted)
-            val dest = startNode.nextNode(overrides, instructionsExecuted)
-            graph.currentNode = dest
-        }*/
-    }
-
     override fun stepBack(n: Int, stepDone: () -> Unit) {
         var destinationNode = graph.currentNode
         for (i in 0 ..< n) {
@@ -204,20 +167,8 @@ class MultiverseDebugger(
     }
 
     override fun continueFor(n: Int) {
-        /*var destinationNode = graph.currentNode
-        for (i in 0 ..< n) {
-            destinationNode = destinationNode.nextNode(overrides)
-        }*/
         super.continueFor(n)
-
-        //graph.currentNode = destinationNode
         graphUpdated()
-    }
-
-    override fun run() {
-        // TODO: Improve so you can walk along the existing graph instead of destroying it
-        //graph.currentNode.removeAllChildren()
-        super.run()
     }
 
     override fun reset() {
@@ -286,38 +237,17 @@ class MultiverseDebugger(
         println("$change instructions added, total = ${checkpoints.size}")
 
         for (i in len - change ..< len) {
-            // A multiverse graph always starts as just a single node, we already have a first node so no need to add it.
-            if (i != 0) {
-                addNode(newCheckpoints[i])
-            }
-            else {
-                graph.replaceCurrentNode(newNodeFromCheckpoint(newCheckpoints[i]))
-            }
-        }
-
-        val checkpoint = newCheckpoints.last()
-        if (graph.currentNode.children.isEmpty() && change > 0 && checkpoint?.fidx_called != null) {
-            val newNode = if (isAfterChoicePoint(checkpoint.snapshot.pc!!)) {
-                PrimitiveNode(wasmBinary.metadata.primitives[checkpoint.fidx_called].name, checkpoint.args!!).apply {
-                    values.add(checkpoint.returns!!.first())
-                }
-            } else {
-                DeterministicPrimitiveNode(wasmBinary.metadata.primitives[checkpoint.fidx_called].name, checkpoint.args!!)
-            }
-
-            if (graph.currentNode.parent != null) {
-                graph.replaceNode(graph.currentNode.parent!!, newNode)
-            } else {
-                // Current node has no parent -> it is the root node!
-                graph.currentNode = newNode
-                graph.rootNode = newNode
-            }
+            traverse(newCheckpoints[i], i)
         }
 
         graphUpdated()
     }
 
-    private fun addNode(checkpoint: Checkpoint?) {
+    /**
+     * Follow the graph if the nodes/edges are already present, otherwise add them. Also add metadata to the existing
+     * or new graph such a which functions were executed.
+     */
+    private fun traverse(checkpoint: Checkpoint?, depth: Int) {
         // Don't add new nodes if we are walking on an existing graph section.
         if (graph.currentNode.children.isNotEmpty()) {
             if (checkpoint != null && isAfterChoicePoint(checkpoint.snapshot.pc!!)) {
@@ -342,6 +272,12 @@ class MultiverseDebugger(
                 }
             }
             else if (graph.currentNode.children.size == 1) {
+                if (checkpoint?.fidx_called != null) {
+                    val primName = wasmBinary.metadata.primitives.find { it.fidx == checkpoint.fidx_called }!!.name
+                    val newNode = DeterministicPrimitiveNode( primName, checkpoint.args!!)
+                    graph.replaceNode(graph.currentNode, newNode)
+                    graph.currentNode = newNode
+                }
                 graph.currentNode = graph.currentNode.children.first()
             }
             else {
@@ -350,24 +286,33 @@ class MultiverseDebugger(
             return
         }
 
-        val newNode = newNodeFromCheckpoint(checkpoint)
-        graph.currentNode.addChild(newNode)
-        graph.currentNode = newNode
-    }
+        // We are not in an existing graph section -> add a new node!
+        // A multiverse graph always starts as just a single node, we already have a first node so we can skip that one.
+        if (depth > 0) {
+            // Advance one node forward
+            val newNode = MultiverseNode()
+            graph.currentNode.addChild(newNode)
+            graph.currentNode = newNode
+        }
 
-    private fun newNodeFromCheckpoint(checkpoint: Checkpoint?): MultiverseNode {
-        //  TODO: We need to know if we are after a choicepoint
-        var newNode = MultiverseNode()
-        // TODO: Enable this again once the VM gives us information about the argument being used
-        /*if (checkpoint != null && isChoicePoint(checkpoint.pc!!)) {
-            newNode = PrimitiveNode("non-deterministic-primitive", 0)
-            newNode.values.add(0)
-        }*/
-        return newNode
-    }
+        // Add additional new information to the new node if possible
+        if (checkpoint?.fidx_called != null) {
+            val newNode = if (isAfterChoicePoint(checkpoint.snapshot.pc!!)) {
+                PrimitiveNode(wasmBinary.metadata.primitives[checkpoint.fidx_called].name, checkpoint.args!!).apply {
+                    values.add(checkpoint.returns!!.first())
+                }
+            } else {
+                DeterministicPrimitiveNode(wasmBinary.metadata.primitives[checkpoint.fidx_called].name, checkpoint.args!!)
+            }
 
-    private fun isChoicePoint(pc: Int): Boolean {
-        return pc in wasmBinary.metadata.choicepoints
+            if (graph.currentNode.parent != null) {
+                graph.replaceNode(graph.currentNode.parent!!, newNode)
+            } else {
+                // Current node has no parent -> it is the root node!
+                graph.currentNode = newNode
+                graph.rootNode = newNode
+            }
+        }
     }
 
     private fun isAfterChoicePoint(pc: Int): Boolean {
