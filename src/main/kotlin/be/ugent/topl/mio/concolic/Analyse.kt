@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import java.util.*
 
-data class SymbolicValueMapping(val primitive: String, val arg: Int, val value: Int, val time_step: Int, val paths: List<SymbolicValueMapping>) {
+data class SymbolicValueMapping(val primitive: String, val args: List<Int>, val value: Int, val time_step: Int, val paths: List<SymbolicValueMapping>) {
     override fun toString(): String {
         return "$value"
         //return "$primitive($arg) = $value"
@@ -65,7 +65,7 @@ fun process(r: ConcolicAnalysisResult): MultiverseNode {
 fun processPaths(paths: List<SymbolicValueMapping>, currentTimeStep: Int = 0): MultiverseNode {
     println("" + currentTimeStep + " " + paths[0].time_step)
     var currentNode: MultiverseNode
-    val primitiveNode = PrimitiveNode(paths[0].primitive, listOf(paths[0].arg))
+    val primitiveNode = PrimitiveNode(paths[0].primitive, paths[0].args)
     val startNode = if (currentTimeStep != paths[0].time_step) {
         val startNode = MultiverseNode() // TODO: Maybe add a second node type being the deterministic instruction node
         currentNode = startNode
