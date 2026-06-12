@@ -48,6 +48,7 @@ fun analyse(wdcliPath: String, wasmFile: String, jsonSnapshot: String?, maxInstr
     val process = ProcessBuilder(command).redirectErrorStream(true).start()
     val lineScanner = Scanner(process.inputStream)
     val lines = mutableListOf<String>()
+    var trap = false
     while (lineScanner.hasNextLine()) {
         val currentLine = lineScanner.nextLine()
         lines.add(currentLine)
@@ -58,10 +59,14 @@ fun analyse(wdcliPath: String, wasmFile: String, jsonSnapshot: String?, maxInstr
             process.destroy()
             val result = objectMapper.readValue(currentLine, ConcolicAnalysisResult::class.java)
             //process(result)
+            if (trap) {
+                process.destroy()
+                throw Exception("Execution resulted in a trap!" + lines.joinToString("\n"))
+            }
             return ConcolicAnalysisResult(result.paths.sortedBy { it.value })
         }
         if (currentLine.startsWith("Trap:")) {
-            throw Exception("Execution resulted in a trap!")
+            trap = true
         }
     }
     process.destroy()
