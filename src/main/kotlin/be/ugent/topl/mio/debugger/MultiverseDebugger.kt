@@ -10,6 +10,10 @@ import be.ugent.topl.mio.woodstate.WOODDumpResponse
 import be.ugent.topl.mio.woodstate.WasmStackValue
 
 class MultiverseGraph(var rootNode: MultiverseNode = MultiverseNode(), var currentNode: MultiverseNode = rootNode) {
+    /**
+     * Does a full replacement without keeping children or values. It just removes the old now and any descendants and
+     * attaches the new node which can have existing children.
+     */
     fun replaceCurrentNode(newNode: MultiverseNode) {
         if (currentNode == rootNode) {
             rootNode = newNode
@@ -22,6 +26,9 @@ class MultiverseGraph(var rootNode: MultiverseNode = MultiverseNode(), var curre
         currentNode = newNode
     }
 
+    /**
+     * Replaces [node] with [newNode] and adds all the children and values of [node] to [newNode].
+     */
     fun replaceNode(node: MultiverseNode, newNode: MultiverseNode) {
         if (node == rootNode) {
             rootNode = newNode
@@ -332,6 +339,12 @@ class MultiverseDebugger(
                     else {
                         graph.currentNode = graph.currentNode.nextNode(stackValue)
                     }
+                }
+                else {
+                    // Current node was actually non-deterministic, but it is currently just a regular node so we replace it with a non-deterministic one.
+                    val node = PrimitiveNode(wasmBinary.metadata.primitive_fidx_mapping[checkpoint.fidx_called!!], checkpoint.args!!.first(), values=mutableListOf(checkpoint.returns!!.first()))
+                    graph.replaceNode(graph.currentNode, node)
+                    graph.currentNode = node.nextNode(stackValue)
                 }
             }
             else if (graph.currentNode.children.size == 1) {
