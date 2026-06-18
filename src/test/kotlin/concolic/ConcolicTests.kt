@@ -3,6 +3,7 @@ package concolic
 import DebuggerTestBase
 import be.ugent.topl.mio.concolic.ConcolicAnalysisResult
 import be.ugent.topl.mio.concolic.analyse
+import be.ugent.topl.mio.debugger.Debugger
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -30,13 +31,21 @@ class ConcolicTests : DebuggerTestBase() {
                 ")\n(export \"main\" (func \$main)))"
     }
 
-    fun getPathsFromWat(watString: String): ConcolicAnalysisResult {
+    /**
+     * Compile textual WebAssembly, the output will be in "temp.wasm".
+     */
+    fun compileWat(watString: String): String {
         File("temp.wat").writeText(watString)
         val exitCode = ProcessBuilder("wat2wasm", "temp.wat").inheritIO().start().waitFor()
         if (exitCode != 0) {
             throw IllegalStateException("Could not compile wat")
         }
-        return analyse(config.symbolicWdcliPath, "temp.wasm", null, maxInstructions = 200)
+        return "temp.wasm"
+    }
+
+    fun getPathsFromWat(watString: String, json: String? = null): ConcolicAnalysisResult {
+        compileWat(watString)
+        return analyse(config.symbolicWdcliPath, "temp.wasm", json, maxInstructions = 200)
     }
 
     @Test
@@ -63,6 +72,34 @@ class ConcolicTests : DebuggerTestBase() {
             end
         """.trimIndent())
         val result = getPathsFromWat(watString)
+        assertEquals(2,result.paths.size)
+    }
+
+    /**
+     * This test will load the program into the debugger, take a snapshot and use that to perform the analysis. If
+     * something is broken in the snapshot based mode then this test might trigger a failure.
+     *
+     * It works as a regression test for WARDuino 5de4c2f8ee4df7f2def922a07acb51841171a40c on feat/symbolic-refactor.
+     * Without this patch the analysis will fail.
+     */
+    @Test
+    fun `Test wat if 2 paths from snapshot`() {
+        val watString = makeWat($$"""
+            i32.const 0
+            call $chip_analog_read
+            i32.const 10
+            i32.lt_s
+            if
+                nop
+            end
+        """.trimIndent())
+        var jsonSnapshot = ""
+        runWithDebugger(compileWat(watString), true) { debugger ->
+            debugger.setSnapshotPolicy(Debugger.SnapshotPolicy.Checkpointing())
+            debugger.reset()
+            jsonSnapshot = debugger.snapshot()
+        }
+        val result = getPathsFromWat(watString, jsonSnapshot)
         assertEquals(2,result.paths.size)
     }
 

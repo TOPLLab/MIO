@@ -13,12 +13,10 @@ abstract class DebuggerTestBase {
     }
 
     protected fun <T> runWithDebugger(file:String, emulator: Boolean = false, action: (Debugger) -> T): T {
-        val connection = if (emulator) ProcessConnection(wdcliPath, getFile(file).path, "--no-socket") else SerialConnection(config.port ?: throw RuntimeException("Port was not configured!"))
+        val connection = if (emulator) ProcessConnection(wdcliPath, getFile(file).path, "--no-socket", "--paused") else SerialConnection(config.port ?: throw RuntimeException("Port was not configured!"))
         val debugger = Debugger(connection)
         if (!emulator) {
             debugger.updateModule(getFile(file).absolutePath)
-        } else {
-            debugger.pause()
         }
         val x = action(debugger)
         debugger.close()
