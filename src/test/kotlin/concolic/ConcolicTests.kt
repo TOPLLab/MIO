@@ -7,10 +7,12 @@ import be.ugent.topl.mio.debugger.Debugger
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtensionContext
 import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.CsvSource
-import org.junit.jupiter.params.provider.ValueSource
+import org.junit.jupiter.params.provider.*
 import java.io.File
+import java.util.stream.Stream
+import kotlin.random.Random
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
@@ -26,6 +28,7 @@ class ConcolicTests : DebuggerTestBase() {
     private fun makeWat(content: String): String {
         return "(module\n" +
                 "(import \"env\" \"chip_analog_read\" (func \$chip_analog_read (param i32) (result i32)))\n" +
+                "(memory \$memory 1)" +
                 "(func \$main (local i32)\n" +
                 content +
                 ")\n(export \"main\" (func \$main)))"
@@ -101,6 +104,33 @@ class ConcolicTests : DebuggerTestBase() {
         }
         val result = getPathsFromWat(watString, jsonSnapshot)
         assertEquals(2,result.paths.size)
+    }
+
+    private class MemoryAddressProvider : ArgumentsProvider {
+        override fun provideArguments(context: ExtensionContext?): Stream<out Arguments?> =
+            (1..10).map { Arguments.of(Random.nextInt(65536 - 4)) }.stream()
+    }
+
+    @ParameterizedTest(name = "Test wat if 2 paths with memory [address={0}]")
+    @ArgumentsSource(MemoryAddressProvider::class)
+    fun `Test wat if 2 paths memory`(address: Int) {
+        //val address = Random.nextInt(65536 - 4)
+        val watString = makeWat($$"""
+            i32.const $$address ;; Memory address
+            i32.const 0 ;; Arg for analog_read
+            call $chip_analog_read
+            i32.store
+            
+            i32.const $$address
+            i32.load
+            i32.const 10
+            i32.lt_s
+            if
+                nop
+            end
+        """.trimIndent())
+        val result = getPathsFromWat(watString)
+        assertEquals(2, result.paths.size)
     }
 
     @Test
