@@ -15,6 +15,7 @@ import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.extras.FlatSVGIcon
 import com.formdev.flatlaf.util.SystemInfo
+import com.formdev.flatlaf.util.UIScale
 import getBinaryInfo
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants
@@ -283,7 +284,7 @@ class InteractiveDebugger(
             else Theme.load(javaClass.getResourceAsStream("/dark.xml"))
         theme.apply(textArea)
         // Increase font size:
-        //textArea.font = textArea.font.deriveFont(textArea.font.size + 1.0f + 10)
+        textArea.font = textArea.font.deriveFont(UIScale.getUserScaleFactor() * textArea.font.size)
         textArea.isEditable = false
         textArea.text = sourceMapping?.getSourceFile(0) ?: "Source mapping unavailable"
         textArea.syntaxEditingStyle = sourceMapping?.getStyle() ?: SyntaxConstants.SYNTAX_STYLE_ASSEMBLER_X86
@@ -296,6 +297,7 @@ class InteractiveDebugger(
                 }
             }
         })
+        scrollPane.gutter.lineNumberFont = scrollPane.gutter.lineNumberFont.deriveFont(UIScale.getUserScaleFactor() * scrollPane.gutter.lineNumberFont.size)
         scrollPane.isIconRowHeaderEnabled = true
         scrollPane.gutter.iconRowHeaderInheritsGutterBackground = true
         if (sourceMapping != null) {

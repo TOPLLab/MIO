@@ -8,6 +8,7 @@ import com.formdev.flatlaf.extras.FlatSVGIcon
 import com.formdev.flatlaf.themes.FlatMacDarkLaf
 import com.formdev.flatlaf.themes.FlatMacLightLaf
 import com.formdev.flatlaf.util.SystemInfo
+import com.formdev.flatlaf.util.UIScale
 import java.awt.Desktop
 import java.awt.Dimension
 import javax.swing.*
@@ -16,8 +17,8 @@ import javax.swing.*
 open class AboutScreen(protected val config: DebuggerConfig) : JFrame() {
     init {
         val fullWindowContents = configureTheme()
-        setSize(450, 350 + if (!fullWindowContents) 20 else 0)
-        minimumSize = Dimension(450, 350)
+        setSize(UIScale.scale(450), UIScale.scale(350) + if (!fullWindowContents) UIScale.scale(20) else 0)
+        minimumSize = Dimension(UIScale.scale(450), UIScale.scale(350))
         val mainPanel = JPanel()
         mainPanel.setLayout(BoxLayout(mainPanel, BoxLayout.Y_AXIS))
         mainPanel.border = BorderFactory.createEmptyBorder(20, 20, 20, 20)
