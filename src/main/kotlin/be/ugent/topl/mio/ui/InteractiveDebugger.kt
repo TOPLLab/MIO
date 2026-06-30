@@ -647,15 +647,18 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
             mainPanel.add(returnValueTextField)
 
             if (currentNode is PrimitiveNode) {
+                primitiveSelector.isEnabled = false
+                primitiveSelector.selectedItem = currentNode.primitive
+                updateArgFields()
                 for (i in currentNode.arg.indices) {
                     argTextFields[i].isEnabled = false
                     argTextFields[i].text = currentNode.arg[i].toString()
                 }
-                primitiveSelector.isEnabled = false
-                primitiveSelector.selectedItem = currentNode.primitive
             }
-            // Update the number of argument fields based on the currently selected primitive
-            updateArgFields()
+            else {
+                // Update the number of argument fields based on the currently selected primitive
+                updateArgFields()
+            }
 
             val relations = if (File(DebuggerConfig.configDir + "/program.constraints").exists()) ConstraintParser.parseFile("test.constraints") else listOf()
 
