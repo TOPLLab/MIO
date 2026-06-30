@@ -1,14 +1,9 @@
 package be.ugent.topl.mio.ui
 
 import WasmBinary
-import WasmPrimitive
 import be.ugent.topl.mio.DebuggerConfig
 import be.ugent.topl.mio.connections.Connection
-import be.ugent.topl.mio.debugger.ConstraintParser
-import be.ugent.topl.mio.debugger.Debugger
-import be.ugent.topl.mio.debugger.ExecutionState
-import be.ugent.topl.mio.debugger.MultiverseDebugger
-import be.ugent.topl.mio.debugger.PrimitiveNode
+import be.ugent.topl.mio.debugger.*
 import be.ugent.topl.mio.sourcemap.SourceMap
 import be.ugent.topl.mio.woodstate.Checkpoint
 import be.ugent.topl.mio.woodstate.WOODDumpResponse
@@ -516,13 +511,11 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
     }
     init {
         layout = BorderLayout()
-        //add(JScrollPane(graphPanel))
-        val scrollpane = JScrollPane(graphPanel)
-        graphPanel.associatedScrollPane = scrollpane
-        /*add(JSplitPane(JSplitPane.VERTICAL_SPLIT, scrollpane, mockPanel).apply {
-            resizeWeight = 0.7
-        })*/
-        add(scrollpane)
+        val treeFrame = JPanel(BorderLayout()).apply {
+            border = UIManager.getDefaults().getBorder("ScrollPane.border")
+            add(graphPanel)
+        }
+        add(treeFrame)
         //add(OverridesPanel(), BorderLayout.EAST)
         add(JPanel(FlowLayout(FlowLayout.RIGHT)).apply {
             if (config.concolic) {
