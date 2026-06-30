@@ -39,6 +39,8 @@ fun main(args: Array<String>) {
                 System.setProperty("apple.laf.useScreenMenuBar", "true")
                 System.setProperty("apple.awt.application.name", "rCMD")
                 System.setProperty("apple.awt.application.appearance", if (config.lightMode) "NSAppearanceNameAqua" else "NSAppearanceNameDarkAqua")
+
+                System.setProperty("flatlaf.uiScale", config.uiScale)
             }
             else {
                 System.setProperty("sun.java2d.uiScale", config.uiScale)
