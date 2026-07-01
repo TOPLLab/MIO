@@ -424,6 +424,7 @@ class InteractiveDebugger(
                     scrollPane.verticalScrollBar.value = textArea.yForLine((lineNumber - 11).coerceAtLeast(0))
                 }
                 catch (_: Exception) {}
+                catch (_: java.lang.Error) {}
             }
         } catch(iae : RuntimeException) {
             /*
