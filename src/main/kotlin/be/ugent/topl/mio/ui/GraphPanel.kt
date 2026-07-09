@@ -27,7 +27,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         addMouseWheelListener(this)
     }
     private val textColour = UIManager.getDefaults().getColor("RadioButton.foreground")
-    private val borderColour = UIManager.getDefaults().getColor("CheckBox.icon.borderColor")
+    private val borderColour = if (!FlatLaf.isLafDark()) Color(195, 195, 195) else Color(70, 76, 80)
     private val primaryColour = UIManager.getDefaults().getColor("Panel.foreground")
     private val backgroundColour = UIManager.getDefaults().getColor("CheckBox.icon.background")
     private val secondaryColour = UIManager.getDefaults().getColor("Button.default.background") //javax.swing.UIManager.getDefaults().getColor("Button.default.focusColor")
