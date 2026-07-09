@@ -5,6 +5,7 @@ import be.ugent.topl.mio.debugger.MultiverseGraph
 import be.ugent.topl.mio.debugger.MultiverseNode
 import be.ugent.topl.mio.debugger.PrimitiveNode
 import com.formdev.flatlaf.FlatLaf
+import com.formdev.flatlaf.util.UIScale
 import java.awt.*
 import java.awt.event.*
 import java.awt.geom.Path2D
@@ -62,6 +63,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
 
         g2.scale(scaleFactor, scaleFactor)
         g2.translate(-xOffset, -yOffset)
+        g2.font = g2.font.deriveFont(g2.font.size / UIScale.getUserScaleFactor())
 
         renderedWidth = 0
         drawPaths(g, graph.rootNode)
@@ -74,8 +76,9 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
 
     fun drawMiniMap(g: Graphics2D) {
         // Zoom str
-        if (scaleFactor != 1.0) {
-            val zoomStr = "${(scaleFactor * 100).roundToInt()}%"
+        val scalePercentage = scaleFactor / UIScale.getUserScaleFactor().toDouble()
+        if (scalePercentage != 1.0) {
+            val zoomStr = "${(scalePercentage * 100).roundToInt()}%"
             val zoomStrWidth = getFontMetrics(g.font).stringWidth(zoomStr)
             g.color = Color(100, 100, 100, 150)
             g.drawString(zoomStr, width - zoomStrWidth - 5, 10 + 15)
@@ -411,7 +414,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         cursor = if(hit) Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) else Cursor.getDefaultCursor()
     }
 
-    private var scaleFactor = 1.0
+    private var scaleFactor = UIScale.getUserScaleFactor().toDouble()
 
     override fun mouseWheelMoved(e: MouseWheelEvent) {
         val oldScaleFactor = scaleFactor
