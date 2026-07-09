@@ -121,7 +121,9 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         return max(((width/scaleFactor)*width/renderedWidth).toInt(), 5)
     }
 
-    fun saveImage(filename: String) {
+    fun saveImage(filename: String, scale: Double = 4.0) {
+        val renderedWidth = (renderedWidth * scale).toInt()
+        val renderedHeight = (renderedHeight * scale).toInt()
         println("Full graph size $renderedWidth x $renderedHeight")
         val imageSize = 30000
         var imageWidth = min(imageSize, renderedWidth)
@@ -137,6 +139,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         }
         g.color = backgroundColour
         g.fillRect(0, 0, renderedWidth, renderedHeight)
+        g.scale(scale, scale)
         println("Drawing multiverse tree...")
         drawPaths(g, graph.rootNode)
         println("Finished drawing, writing to file...")
