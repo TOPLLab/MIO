@@ -358,7 +358,21 @@ class MultiverseDebugger(
             stopPc
         )
         if (result.paths.isEmpty()) {
-            return false
+            // Graph is fine but we added 0 instructions.
+            if (maxInstructions == 0) {
+                return true
+            }
+
+            val rootNode = MultiverseNode()
+            var currentNode = rootNode
+            repeat(maxInstructions) {
+                val newNode = MultiverseNode()
+                currentNode.addChild(newNode)
+                currentNode = newNode
+            }
+            graph.replaceCurrentNode(rootNode)
+            graphUpdated()
+            return true
         }
 
         val concolicGraphRoot = processPaths(result.paths)
