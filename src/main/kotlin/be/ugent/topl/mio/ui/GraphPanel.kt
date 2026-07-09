@@ -5,65 +5,146 @@ import be.ugent.topl.mio.debugger.MultiverseGraph
 import be.ugent.topl.mio.debugger.MultiverseNode
 import be.ugent.topl.mio.debugger.PrimitiveNode
 import com.formdev.flatlaf.FlatLaf
-import java.awt.BasicStroke
-import java.awt.Color
-import java.awt.Cursor
-import java.awt.Dimension
-import java.awt.Graphics
-import java.awt.Graphics2D
-import java.awt.Point
-import java.awt.RenderingHints
-import java.awt.event.MouseEvent
-import java.awt.event.MouseListener
-import java.awt.event.MouseMotionListener
+import com.formdev.flatlaf.util.UIScale
+import java.awt.*
+import java.awt.event.*
 import java.awt.geom.Path2D
-import javax.swing.JPanel
-import javax.swing.JScrollPane
-import javax.swing.UIManager
+import java.awt.image.BufferedImage
+import java.io.File
+import javax.imageio.ImageIO
+import javax.swing.*
+import javax.swing.filechooser.FileNameExtensionFilter
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.roundToInt
 
 class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
-    MouseListener, MouseMotionListener {
+    MouseListener, MouseMotionListener, MouseWheelListener {
     private var selectionListeners = mutableListOf<() -> Unit>()
     init {
         addMouseListener(this)
         addMouseMotionListener(this)
+        addMouseWheelListener(this)
     }
     private val textColour = UIManager.getDefaults().getColor("RadioButton.foreground")
-    //private val borderColour = Color(125, 125, 125)
     private val borderColour = UIManager.getDefaults().getColor("CheckBox.icon.borderColor")
     private val primaryColour = UIManager.getDefaults().getColor("Panel.foreground")
     private val backgroundColour = UIManager.getDefaults().getColor("CheckBox.icon.background")
     private val secondaryColour = UIManager.getDefaults().getColor("Button.default.background") //javax.swing.UIManager.getDefaults().getColor("Button.default.focusColor")
+    val barHeight = UIManager.getInt("ScrollBar.width")
     private val green = if (!FlatLaf.isLafDark()) Color(89, 158, 94) else Color(136, 207, 131)
     private val d = 20
     private val hSpace = 100
-    private var renderedHeight = 500
-    private var renderedWidth = 2000
+    private var renderedHeight = 100
+    private var renderedWidth = 100
     private val nodes = mutableListOf<Node>()
     var selectedNode: Node? = null
         private set
+    private var currentNode: Node? = null
+    private var lastCompleted: Node? = null
 
     // Panning
     private var startPos = Point(0, 0)
-    var associatedScrollPane: JScrollPane? = null
     var allowSelection = true
 
     data class Node(val x: Int, val y: Int, val w: Int, val h: Int, val value: MultiverseNode)
 
     override fun getPreferredSize(): Dimension {
-        return Dimension(renderedWidth, renderedHeight)
+        return Dimension((renderedWidth * scaleFactor).toInt(), (renderedHeight * scaleFactor).toInt())
     }
 
+    var xOffset = 0
+    var yOffset = 0
     override fun paintComponent(g: Graphics) {
         super.paintComponent(g)
         val g2 = g as Graphics2D
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
         g2.stroke = BasicStroke(2.0f)
 
-        drawPaths(g, width - 100, graph.rootNode)
+        g2.scale(scaleFactor, scaleFactor)
+        g2.translate(-xOffset, -yOffset)
+        g2.font = g2.font.deriveFont(g2.font.size / UIScale.getUserScaleFactor())
+
+        renderedWidth = 0
+        drawPaths(g, graph.rootNode)
+
+        g2.translate(xOffset, yOffset)
+        g2.scale(1/scaleFactor, 1/scaleFactor)
+
+        drawMiniMap(g2)
     }
 
-    private fun drawPaths(g: Graphics2D, width: Int, rootNode: MultiverseNode) {
+    fun drawMiniMap(g: Graphics2D) {
+        // Zoom str
+        val scalePercentage = scaleFactor / UIScale.getUserScaleFactor().toDouble()
+        if (scalePercentage != 1.0) {
+            val zoomStr = "${(scalePercentage * 100).roundToInt()}%"
+            val zoomStrWidth = getFontMetrics(g.font).stringWidth(zoomStr)
+            g.color = Color(100, 100, 100, 150)
+            g.drawString(zoomStr, width - zoomStrWidth - 5, 10 + 15)
+        }
+
+        g.color = UIManager.getColor("ScrollBar.track")
+        g.fillRect(0, 0, width,barHeight)
+        g.color = when (draggingScrollBar) {
+            MouseState.None -> UIManager.getColor("ScrollBar.thumb")
+            MouseState.Hover -> UIManager.getColor("ScrollBar.hoverThumbColor")
+            MouseState.Pressed -> UIManager.getColor("ScrollBar.pressedThumbColor")
+        }
+        g.fillRect(scrollBarPosition(), 0, scrollBarWidth(), barHeight)
+
+        selectedNode?.let { node ->
+            val xPos = (node.x.toDouble()/renderedWidth) * width
+            g.color = secondaryColour
+            g.fillRect(xPos.toInt(), 0, 3, barHeight)
+        }
+
+        currentNode?.let { node ->
+            val xPos = (node.x.toDouble()/renderedWidth) * width
+            g.color = Color.black
+            g.fillRect(xPos.toInt(), 0, 3, barHeight)
+        }
+
+        lastCompleted?.let { node ->
+            val xPos = (node.x.toDouble()/renderedWidth) * width
+            g.color = green
+            g.fillRect(xPos.toInt(), 0, 3, barHeight)
+        }
+    }
+
+    private fun scrollBarPosition(): Int {
+        return ((xOffset.toDouble()/renderedWidth) * width).toInt()
+    }
+
+    private fun scrollBarWidth(): Int {
+        return max(((width/scaleFactor)*width/renderedWidth).toInt(), 5)
+    }
+
+    fun saveImage(filename: String) {
+        println("Full graph size $renderedWidth x $renderedHeight")
+        val imageSize = 30000
+        var imageWidth = min(imageSize, renderedWidth)
+        var imageHeight = min(imageSize, renderedHeight)
+        if (renderedWidth * renderedHeight < Integer.MAX_VALUE) {
+            imageWidth = renderedWidth
+            imageHeight = renderedHeight
+        }
+        val image = BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_RGB)
+        val g = image.createGraphics().apply {
+            setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+            stroke = BasicStroke(2.0f)
+        }
+        g.color = backgroundColour
+        g.fillRect(0, 0, renderedWidth, renderedHeight)
+        println("Drawing multiverse tree...")
+        drawPaths(g, graph.rootNode)
+        println("Finished drawing, writing to file...")
+        g.dispose()
+        ImageIO.write(image, "png", File(filename))
+        println("Finished writing")
+    }
+
+    private fun drawPaths(g: Graphics2D, rootNode: MultiverseNode) {
         val xStart = g.fontMetrics.stringWidth(rootNode.displayName)/2
         val yPadding = 15
         renderedHeight = drawGraph(g, rootNode, x = xStart + 5, yPadding).second + yPadding
@@ -77,7 +158,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
             val result = drawGraph(g, child, x + l, y + currentHeight)
             currentHeight += result.second
             newPoints.add(result.first)
-            renderedWidth = Integer.max(renderedWidth, x + node.edgeLength + 500)
+            renderedWidth = Integer.max(renderedWidth, x + node.edgeLength + d + 5)
         }
 
         currentHeight = Integer.max(40, currentHeight)
@@ -105,11 +186,16 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
             g.color = primaryColour
         } else if (selectedNodes.contains(node)) {
             g.color = secondaryColour
-            if (completedPath.contains(node))
+            if (completedPath.contains(node)) {
                 g.color = green
+                if (node == completedPath.last()) {
+                    lastCompleted = Node(point.x, point.y, d, d, node)
+                }
+            }
             g.fillOval(point.x, point.y, d, d)
             g.color = primaryColour
         } else if (node === graph.currentNode) {
+            currentNode = Node(point.x, point.y, d, d, graph.currentNode)
             g.color = secondaryColour
             g.fillOval(point.x, point.y, d, d)
             g.color = primaryColour
@@ -182,18 +268,48 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         selectedPath = null
         selectedNodes.clear()
         selectedNode = null
+        lastCompleted = null
     }
 
     var selectedNodes = mutableSetOf<MultiverseNode>()
     var selectedPath: Pair<List<MultiverseNode>, List<MultiverseNode>>? = null
     var completedPath = mutableSetOf<MultiverseNode>()
     override fun mouseClicked(e: MouseEvent) {
+        if (e.button == MouseEvent.BUTTON3) {
+            JPopupMenu().apply {
+                val saveItem = JMenuItem("Save as image").apply {
+                    addActionListener {
+                        val chooser = JFileChooser()
+                        chooser.fileFilter = FileNameExtensionFilter("png", "png")
+                        if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+                            var filename = chooser.selectedFile.absolutePath
+                            if (!filename.endsWith(".png")) {
+                                filename += ".png"
+                            }
+                            saveImage(filename)
+                        }
+                    }
+                }
+                add(saveItem)
+
+            }.show(this, e.x, e.y)
+            return
+        }
+
+        if (e.y < barHeight) {
+            xOffset = ((e.x.toDouble()/width) * renderedWidth).roundToInt() - width/2
+            repaint()
+            return
+        }
+
         if (!allowSelection) {
             return
         }
 
+        val x = e.x/scaleFactor + xOffset
+        val y = e.y/scaleFactor + yOffset
         for (node in nodes) {
-            if (e.x > node.x && e.y > node.y && e.x < node.x + node.w && e.y < node.y + node.h) {
+            if (x > node.x && y > node.y && x < node.x + node.w && y < node.y + node.h) {
                 selectedNode = node
             }
         }
@@ -209,30 +325,113 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
     }
 
     override fun mousePressed(p0: MouseEvent) {
+        println("Mouse pressed")
         startPos = p0.point
     }
 
-    override fun mouseReleased(p0: MouseEvent) {}
+    enum class MouseState {
+        None,
+        Hover,
+        Pressed
+    }
+    private var draggingScrollBar = MouseState.None
+    override fun mouseReleased(e: MouseEvent) {
+        println("Mouse released")
+        if (draggingScrollBar == MouseState.Pressed) {
+            draggingScrollBar = MouseState.None
+            repaint()
+        }
+        if (e.button != MouseEvent.BUTTON1) {
+            mouseClicked(e)
+            e.consume()
+            return
+        }
+    }
 
-    override fun mouseEntered(p0: MouseEvent) {}
+    override fun mouseEntered(e: MouseEvent) {}
 
-    override fun mouseExited(p0: MouseEvent) {}
+    override fun mouseExited(e: MouseEvent) {
+        if (draggingScrollBar == MouseState.Hover) {
+            draggingScrollBar = MouseState.None
+            repaint()
+        }
+    }
 
     override fun mouseDragged(e: MouseEvent) {
+        println("Mouse dragged")
+        if (e.button != MouseEvent.BUTTON1) {
+            e.consume()
+            return
+        }
+
         val delta = Point(e.x - startPos.x, e.y - startPos.y)
-        associatedScrollPane?.horizontalScrollBar?.value -= delta.x
-        associatedScrollPane?.verticalScrollBar?.value -= delta.y
+        startPos = Point(e.x, e.y)
+
+        val pos = scrollBarPosition()
+        val w = scrollBarWidth()
+        val dragging = draggingScrollBar == MouseState.Pressed
+        if (e.y < barHeight || dragging) {
+            if ((e.x >= pos && e.x < pos + w) || dragging) {
+                xOffset += ((delta.x.toDouble()/width) * renderedWidth).roundToInt()
+                draggingScrollBar = MouseState.Pressed
+                repaint()
+            }
+            e.consume()
+            return
+        }
+
+        println("" + e.x + " " + e.y)
+        xOffset -= (delta.x / scaleFactor).toInt()
+        yOffset -= (delta.y / scaleFactor).toInt()
+        repaint()
     }
 
     override fun mouseMoved(e: MouseEvent) {
+        // Scrollbar hover
+        val pos = scrollBarPosition()
+        val w = scrollBarWidth()
+        if (e.y < barHeight && e.x >= pos && e.x < pos + w) {
+            draggingScrollBar = MouseState.Hover
+            repaint()
+            e.consume()
+            return
+        } else if (draggingScrollBar == MouseState.Hover) {
+            draggingScrollBar = MouseState.None
+            repaint()
+        }
+
+        // Use hand cursor for clicking on nodes.
         cursor = Cursor(Cursor.DEFAULT_CURSOR)
         var hit = false
         for (node in nodes) {
-            if (e.x > node.x && e.y > node.y && e.x < node.x + node.w && e.y < node.y + node.h) {
+            val x = e.x/scaleFactor + xOffset
+            val y = e.y/scaleFactor + yOffset
+            if (x > node.x && y > node.y && x < node.x + node.w && y < node.y + node.h) {
                 hit = true
                 break
             }
         }
         cursor = if(hit) Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) else Cursor.getDefaultCursor()
+    }
+
+    private var scaleFactor = UIScale.getUserScaleFactor().toDouble()
+
+    override fun mouseWheelMoved(e: MouseWheelEvent) {
+        val oldScaleFactor = scaleFactor
+        val adjustment = e.wheelRotation / 20.0
+        scaleFactor -= adjustment
+        scaleFactor = max(0.1, scaleFactor)
+
+        val oldH = height/oldScaleFactor
+        val newH = height/scaleFactor
+        val deltaH = (newH - oldH)
+        yOffset -= (deltaH/2).toInt()
+
+        val oldW = width/oldScaleFactor
+        val newW = width/scaleFactor
+        val deltaW = (newW - oldW)
+        xOffset -= (deltaW/2).toInt()
+
+        repaint()
     }
 }
