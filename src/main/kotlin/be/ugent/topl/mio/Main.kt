@@ -11,6 +11,9 @@ import be.ugent.topl.mio.sourcemap.compileWat
 import be.ugent.topl.mio.sourcemap.getDwarfSourcemap
 import be.ugent.topl.mio.ui.InteractiveDebugger
 import be.ugent.topl.mio.ui.StartScreen
+import com.formdev.flatlaf.FlatLaf
+import com.formdev.flatlaf.themes.FlatMacDarkLaf
+import com.formdev.flatlaf.themes.FlatMacLightLaf
 import com.formdev.flatlaf.util.SystemInfo
 import java.io.File
 import java.io.FileNotFoundException
@@ -37,6 +40,20 @@ fun setUIScale(scale: String) {
     }
     else {
         System.setProperty("sun.java2d.uiScale", scale)
+    }
+}
+
+fun configureFlatLafTheme(config: DebuggerConfig) {
+    if (config.lightMode) {
+        if (SystemInfo.isMacOS) FlatMacLightLaf.setup()
+        else FlatIntelliJLaf.setup()
+    }
+    else {
+        if (SystemInfo.isMacOS) {
+            FlatLaf.registerCustomDefaultsSource( "themes")
+            FlatMacDarkLaf.setup()
+        }
+        else FlatDarkLaf.setup()
     }
 }
 
@@ -74,7 +91,7 @@ fun main(args: Array<String>) {
                     else {
                         expectNArguments(args, 3)
                         val wasmFilename = args[2]
-                        ProcessConnection(config.wdcliPath, wasmFilename, "--no-socket")
+                        ProcessConnection(config.wdcliPath, wasmFilename, "--no-socket", "--paused")
                     }
                 }
                 else {
@@ -89,11 +106,7 @@ fun main(args: Array<String>) {
                 else
                     compileWat(watFilename)
             setUIScale(config.uiScale)
-            val lightMode = config.lightMode
-            if (lightMode)
-                FlatIntelliJLaf.setup()
-            else
-                FlatDarkLaf.setup()
+            configureFlatLafTheme(config)
             if (args.size == 2)
                 InteractiveDebugger(connection, sourceMapping, config = config)
             else
