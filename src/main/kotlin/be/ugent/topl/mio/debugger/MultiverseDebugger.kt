@@ -8,7 +8,7 @@ import be.ugent.topl.mio.woodstate.Checkpoint
 import be.ugent.topl.mio.woodstate.WOODDumpResponse
 import be.ugent.topl.mio.woodstate.WasmStackValue
 
-class MultiverseGraph(var rootNode: MultiverseNode = MultiverseNode("main", listOf()), var currentNode: MultiverseNode = rootNode, var currentPosition: Int = 0) {
+class MultiverseGraph(var rootNode: MultiverseNode = MultiverseNode("main", listOf()), var currentNode: MultiverseNode = rootNode, var instructionOffset: Int = 0) {
     /**
      * Does a full replacement without keeping children or values. It just removes the old now and any descendants and
      * attaches the new node which can have existing children.
@@ -143,6 +143,7 @@ class MultiverseDebugger(
     override fun reset() {
         super.reset()
         graph.currentNode = graph.rootNode
+        graph.instructionOffset = 0
         graphUpdated()
     }
 
@@ -229,10 +230,12 @@ class MultiverseDebugger(
             val newNode = MultiverseNode(wasmBinary.metadata.primitives[checkpoint!!.fidx_called!!].name, checkpoint.args!!)
             graph.currentNode.addChild(newNode, checkpoint.returns!!.first())
             graph.currentNode = newNode
+            graph.instructionOffset = 0
         }
         // If deterministic, increment our couter.
         else {
             graph.currentNode.incDetInstrCount()
+            graph.instructionOffset++
         }
     }
 

@@ -46,7 +46,8 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
     var allowSelection = true
     private var scaleFactor = UIScale.getUserScaleFactor().toDouble()
 
-    data class Node(val x: Int, val y: Int, val w: Int, val h: Int, val value: MultiverseNode)
+    data class NodeLocation(val value: MultiverseNode, val instructionOffset: Int)
+    data class Node(val x: Int, val y: Int, val w: Int, val h: Int, val value: NodeLocation)
 
     override fun getPreferredSize(): Dimension {
         return Dimension((renderedWidth * scaleFactor).toInt(), (renderedHeight * scaleFactor).toInt())
@@ -153,7 +154,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         renderedHeight = result.second + yPadding
 
         //val result = Triple(Point(0, 0), 0, 0)
-        drawNode(g, graph.rootNode, result.first)
+        drawNode(g, NodeLocation(graph.rootNode, 0),result.first)
     }
 
     private fun setLineColor(g: Graphics2D, sourceNode: MultiverseNode, destNode: MultiverseNode) {
@@ -178,7 +179,10 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
             newPoints.add(result.first)
             // Some paths may be longer than others, the longest one is the width of the full graph.
             renderedWidth = Integer.max(renderedWidth, result.third)
-            drawNode(g, child, result.first)
+            // Draw the first node of these paths
+            // Before: --O--O
+            // After: O--O--O
+            drawNode(g, NodeLocation(child, 0), result.first)
         }
         currentHeight = Integer.max(40, currentHeight)
 
@@ -195,14 +199,14 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         // Draw all trailing deterministic instructions.
         //println("Draw ${count} trailing nodes at $x")
         var currentX = x
-        repeat(count) {
+        repeat(count) { offset ->
             val prevPoint = Point(currentX, y + currentHeight / 2 - d / 2)
             currentX += node.edgeLength + d
             val point = Point(currentX, y + currentHeight / 2 - d / 2)
             g.color = borderColour
             //setLineColor(g, node, node.children[i])
             curvedLine(prevPoint.x + d, prevPoint.y + d/2, point.x, point.y + d/2, g, if (collapsed) "..." else null)
-            drawNode(g, node, point)
+            drawNode(g, NodeLocation(node, offset + 1), point)
         }
 
         val prevPoint = Point(x, y + currentHeight / 2 - d / 2)
@@ -247,13 +251,13 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
      * Draw the node itself, depending on if it is the current node, selected or completed, it will have different
      * colors.
      */
-    private fun drawNode(g: Graphics2D, node: MultiverseNode, point: Point) {
+    private fun drawNode(g: Graphics2D, node: NodeLocation, point: Point) {
         //println("Draw node at $point")
         g.color = borderColour
         g.fillOval(point.x, point.y, d, d)
         g.color = backgroundColour
         g.fillOval(point.x + 1, point.y + 1, d - 2, d - 2)
-        if (node === selectedValue) {
+        if (node == selectedValue) {
             g.color = secondaryColour
             g.fillOval(point.x, point.y, d, d) // Outer blue circle
             g.color = backgroundColour
@@ -261,7 +265,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
             g.color = secondaryColour
             g.fillOval(point.x + 4, point.y + 4, d - 8, d - 8) // Inner blue circle
             g.color = primaryColour
-        } else if (selectedNodes.contains(node)) {
+        } /*else if (selectedNodes.contains(node)) {
             g.color = secondaryColour
             if (completedPath.contains(node)) {
                 g.color = green
@@ -271,8 +275,8 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
             }
             g.fillOval(point.x, point.y, d, d)
             g.color = primaryColour
-        } else if (node === graph.currentNode) {
-            currentNode = Node(point.x, point.y, d, d, graph.currentNode)
+        } */else if (node.value === graph.currentNode && node.instructionOffset == graph.instructionOffset) {
+            currentNode = Node(point.x, point.y, d, d, GraphPanel.NodeLocation(graph.currentNode, graph.instructionOffset))
             g.color = secondaryColour
             g.fillOval(point.x, point.y, d, d)
             g.color = primaryColour
@@ -323,7 +327,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         return path
     }
 
-    val selectedValue: MultiverseNode?
+    val selectedValue: NodeLocation?
         get() = selectedNode?.value
 
     fun addSelectionListener(listener: () -> Unit) {
@@ -383,12 +387,12 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         if (selectedNode == null) return
 
         //selectedPath = graph.rootNode.findPath(graph.currentNode, selectedValue!!)
-        if (graph.currentNode.findPath(selectedValue!!).isEmpty()) {
-            selectedPath = Pair(listOf(), graph.rootNode.findPath(selectedValue!!))
+        if (graph.currentNode.findPath(selectedValue!!.value).isEmpty()) {
+            selectedPath = Pair(listOf(), graph.rootNode.findPath(selectedValue!!.value))
             reset = true
         }
         else {
-            selectedPath = Pair(listOf(), graph.currentNode.findPath(selectedValue!!))
+            selectedPath = Pair(listOf(), graph.currentNode.findPath(selectedValue!!.value))
             reset = false
         }
         selectedNodes = selectedPath!!.first.toMutableSet()

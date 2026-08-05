@@ -27,7 +27,6 @@ import java.io.File
 import java.io.IOException
 import javax.swing.*
 import javax.swing.JOptionPane.ERROR_MESSAGE
-import javax.swing.JOptionPane.YES_NO_OPTION
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 import javax.swing.table.DefaultTableModel
@@ -654,7 +653,7 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
             val returnValueTextField = JTextField()
             mainPanel.add(returnValueTextField)
 
-            if (multiverseDebugger.graph.currentPosition == 0) {
+            if (multiverseDebugger.graph.instructionOffset == 0) {
                 primitiveSelector.isEnabled = false
                 primitiveSelector.selectedItem = currentNode.primitive
                 updateArgFields()
@@ -717,7 +716,7 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
                 val cancelButton = JButton(allOptions[2])
                 options = arrayOf(mockButton, cancelButton)
 
-                rangeButton.isEnabled = multiverseDebugger.graph.currentPosition == 0
+                rangeButton.isEnabled = multiverseDebugger.graph.instructionOffset == 0
 
                 rangeButton.addActionListener {
                     this.value = rangeButton.text
