@@ -193,6 +193,15 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
             setLineColor(g, node, node.children[i])
             curvedLine(point.x, point.y + d/2, newPoints[i].x, newPoints[i].y + d/2, g, if (i < node.values.size) "${node.values[i]}" else null)
             g.color = borderColour
+
+            // Draw label for the previous point (Primitive name + arguments)
+            //Before:
+            //           -----O----O
+            //After:  read(5)
+            //           -----O----O
+            val textWidth = g.fontMetrics.stringWidth(node.displayName)/2
+            g.color = textColour
+            g.drawString(node.children[i].displayName, point.x + d/2 - textWidth, point.y - 5)
         }
 
         // We have drawn all the children and the connecting edges, now draw ourselves.
@@ -210,12 +219,6 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         }
 
         val prevPoint = Point(x, y + currentHeight / 2 - d / 2)
-
-        // Draw label for prevPoint (Primitive name + arguments)
-        val textWidth = g.fontMetrics.stringWidth(node.displayName)/2
-        g.color = textColour
-        g.drawString(node.displayName, prevPoint.x + d/2 - textWidth, prevPoint.y - 5)
-
         return Triple(prevPoint, currentHeight, currentX)
 
         /*val point = Point(x, y + currentHeight / 2 - d / 2)
