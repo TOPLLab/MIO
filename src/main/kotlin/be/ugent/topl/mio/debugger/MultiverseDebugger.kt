@@ -37,6 +37,9 @@ class MultiverseGraph(var rootNode: MultiverseNode = MultiverseNode("main", list
         currentNode = MultiverseNode("main", listOf())
         rootNode = currentNode
     }
+
+    fun isAtChoicePoint(): Boolean =
+        instructionOffset == currentNode.instrExecuted && currentNode.children.isNotEmpty()
 }
 
 open class MultiverseNode(
@@ -164,16 +167,16 @@ class MultiverseDebugger(
     }
 
     fun createNewPath(returnValue: Int, override: Boolean = true) {
-        // TODO: Reimplement
-        /*val currentNode = graph.currentNode
-        if (currentNode is PrimitiveNode) {
-            currentNode.values.add(returnValue)
-            currentNode.addChild(MultiverseNode())
+        val currentNode = graph.currentNode
+        if (graph.isAtChoicePoint()) {
+            currentNode.addChild(MultiverseNode(currentNode.children[0].primitive, currentNode.children[0].arg), returnValue)
             graphUpdated()
             if (override) {
                 addPrimitiveOverride(currentNode.primitive, currentNode.arg, returnValue)
             }
-        }*/
+        } else {
+            println("WARNING: Not adding new path, current node is not a choice point")
+        }
     }
 
     /**
@@ -222,19 +225,30 @@ class MultiverseDebugger(
      * or new graph such a which functions were executed.
      */
     private fun traverse(checkpoint: Checkpoint?, depth: Int) {
-        // TODO: Implement traverse existing path
-
         // Process one checkpoint
-        // If non-deterministic add a new node. This node becomes the new node.
-        if (nonDet(checkpoint)) {
-            val newNode = MultiverseNode(wasmBinary.metadata.primitives[checkpoint!!.fidx_called!!].name, checkpoint.args!!)
-            graph.currentNode.addChild(newNode, checkpoint.returns!!.first())
-            graph.currentNode = newNode
-            graph.instructionOffset = 0
-        }
-        // If deterministic, increment our couter.
-        else {
-            graph.currentNode.incDetInstrCount()
+        if (graph.instructionOffset == graph.currentNode.instrExecuted) {
+            // If non-deterministic add a new node or follow an existing edge. The destination node becomes the new node.
+            if (nonDet(checkpoint)) {
+                if (graph.currentNode.children.isNotEmpty() && graph.currentNode.values.indexOf(checkpoint!!.returns!!.first()) != -1) {
+                    // Path already exists, follow it.
+                    val index = graph.currentNode.values.indexOf(checkpoint!!.returns!!.first())
+                    graph.currentNode = graph.currentNode.children[index]
+                }
+                else {
+                    // Path does not exist yet, create a new path.
+                    val newNode = MultiverseNode(wasmBinary.metadata.primitives[checkpoint!!.fidx_called!!].name, checkpoint.args!!)
+                    graph.currentNode.addChild(newNode, checkpoint.returns!!.first())
+                    graph.currentNode = newNode
+                }
+                graph.instructionOffset = 0
+            }
+            // If deterministic, increment our counter.
+            else {
+                graph.currentNode.incDetInstrCount()
+                graph.instructionOffset++
+            }
+        } else {
+            // Follow existing deterministic path
             graph.instructionOffset++
         }
     }

@@ -653,13 +653,14 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
             val returnValueTextField = JTextField()
             mainPanel.add(returnValueTextField)
 
-            if (multiverseDebugger.graph.instructionOffset == 0) {
+            if (multiverseDebugger.graph.isAtChoicePoint()) {
                 primitiveSelector.isEnabled = false
-                primitiveSelector.selectedItem = currentNode.primitive
+                val primNode = currentNode.children.first()
+                primitiveSelector.selectedItem = primNode.primitive
                 updateArgFields()
-                for (i in currentNode.arg.indices) {
+                for (i in primNode.arg.indices) {
                     argTextFields[i].isEnabled = false
-                    argTextFields[i].text = currentNode.arg[i].toString()
+                    argTextFields[i].text = primNode.arg[i].toString()
                 }
             }
             else {

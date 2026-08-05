@@ -158,6 +158,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
     }
 
     private fun setLineColor(g: Graphics2D, sourceNode: MultiverseNode, destNode: MultiverseNode) {
+        g.color = borderColour
         if (selectedNodes.contains(sourceNode) && selectedNodes.contains(destNode)) {
             g.color = secondaryColour
             if (completedPath.contains(destNode)) {
