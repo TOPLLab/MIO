@@ -1,12 +1,8 @@
 package be.ugent.topl.mio.ui
 
 import be.ugent.topl.mio.DebuggerConfig
-import com.formdev.flatlaf.FlatDarkLaf
-import com.formdev.flatlaf.FlatIntelliJLaf
-import com.formdev.flatlaf.FlatLaf
+import be.ugent.topl.mio.configureFlatLafTheme
 import com.formdev.flatlaf.extras.FlatSVGIcon
-import com.formdev.flatlaf.themes.FlatMacDarkLaf
-import com.formdev.flatlaf.themes.FlatMacLightLaf
 import com.formdev.flatlaf.util.SystemInfo
 import com.formdev.flatlaf.util.UIScale
 import java.awt.Desktop
@@ -62,17 +58,7 @@ open class AboutScreen(protected val config: DebuggerConfig) : JFrame() {
                 }
             }
         }
-        if (config.lightMode) {
-            if (SystemInfo.isMacOS) FlatMacLightLaf.setup()
-            else FlatIntelliJLaf.setup()
-        }
-        else {
-            if (SystemInfo.isMacOS) {
-                FlatLaf.registerCustomDefaultsSource( "themes")
-                FlatMacDarkLaf.setup()
-            }
-            else FlatDarkLaf.setup()
-        }
+        configureFlatLafTheme(config)
         return SystemInfo.isMacFullWindowContentSupported
     }
 }
