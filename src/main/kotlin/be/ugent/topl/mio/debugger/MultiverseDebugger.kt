@@ -8,13 +8,14 @@ import be.ugent.topl.mio.woodstate.Checkpoint
 import be.ugent.topl.mio.woodstate.WOODDumpResponse
 import be.ugent.topl.mio.woodstate.WasmStackValue
 
-class MultiverseGraph(var rootNode: MultiverseNode = MultiverseNode(), var currentNode: MultiverseNode = rootNode) {
+class MultiverseGraph(var rootNode: MultiverseNode = MultiverseNode("main", listOf()), var currentNode: MultiverseNode = rootNode, var currentPosition: Int = 0) {
     /**
      * Does a full replacement without keeping children or values. It just removes the old now and any descendants and
      * attaches the new node which can have existing children.
      */
     fun replaceCurrentNode(newNode: MultiverseNode) {
-        if (currentNode == rootNode) {
+        // TODO: Reimplement
+        /*if (currentNode == rootNode) {
             rootNode = newNode
             currentNode = newNode
             return
@@ -22,31 +23,7 @@ class MultiverseGraph(var rootNode: MultiverseNode = MultiverseNode(), var curre
 
         currentNode.parent!!.children.remove(currentNode)
         currentNode.parent!!.addChild(newNode)
-        currentNode = newNode
-    }
-
-    /**
-     * Replaces [node] with [newNode] and adds all the children and values of [node] to [newNode].
-     */
-    fun replaceNode(node: MultiverseNode, newNode: MultiverseNode) {
-        if (node == rootNode) {
-            rootNode = newNode
-        } else {
-            node.parent!!.children.remove(node)
-            node.parent!!.addChild(newNode)
-        }
-
-        for (child in node.children) {
-            newNode.addChild(child)
-        }
-        val existingValues = newNode.values.toList()
-        newNode.values.clear()
-        newNode.values.addAll(node.values)
-        for (value in existingValues) {
-            if (!newNode.values.contains(value)) {
-                newNode.values.add(value)
-            }
-        }
+        currentNode = newNode*/
     }
 
     fun removeLastNode(): MultiverseNode {
@@ -57,17 +34,24 @@ class MultiverseGraph(var rootNode: MultiverseNode = MultiverseNode(), var curre
     }
 
     fun reset() {
-        currentNode = MultiverseNode()
+        currentNode = MultiverseNode("main", listOf())
         rootNode = currentNode
     }
 }
 
-open class MultiverseNode(val children: MutableList<MultiverseNode> = mutableListOf(), val values: MutableList<Int> = mutableListOf(), var parent: MultiverseNode? = null) {
-    open val displayName: String
-        get() = ""
+open class MultiverseNode(
+    val primitive: String,
+    val arg: List<Int>,
+    val children: MutableList<MultiverseNode> = mutableListOf(),
+    val values: MutableList<Int> = mutableListOf(),
+    var parent: MultiverseNode? = null,
+    var instrExecuted: Int = 0,
+) {
+    val displayName: String
+        get() = "$primitive(${arg.joinToString(", ")})"
 
-    open val edgeLength: Int
-        get() = 30
+    val edgeLength: Int
+        get() = 25 + displayName.length * 8
 
     private fun findPath(n: MultiverseNode, path: MutableList<MultiverseNode>): Boolean {
         if (this == n)
@@ -107,8 +91,9 @@ open class MultiverseNode(val children: MutableList<MultiverseNode> = mutableLis
         throw IllegalStateException("There should always be a lowest common ancestor between two nodes in a tree!")
     }
 
-    fun addChild(n: MultiverseNode) {
+    fun addChild(n: MultiverseNode, value: Int) {
         children.add(n)
+        values.add(value)
         n.parent = this
     }
 
@@ -117,28 +102,12 @@ open class MultiverseNode(val children: MutableList<MultiverseNode> = mutableLis
         values.clear()
     }
 
-    open fun nextNode(stackValue: WasmStackValue): MultiverseNode {
-        return children[0]
-    }
-}
-
-class DeterministicPrimitiveNode(val primitive: String, val args: List<Int>, children: MutableList<MultiverseNode> = mutableListOf(), values: MutableList<Int> = mutableListOf()) : MultiverseNode(children, values) {
-    override val displayName: String
-        get() = "$primitive(${args.joinToString(", ")})"
-
-    override val edgeLength: Int
-        get() = primitive.length * 8 + args.joinToString(", ").length * 8 + children.size * 10
-}
-
-class PrimitiveNode(val primitive: String, val arg: List<Int>, children: MutableList<MultiverseNode> = mutableListOf(), values: MutableList<Int> = mutableListOf()) : MultiverseNode(children, values) {
-    override val displayName: String
-        get() = "$primitive(${arg.joinToString(", ")})"
-
-    override val edgeLength: Int
-        get() = 25 + primitive.length * 8
-
-    override fun nextNode(stackValue: WasmStackValue): MultiverseNode {
+    fun nextNode(stackValue: WasmStackValue): MultiverseNode {
         return children[values.indexOf(stackValue.value.toInt())]
+    }
+
+    fun incDetInstrCount() {
+        instrExecuted++
     }
 }
 
@@ -194,7 +163,8 @@ class MultiverseDebugger(
     }
 
     fun createNewPath(returnValue: Int, override: Boolean = true) {
-        val currentNode = graph.currentNode
+        // TODO: Reimplement
+        /*val currentNode = graph.currentNode
         if (currentNode is PrimitiveNode) {
             currentNode.values.add(returnValue)
             currentNode.addChild(MultiverseNode())
@@ -202,7 +172,7 @@ class MultiverseDebugger(
             if (override) {
                 addPrimitiveOverride(currentNode.primitive, currentNode.arg, returnValue)
             }
-        }
+        }*/
     }
 
     /**
@@ -243,80 +213,27 @@ class MultiverseDebugger(
         graphUpdated()
     }
 
+    private fun nonDet(checkpoint: Checkpoint?): Boolean =
+        checkpoint != null && checkpoint.fidx_called != null && checkpoint.returns!!.isNotEmpty()
+
     /**
      * Follow the graph if the nodes/edges are already present, otherwise add them. Also add metadata to the existing
      * or new graph such a which functions were executed.
      */
     private fun traverse(checkpoint: Checkpoint?, depth: Int) {
-        // Don't add new nodes if we are walking on an existing graph section.
-        if (graph.currentNode.children.isNotEmpty()) {
-            if (checkpoint != null && isAfterChoicePoint(checkpoint.snapshot.pc!!)) {
-                val stackValue = WasmStackValue(0, "I32", checkpoint.returns!!.first().toLong())
-                val intValue = stackValue.value.toInt()
-                if (graph.currentNode is PrimitiveNode) {
-                    if (!graph.currentNode.values.contains(intValue)) {
-                        val newNode = MultiverseNode()
-                        graph.currentNode.values.add(intValue)
-                        graph.currentNode.addChild(newNode)
-                        graph.currentNode = newNode
-                    }
-                    else {
-                        graph.currentNode = graph.currentNode.nextNode(stackValue)
-                    }
-                }
-                else {
-                    // Current node was actually non-deterministic, but it is currently just a regular node so we replace it with a non-deterministic one.
-                    val node = PrimitiveNode(wasmBinary.metadata.primitives.find { it.fidx == checkpoint.fidx_called }!!.name, checkpoint.args!!, values=mutableListOf(checkpoint.returns!!.first()))
-                    graph.replaceNode(graph.currentNode, node)
-                    graph.currentNode = node.nextNode(stackValue)
-                }
-            }
-            else if (graph.currentNode.children.size == 1) {
-                if (checkpoint?.fidx_called != null) {
-                    val primName = wasmBinary.metadata.primitives.find { it.fidx == checkpoint.fidx_called }!!.name
-                    val newNode = DeterministicPrimitiveNode( primName, checkpoint.args!!)
-                    graph.replaceNode(graph.currentNode, newNode)
-                    graph.currentNode = newNode
-                }
-                graph.currentNode = graph.currentNode.children.first()
-            }
-            else {
-                throw RuntimeException("Don't know where to go! ${graph.currentNode.displayName}")
-            }
-            return
-        }
+        // TODO: Implement traverse existing path
 
-        // We are not in an existing graph section -> add a new node!
-        // A multiverse graph always starts as just a single node, we already have a first node so we can skip that one.
-        if (depth > 0) {
-            // Advance one node forward
-            val newNode = MultiverseNode()
-            graph.currentNode.addChild(newNode)
+        // Process one checkpoint
+        // If non-deterministic add a new node. This node becomes the new node.
+        if (nonDet(checkpoint)) {
+            val newNode = MultiverseNode(wasmBinary.metadata.primitives[checkpoint!!.fidx_called!!].name, checkpoint.args!!)
+            graph.currentNode.addChild(newNode, checkpoint.returns!!.first())
             graph.currentNode = newNode
         }
-
-        // Add additional new information to the new node if possible
-        if (checkpoint?.fidx_called != null) {
-            val newNode = if (isAfterChoicePoint(checkpoint.snapshot.pc!!)) {
-                PrimitiveNode(wasmBinary.metadata.primitives[checkpoint.fidx_called].name, checkpoint.args!!).apply {
-                    values.add(checkpoint.returns!!.first())
-                }
-            } else {
-                DeterministicPrimitiveNode(wasmBinary.metadata.primitives[checkpoint.fidx_called].name, checkpoint.args!!)
-            }
-
-            if (graph.currentNode.parent != null) {
-                graph.replaceNode(graph.currentNode.parent!!, newNode)
-            } else {
-                // Current node has no parent -> it is the root node!
-                graph.currentNode = newNode
-                graph.rootNode = newNode
-            }
+        // If deterministic, increment our couter.
+        else {
+            graph.currentNode.incDetInstrCount()
         }
-    }
-
-    private fun isAfterChoicePoint(pc: Int): Boolean {
-        return pc in wasmBinary.metadata.after_choicepoints
     }
 
     fun predictFuture(maxInstructions: Int = 50, maxSymbolicVariables: Int = -1, maxIterations: Int = -1, stopPc: Int = -1): Boolean {
@@ -330,19 +247,9 @@ class MultiverseDebugger(
             stopPc
         )
         if (result.paths.isEmpty()) {
-            // Graph is fine but we added 0 instructions.
-            if (maxInstructions == 0) {
-                return true
-            }
-
-            val rootNode = MultiverseNode()
-            var currentNode = rootNode
             repeat(maxInstructions) {
-                val newNode = MultiverseNode()
-                currentNode.addChild(newNode)
-                currentNode = newNode
+                graph.currentNode.incDetInstrCount()
             }
-            graph.replaceCurrentNode(rootNode)
             graphUpdated()
             return true
         }

@@ -1,9 +1,7 @@
 package be.ugent.topl.mio.ui
 
-import be.ugent.topl.mio.debugger.DeterministicPrimitiveNode
 import be.ugent.topl.mio.debugger.MultiverseGraph
 import be.ugent.topl.mio.debugger.MultiverseNode
-import be.ugent.topl.mio.debugger.PrimitiveNode
 import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.util.UIScale
 import java.awt.*
@@ -151,31 +149,106 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
     private fun drawPaths(g: Graphics2D, rootNode: MultiverseNode) {
         val xStart = g.fontMetrics.stringWidth(rootNode.displayName)/2
         val yPadding = 15
-        renderedHeight = drawGraph(g, rootNode, x = xStart + 5, yPadding).second + yPadding
+        val result = drawGraph(g, rootNode, x = xStart + 5, yPadding)
+        renderedHeight = result.second + yPadding
+
+        //val result = Triple(Point(0, 0), 0, 0)
+        drawNode(g, graph.rootNode, result.first)
     }
 
-    private fun drawGraph(g: Graphics2D, node: MultiverseNode, x: Int = 0, y: Int = 0): Pair<Point, Int> {
+    private fun setLineColor(g: Graphics2D, sourceNode: MultiverseNode, destNode: MultiverseNode) {
+        if (selectedNodes.contains(sourceNode) && selectedNodes.contains(destNode)) {
+            g.color = secondaryColour
+            if (completedPath.contains(destNode)) {
+                g.color = green
+            }
+        }
+    }
+
+    private fun drawGraph(g: Graphics2D, node: MultiverseNode, x: Int = 0, y: Int = 0): Triple<Point, Int, Int> {
+        //println("Draw subgraph at $x")
         val newPoints = mutableListOf<Point>()
         var currentHeight = 0
+        val collapsed = true && graph.currentNode != node // TODO: make this a node property
+        var count = if (collapsed) min(1, node.instrExecuted) else node.instrExecuted
+        val widthConsumed = count * (node.edgeLength + d)
         for (child in node.children) {
-            val l = if (child.edgeLength > node.edgeLength && child is PrimitiveNode) child.edgeLength else node.edgeLength
-            val result = drawGraph(g, child, x + l, y + currentHeight)
+            val result = drawGraph(g, child, x + widthConsumed + child.edgeLength, y + currentHeight)
             currentHeight += result.second
             newPoints.add(result.first)
-            renderedWidth = Integer.max(renderedWidth, x + node.edgeLength + d + 5)
+            // Some paths may be longer than others, the longest one is the width of the full graph.
+            renderedWidth = Integer.max(renderedWidth, result.third)
+            drawNode(g, child, result.first)
         }
-
         currentHeight = Integer.max(40, currentHeight)
 
-        val point = Point(x, y + currentHeight / 2 - d / 2)
+        // Connect to the subgraphs.
+        g.color = borderColour
+        for (i in newPoints.indices) {
+            val point = Point(x + widthConsumed, y + currentHeight / 2 - d / 2)
+            setLineColor(g, node, node.children[i])
+            curvedLine(point.x, point.y + d/2, newPoints[i].x, newPoints[i].y + d/2, g, if (i < node.values.size) "${node.values[i]}" else null)
+            g.color = borderColour
+        }
+
+        // We have drawn all the children and the connecting edges, now draw ourselves.
+        // Draw all trailing deterministic instructions.
+        //println("Draw ${count} trailing nodes at $x")
+        var currentX = x
+        repeat(count) {
+            val prevPoint = Point(currentX, y + currentHeight / 2 - d / 2)
+            currentX += node.edgeLength + d
+            val point = Point(currentX, y + currentHeight / 2 - d / 2)
+            g.color = borderColour
+            //setLineColor(g, node, node.children[i])
+            curvedLine(prevPoint.x + d, prevPoint.y + d/2, point.x, point.y + d/2, g, if (collapsed) "..." else null)
+            drawNode(g, node, point)
+        }
+
+        val prevPoint = Point(x, y + currentHeight / 2 - d / 2)
+
+        // Draw label for prevPoint (Primitive name + arguments)
         val textWidth = g.fontMetrics.stringWidth(node.displayName)/2
         g.color = textColour
-        if (node is DeterministicPrimitiveNode) {
-            g.drawString(node.displayName, point.x + node.edgeLength/2 - textWidth, point.y - 5)
+        g.drawString(node.displayName, prevPoint.x + d/2 - textWidth, prevPoint.y - 5)
+
+        return Triple(prevPoint, currentHeight, currentX)
+
+        /*val point = Point(x, y + currentHeight / 2 - d / 2)
+        val textWidth = g.fontMetrics.stringWidth(node.displayName)/2
+        g.color = textColour
+        g.drawString(node.displayName, point.x + d/2 - textWidth, point.y - 5)
+
+        // TODO: Remove, debug only
+        val instrCountStr = "#instrs = ${node.instrExecuted}"
+        g.drawString(instrCountStr, point.x + d/2 - g.fontMetrics.stringWidth(instrCountStr)/2, point.y + d + g.fontMetrics.getStringBounds(instrCountStr, g).height.toInt())
+
+        drawNode(g, node, point)
+
+        // Connect the newly drawn node with all children.
+        g.color = borderColour
+        for (i in newPoints.indices) {
+            if (selectedNodes.contains(node) && selectedNodes.contains(node.children[i])) {
+                g.color = secondaryColour
+                if (completedPath.contains(node.children[i]))
+                    g.color = green
+            }
+            curvedLine(point.x + d, point.y + d/2, newPoints[i].x, newPoints[i].y + d/2, g, if (i < node.values.size) "${node.values[i]}" else null)
+            g.color = borderColour
         }
-        else {
-            g.drawString(node.displayName, point.x - textWidth, point.y - 5)
-        }
+        nodes.add(Node(point.x, point.y, d, d, node))
+
+        val spacing = Integer.max(40, currentHeight)
+        // Returns the new point, the vertical height used and the horizontal height used.
+        return Triple(point, Integer.max(spacing, currentHeight), node.edgeLength + d + 5)*/
+    }
+
+    /**
+     * Draw the node itself, depending on if it is the current node, selected or completed, it will have different
+     * colors.
+     */
+    private fun drawNode(g: Graphics2D, node: MultiverseNode, point: Point) {
+        //println("Draw node at $point")
         g.color = borderColour
         g.fillOval(point.x, point.y, d, d)
         g.color = backgroundColour
@@ -204,20 +277,9 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
             g.fillOval(point.x, point.y, d, d)
             g.color = primaryColour
         }
-        g.color = borderColour
-        for (i in newPoints.indices) {
-            if (selectedNodes.contains(node) && selectedNodes.contains(node.children[i])) {
-                g.color = secondaryColour
-                if (completedPath.contains(node.children[i]))
-                    g.color = green
-            }
-            curvedLine(point.x + d, point.y + d/2, newPoints[i].x, newPoints[i].y + d/2, g, if (i < node.values.size) "${node.values[i]}" else null)
-            g.color = borderColour
-        }
-        nodes.add(Node(point.x, point.y, d, d, node))
 
-        val spacing = Integer.max(40, currentHeight)
-        return Pair(point, Integer.max(spacing, currentHeight))
+        // Update nodes for selection
+        nodes.add(Node(point.x, point.y, d, d, node))
     }
 
     private fun curvedLine(x1: Int, y1: Int, x2: Int, y2: Int, g: Graphics2D, str: String? = null): Path2D {

@@ -475,19 +475,6 @@ interface MultiverseAction {
     fun doAction()
 }
 
-class OverrideAction(val debugger: Debugger, val node: PrimitiveNode, val index: Int) : MultiverseAction {
-    override fun doAction() {
-        debugger.addPrimitiveOverride(node.primitive, node.arg, node.values[index])
-    }
-
-}
-
-class ContinueForAction(val debugger: Debugger, var n: Int) : MultiverseAction {
-    override fun doAction() {
-        debugger.continueFor(n)
-    }
-}
-
 class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config: DebuggerConfig, stateChanged: (c: Checkpoint?, b: Double) -> Unit) : JPanel() {
     private val graphPanel = GraphPanel(multiverseDebugger.graph)
     private val mockPanel = OverridesPanel()
@@ -548,8 +535,9 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
             customButton.isEnabled = false
             concolicButton.isEnabled = false
             thread {
+                // TODO: Reimplement
                 // Disable breakpoints
-                val breakpointsStart = multiverseDebugger.checkpoints.last()!!.snapshot.breakpoints!!
+                /*val breakpointsStart = multiverseDebugger.checkpoints.last()!!.snapshot.breakpoints!!
                 for (breakpoint in breakpointsStart) {
                     multiverseDebugger.removeBreakpoint(breakpoint)
                 }
@@ -627,7 +615,7 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
                 graphPanel.clearSelection()
                 customButton.isEnabled = true
                 graphPanel.allowSelection = true
-                concolicButton.isEnabled = true
+                concolicButton.isEnabled = true*/
             }
         }
 
@@ -666,7 +654,7 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
             val returnValueTextField = JTextField()
             mainPanel.add(returnValueTextField)
 
-            if (currentNode is PrimitiveNode) {
+            if (multiverseDebugger.graph.currentPosition == 0) {
                 primitiveSelector.isEnabled = false
                 primitiveSelector.selectedItem = currentNode.primitive
                 updateArgFields()
@@ -729,7 +717,7 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
                 val cancelButton = JButton(allOptions[2])
                 options = arrayOf(mockButton, cancelButton)
 
-                rangeButton.isEnabled = currentNode is PrimitiveNode
+                rangeButton.isEnabled = multiverseDebugger.graph.currentPosition == 0
 
                 rangeButton.addActionListener {
                     this.value = rangeButton.text

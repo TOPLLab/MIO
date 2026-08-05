@@ -1,7 +1,6 @@
 package be.ugent.topl.mio.concolic
 
 import be.ugent.topl.mio.debugger.MultiverseNode
-import be.ugent.topl.mio.debugger.PrimitiveNode
 import be.ugent.topl.mio.woodstate.WOODState
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
@@ -83,8 +82,9 @@ fun process(r: ConcolicAnalysisResult): MultiverseNode {
 }
 
 fun processPaths(paths: List<SymbolicValueMapping>, currentTimeStep: Int = 0): MultiverseNode {
+    // TODO: Reimplement
     //println("" + currentTimeStep + " " + paths[0].time_step)
-    var currentNode: MultiverseNode
+    /*var currentNode: MultiverseNode
     val primitiveNode = PrimitiveNode(paths[0].primitive, paths[0].args)
     val startNode = if (currentTimeStep != paths[0].time_step) {
         val startNode = MultiverseNode() // TODO: Maybe add a second node type being the deterministic instruction node
@@ -111,5 +111,6 @@ fun processPaths(paths: List<SymbolicValueMapping>, currentTimeStep: Int = 0): M
             currentNode.addChild(MultiverseNode(parent = currentNode))
         }
     }
-    return startNode
+    return startNode*/
+    return MultiverseNode("todo", listOf(0xcafe))
 }
