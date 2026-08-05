@@ -31,6 +31,15 @@ fun portRequired(config: DebuggerConfig) {
     }
 }
 
+fun setUIScale(scale: String) {
+    if (SystemInfo.isMacOS) {
+        System.setProperty("flatlaf.uiScale", scale)
+    }
+    else {
+        System.setProperty("sun.java2d.uiScale", scale)
+    }
+}
+
 fun main(args: Array<String>) {
     if (args.isEmpty()) {
         try {
@@ -39,12 +48,8 @@ fun main(args: Array<String>) {
                 System.setProperty("apple.laf.useScreenMenuBar", "true")
                 System.setProperty("apple.awt.application.name", "rCMD")
                 System.setProperty("apple.awt.application.appearance", if (config.lightMode) "NSAppearanceNameAqua" else "NSAppearanceNameDarkAqua")
-
-                System.setProperty("flatlaf.uiScale", config.uiScale)
             }
-            else {
-                System.setProperty("sun.java2d.uiScale", config.uiScale)
-            }
+            setUIScale(config.uiScale)
             val startScreen = StartScreen(config)
             startScreen.isVisible = true
         } catch(_: FileNotFoundException) {
@@ -83,7 +88,7 @@ fun main(args: Array<String>) {
                     getDwarfSourcemap(args[2])
                 else
                     compileWat(watFilename)
-            System.setProperty("sun.java2d.uiScale", config.uiScale)
+            setUIScale(config.uiScale)
             val lightMode = config.lightMode
             if (lightMode)
                 FlatIntelliJLaf.setup()
