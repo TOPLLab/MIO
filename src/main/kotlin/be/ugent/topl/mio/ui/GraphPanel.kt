@@ -204,7 +204,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
             //           -----O----O
             //After:  read(5)
             //           -----O----O
-            val textWidth = g.fontMetrics.stringWidth(node.displayName)/2
+            val textWidth = g.fontMetrics.stringWidth(node.children[i].displayName)/2
             g.color = textColour
             g.drawString(node.children[i].displayName, point.x + d/2 - textWidth, point.y - 5)
         }
