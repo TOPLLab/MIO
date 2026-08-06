@@ -157,9 +157,13 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         drawNode(g, NodeLocation(graph.rootNode, 0),result.first)
     }
 
-    private fun setLineColor(g: Graphics2D, sourceNode: MultiverseNode, destNode: MultiverseNode) {
+    private fun setLineColor(g: Graphics2D, sourceNode: MultiverseNode, destNode: MultiverseNode, nodeOffset: Int = -1) {
         g.color = borderColour
         if (selectedNodes.contains(sourceNode) && selectedNodes.contains(destNode)) {
+            if (selectedValue != null && destNode == selectedValue!!.value && nodeOffset >= selectedValue!!.instructionOffset) {
+                return
+            }
+
             g.color = secondaryColour
             if (completedPath.contains(destNode)) {
                 g.color = green
@@ -214,7 +218,9 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
             currentX += node.edgeLength + d
             val point = Point(currentX, y + currentHeight / 2 - d / 2)
             g.color = borderColour
-            //setLineColor(g, node, node.children[i])
+            // If the node itself is part of the selected path it will get a color if the offset is below the selected
+            // offset.
+            setLineColor(g, node, node, offset)
             curvedLine(prevPoint.x + d, prevPoint.y + d/2, point.x, point.y + d/2, g, if (collapsed) "..." else null)
             drawNode(g, NodeLocation(node, offset + 1), point)
         }
@@ -391,7 +397,8 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         if (selectedNode == null) return
 
         //selectedPath = graph.rootNode.findPath(graph.currentNode, selectedValue!!)
-        if (graph.currentNode.findPath(selectedValue!!.value).isEmpty()) {
+        if (graph.currentNode.findPath(selectedValue!!.value).isEmpty() ||
+            (graph.currentNode == selectedValue!!.value && graph.instructionOffset > selectedValue!!.instructionOffset)) {
             selectedPath = Pair(listOf(), graph.rootNode.findPath(selectedValue!!.value))
             reset = true
         }
