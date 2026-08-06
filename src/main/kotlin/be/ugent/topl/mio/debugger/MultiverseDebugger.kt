@@ -21,9 +21,7 @@ class MultiverseGraph(var rootNode: MultiverseNode = MultiverseNode("main", list
         }
 
         val childIndex = currentNode.parent!!.children.indexOf(currentNode)
-        currentNode.parent!!.addChild(newNode, currentNode.parent!!.values[childIndex])
-        currentNode.parent!!.children.removeAt(childIndex)
-        currentNode.parent!!.values.removeAt(childIndex)
+        currentNode.parent!!.children[childIndex] = newNode
         currentNode = newNode
     }
 
