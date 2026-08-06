@@ -38,7 +38,7 @@ class MultiverseGraph(var rootNode: MultiverseNode = MultiverseNode("main", list
     }
 
     fun isAtChoicePoint(): Boolean =
-        instructionOffset == currentNode.instrExecuted && currentNode.children.isNotEmpty()
+        instructionOffset == currentNode.totalInstrExecuted && currentNode.children.isNotEmpty()
 }
 
 open class MultiverseNode(
@@ -47,7 +47,7 @@ open class MultiverseNode(
     val children: MutableList<MultiverseNode> = mutableListOf(),
     val values: MutableList<Int> = mutableListOf(),
     var parent: MultiverseNode? = null,
-    var instrExecuted: Int = 0,
+    var totalInstrExecuted: Int = 0,
 ) {
     val displayName: String
         get() = "$primitive(${arg.joinToString(", ")})"
@@ -109,7 +109,7 @@ open class MultiverseNode(
     }
 
     fun incDetInstrCount() {
-        instrExecuted++
+        totalInstrExecuted++
     }
 }
 
@@ -225,7 +225,7 @@ class MultiverseDebugger(
      */
     private fun traverse(checkpoint: Checkpoint?, depth: Int) {
         // Process one checkpoint
-        if (graph.instructionOffset == graph.currentNode.instrExecuted) {
+        if (graph.instructionOffset == graph.currentNode.totalInstrExecuted) {
             // If non-deterministic add a new node or follow an existing edge. The destination node becomes the new node.
             if (nonDet(checkpoint)) {
                 if (graph.currentNode.children.isNotEmpty() && graph.currentNode.values.indexOf(checkpoint!!.returns!!.first()) != -1) {

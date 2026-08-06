@@ -564,12 +564,12 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
                     continueCount = graphPanel.selectedValue!!.instructionOffset - multiverseDebugger.graph.instructionOffset
                 }
                 if (forwardPath.size > 1) {
-                    val stepCount = forwardPath[0].instrExecuted - multiverseDebugger.graph.instructionOffset
+                    val stepCount = forwardPath[0].totalInstrExecuted - multiverseDebugger.graph.instructionOffset
                     multiverseDebugger.continueFor(stepCount)
                     for (i in 1 ..< forwardPath.size - 1) {
                         val valueIndex = forwardPath[i-1].children.indexOf(forwardPath[i])
                         multiverseDebugger.addPrimitiveOverride(forwardPath[i].primitive, forwardPath[i].arg, forwardPath[i - 1].values[valueIndex])
-                        multiverseDebugger.continueFor(1 + forwardPath[i].instrExecuted)
+                        multiverseDebugger.continueFor(1 + forwardPath[i].totalInstrExecuted)
                     }
                     val valueIndex = forwardPath[forwardPath.size - 2].children.indexOf(forwardPath[forwardPath.size - 1])
                     multiverseDebugger.addPrimitiveOverride(forwardPath.last().primitive, forwardPath.last().arg, forwardPath[forwardPath.size - 2].values[valueIndex])

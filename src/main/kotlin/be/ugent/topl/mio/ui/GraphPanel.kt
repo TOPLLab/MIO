@@ -164,6 +164,10 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
                 return
             }
 
+            if (destNode == graph.currentNode && (selectedValue!!.value != destNode || selectedValue!!.instructionOffset > graph.instructionOffset) && nodeOffset < graph.instructionOffset) {
+                return
+            }
+
             g.color = secondaryColour
             if (completedPath.contains(destNode)) {
                 g.color = green
@@ -175,8 +179,10 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         //println("Draw subgraph at $x")
         val newPoints = mutableListOf<Point>()
         var currentHeight = 0
-        val collapsed = true && graph.currentNode != node // TODO: make this a node property
-        var count = if (collapsed) min(1, node.instrExecuted) else node.instrExecuted
+        //val collapsed = true && graph.currentNode != node // TODO: make this a node property
+        //val collapsed = true
+        val collapsed = false
+        var count = if (collapsed) min(1, node.totalInstrExecuted) else node.totalInstrExecuted
         val widthConsumed = count * (node.edgeLength + d)
         for (child in node.children) {
             val result = drawGraph(g, child, x + widthConsumed + child.edgeLength, y + currentHeight)
@@ -222,7 +228,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
             // offset.
             setLineColor(g, node, node, offset)
             if (collapsed) {
-                curvedLine(prevPoint.x + d, prevPoint.y + d/2, point.x, point.y + d/2, g, "${node.instrExecuted} instr", borderColour)
+                curvedLine(prevPoint.x + d, prevPoint.y + d/2, point.x, point.y + d/2, g, "${node.totalInstrExecuted} instr", borderColour)
             }
             else {
                 curvedLine(prevPoint.x + d, prevPoint.y + d/2, point.x, point.y + d/2, g)

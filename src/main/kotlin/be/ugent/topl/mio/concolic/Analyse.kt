@@ -85,7 +85,7 @@ fun processPaths(paths: List<SymbolicValueMapping>, currentTimeStep: Int = 0): M
     val node = MultiverseNode(
         primitive = paths.first().primitive,
         arg = paths.first().args,
-        instrExecuted = paths.first().time_step - currentTimeStep
+        totalInstrExecuted = paths.first().time_step - currentTimeStep
     )
 
     for (path in paths) {
