@@ -221,7 +221,12 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
             // If the node itself is part of the selected path it will get a color if the offset is below the selected
             // offset.
             setLineColor(g, node, node, offset)
-            curvedLine(prevPoint.x + d, prevPoint.y + d/2, point.x, point.y + d/2, g, if (collapsed) "..." else null)
+            if (collapsed) {
+                curvedLine(prevPoint.x + d, prevPoint.y + d/2, point.x, point.y + d/2, g, "${node.instrExecuted} instr", borderColour)
+            }
+            else {
+                curvedLine(prevPoint.x + d, prevPoint.y + d/2, point.x, point.y + d/2, g)
+            }
             drawNode(g, NodeLocation(node, offset + 1), point)
         }
 
@@ -296,7 +301,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         nodes.add(Node(point.x, point.y, d, d, node))
     }
 
-    private fun curvedLine(x1: Int, y1: Int, x2: Int, y2: Int, g: Graphics2D, str: String? = null): Path2D {
+    private fun curvedLine(x1: Int, y1: Int, x2: Int, y2: Int, g: Graphics2D, str: String? = null, textColour: Color = this.textColour): Path2D {
         val cx = x1 + (x2-x1)/2.toDouble()
         val cy = y1 + (y2-y1)/2.toDouble()
 
