@@ -560,7 +560,7 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
                 // Perform actual slide operation.
                 // Amount of instructions that still need to be stepped forward at the end.
                 var continueCount = graphPanel.selectedValue!!.instructionOffset
-                if (forwardPath.size == 1 && graphPanel.selectedValue!!.value == multiverseDebugger.graph.currentNode) {
+                if (forwardPath.size == 1 && graphPanel.selectedValue!!.node == multiverseDebugger.graph.currentNode) {
                     continueCount = graphPanel.selectedValue!!.instructionOffset - multiverseDebugger.graph.instructionOffset
                 }
                 if (forwardPath.size > 1) {

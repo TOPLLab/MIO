@@ -46,7 +46,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
     var allowSelection = true
     private var scaleFactor = UIScale.getUserScaleFactor().toDouble()
 
-    data class NodeLocation(val value: MultiverseNode, val instructionOffset: Int)
+    data class NodeLocation(val node: MultiverseNode, val instructionOffset: Int)
     data class Node(val x: Int, val y: Int, val w: Int, val h: Int, val value: NodeLocation)
 
     override fun getPreferredSize(): Dimension {
@@ -160,11 +160,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
     private fun setLineColor(g: Graphics2D, sourceNode: MultiverseNode, destNode: MultiverseNode, nodeOffset: Int = -1) {
         g.color = borderColour
         if (selectedNodes.contains(sourceNode) && selectedNodes.contains(destNode)) {
-            if (selectedValue != null && destNode == selectedValue!!.value && nodeOffset >= selectedValue!!.instructionOffset) {
-                return
-            }
-
-            if (destNode == graph.currentNode && (selectedValue!!.value != destNode || selectedValue!!.instructionOffset > graph.instructionOffset) && nodeOffset < graph.instructionOffset) {
+            if (!inSelectedPath(NodeLocation(destNode, nodeOffset))) {
                 return
             }
 
@@ -173,6 +169,30 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
                 g.color = green
             }
         }
+    }
+
+    /**
+     * This function determines if a certain point in [offsetNode] at [instructionOffset] is part of the selected path or not.
+     *
+     * @return A boolean indicating if it is part of the selected path or not.
+     */
+    private fun inSelectedPath(offsetNode: NodeLocation): Boolean {
+        if (selectedValue == null || !selectedNodes.contains(offsetNode.node)) {
+            return false
+        }
+
+        // Only works in one particular direction, not with stepping back?
+        if (offsetNode.node == selectedValue!!.node && offsetNode.instructionOffset >= selectedValue!!.instructionOffset) {
+            return false
+        }
+
+        if (offsetNode.node == graph.currentNode &&
+            (selectedValue!!.node != offsetNode.node || selectedValue!!.instructionOffset > graph.instructionOffset) &&
+            offsetNode.instructionOffset < graph.instructionOffset) {
+            return false
+        }
+
+        return true
     }
 
     private fun drawGraph(g: Graphics2D, node: MultiverseNode, x: Int = 0, y: Int = 0): Triple<Point, Int, Int> {
@@ -286,17 +306,17 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
             g.color = secondaryColour
             g.fillOval(point.x + 4, point.y + 4, d - 8, d - 8) // Inner blue circle
             g.color = primaryColour
-        } /*else if (selectedNodes.contains(node)) {
+        } else if (inSelectedPath(node)) {
             g.color = secondaryColour
-            if (completedPath.contains(node)) {
+            /*if (completedPath.contains(node)) {
                 g.color = green
                 if (node == completedPath.last()) {
                     lastCompleted = Node(point.x, point.y, d, d, node)
                 }
-            }
+            }*/
             g.fillOval(point.x, point.y, d, d)
             g.color = primaryColour
-        } */else if (node.value === graph.currentNode && node.instructionOffset == graph.instructionOffset) {
+        } else if (node.node === graph.currentNode && node.instructionOffset == graph.instructionOffset) {
             currentNode = Node(point.x, point.y, d, d, GraphPanel.NodeLocation(graph.currentNode, graph.instructionOffset))
             g.color = secondaryColour
             g.fillOval(point.x, point.y, d, d)
@@ -408,13 +428,13 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         if (selectedNode == null) return
 
         //selectedPath = graph.rootNode.findPath(graph.currentNode, selectedValue!!)
-        if (graph.currentNode.findPath(selectedValue!!.value).isEmpty() ||
-            (graph.currentNode == selectedValue!!.value && graph.instructionOffset > selectedValue!!.instructionOffset)) {
-            selectedPath = Pair(listOf(), graph.rootNode.findPath(selectedValue!!.value))
+        if (graph.currentNode.findPath(selectedValue!!.node).isEmpty() ||
+            (graph.currentNode == selectedValue!!.node && graph.instructionOffset > selectedValue!!.instructionOffset)) {
+            selectedPath = Pair(listOf(), graph.rootNode.findPath(selectedValue!!.node))
             reset = true
         }
         else {
-            selectedPath = Pair(listOf(), graph.currentNode.findPath(selectedValue!!.value))
+            selectedPath = Pair(listOf(), graph.currentNode.findPath(selectedValue!!.node))
             reset = false
         }
         selectedNodes = selectedPath!!.first.toMutableSet()
