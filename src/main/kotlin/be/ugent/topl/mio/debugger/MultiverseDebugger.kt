@@ -14,16 +14,17 @@ class MultiverseGraph(var rootNode: MultiverseNode = MultiverseNode("main", list
      * attaches the new node which can have existing children.
      */
     fun replaceCurrentNode(newNode: MultiverseNode) {
-        // TODO: Reimplement
-        /*if (currentNode == rootNode) {
+        if (currentNode == rootNode) {
             rootNode = newNode
             currentNode = newNode
             return
         }
 
-        currentNode.parent!!.children.remove(currentNode)
-        currentNode.parent!!.addChild(newNode)
-        currentNode = newNode*/
+        val childIndex = currentNode.parent!!.children.indexOf(currentNode)
+        currentNode.parent!!.addChild(newNode, currentNode.parent!!.values[childIndex])
+        currentNode.parent!!.children.removeAt(childIndex)
+        currentNode.parent!!.values.removeAt(childIndex)
+        currentNode = newNode
     }
 
     fun removeLastNode(): MultiverseNode {
@@ -271,7 +272,10 @@ class MultiverseDebugger(
             return true
         }
 
-        val concolicGraphRoot = processPaths(result.paths)
+        // Pass the instructionOffset so the already present deterministic instructions are kept. It is negative so that
+        // these are added extra instead of being forward in time. We basically start graph.instructionOffset
+        // instructions in the past.
+        val concolicGraphRoot = processPaths(result.paths, -graph.instructionOffset)
         // Remove current future and add newly predicted future, otherwise you will get a split timeline between the
         // previously predicted future and the newly predicted future.
         graph.replaceCurrentNode(concolicGraphRoot)

@@ -82,35 +82,17 @@ fun process(r: ConcolicAnalysisResult): MultiverseNode {
 }
 
 fun processPaths(paths: List<SymbolicValueMapping>, currentTimeStep: Int = 0): MultiverseNode {
-    // TODO: Reimplement
-    //println("" + currentTimeStep + " " + paths[0].time_step)
-    /*var currentNode: MultiverseNode
-    val primitiveNode = PrimitiveNode(paths[0].primitive, paths[0].args)
-    val startNode = if (currentTimeStep != paths[0].time_step) {
-        val startNode = MultiverseNode() // TODO: Maybe add a second node type being the deterministic instruction node
-        currentNode = startNode
-        for (i in currentTimeStep + 1..< paths[0].time_step) {
-            val deterministicNode = MultiverseNode()
-            currentNode.addChild(deterministicNode) // TODO: Maybe add a second node type being the deterministic instruction node)
-            currentNode = deterministicNode
-        }
-        currentNode.addChild(primitiveNode)
-        startNode
-    }
-    else {
-        primitiveNode
-    }
-    currentNode = primitiveNode
+    val node = MultiverseNode(
+        primitive = paths.first().primitive,
+        arg = paths.first().args,
+        instrExecuted = paths.first().time_step - currentTimeStep
+    )
 
     for (path in paths) {
-        currentNode.values.add(path.value)
         if (path.paths.isNotEmpty()) {
-            currentNode.addChild(processPaths(path.paths, paths[0].time_step + 1))
-        }
-        else {
-            currentNode.addChild(MultiverseNode(parent = currentNode))
+            node.addChild(processPaths(path.paths, paths.first().time_step + 1), path.value)
         }
     }
-    return startNode*/
-    return MultiverseNode("todo", listOf(0xcafe))
+
+    return node
 }
