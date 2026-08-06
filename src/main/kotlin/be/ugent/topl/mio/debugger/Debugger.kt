@@ -8,6 +8,7 @@ import be.ugent.topl.mio.woodstate.WOODDumpResponse
 import be.ugent.topl.mio.woodstate.WOODState
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import org.slf4j.LoggerFactory
 import java.io.Closeable
 import java.io.File
 import java.util.*
@@ -115,6 +116,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
     val checkpoints = mutableListOf<Checkpoint?>()
     private val stateListeners = mutableListOf<(WOODDumpResponse) -> Unit>()
     private var commandBreakpoint = false
+    private val logger = LoggerFactory.getLogger(Debugger::class.java)
 
     /**
      * Fetch the current state, if [fetchFullState] is true a new full state will be fetched and will replace the
@@ -217,20 +219,27 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
     }
 
     open fun run() {
+        logger.info("Continue")
         send(1)
     }
-    fun halt() = send(2)
+    fun halt() {
+        logger.info("Kill execution")
+        send(2)
+    }
     fun pause() {
+        logger.info("Pause")
         send(3)
         messageQueue.waitForResponse("PAUSE!")
     }
     open fun stepInto() {
+        logger.info("Step into")
         //snapshotStack.add(currentSnapshot!!)
         send(4)
         messageQueue.waitForResponse("STEP!")
         //currentSnapshot = snapshotFull().second
     }
     open fun stepOver() {
+        logger.info("Step over")
         commandBreakpoint = true
         send(5)
         messageQueue.waitForResponse {
@@ -295,6 +304,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
     }
 
     open fun stepBack(n: Int = 1, stepDone: () -> Unit = {}) {
+        logger.info("Step back $n instruction(s)")
         if (n == 0) {
             return
         }
@@ -364,6 +374,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
     }
 
     fun addBreakpoint(address: Int) {
+        logger.info("Add breakpoint at $address")
         send(6, String.format("%08x", address))
         messageQueue.waitForResponse("BP $address!")
 
@@ -376,6 +387,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
         }
     }
     fun removeBreakpoint(address: Int) {
+        logger.info("Remove breakpoint at $address")
         send(7, String.format("%08x", address))
         messageQueue.waitForResponse("BP $address!")
 
@@ -409,7 +421,10 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
         }*/
         println("continueFor done!")
     }
-    open fun continueFor(n: Int) = internalContinueFor(n)
+    open fun continueFor(n: Int) {
+        logger.info("Continue for $n instruction(s)")
+        internalContinueFor(n)
+    }
     fun inspect(vararg states: ExecutionState): WOODDumpResponse {
         var payload = String.format("%04x", states.size)
         for (state in states) {
@@ -426,6 +441,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
     fun dumpLocals() = send(11)
     fun dumpStateAndLocals() = send(12)
     open fun reset() {
+        logger.info("Reset VM")
         val firstState = checkpoints.first()
         checkpoints.clear()
         checkpoints.add(firstState)
@@ -435,6 +451,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
     }
 
     fun snapshot(): String {
+        logger.info("Take snapshot")
         send(60)
         return messageQueue.waitForResponse {
             WOODState.fromLine(it)
@@ -450,6 +467,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
         loadSnapshot(WOODState.parseSnapshot(payload))
     }
     open fun loadSnapshot(snapshot: WOODDumpResponse) {
+        logger.info("Load snapshot")
         val woodState = WOODState(snapshot)
         val messages = woodState.toBinary()
         println(messages)
@@ -465,6 +483,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
     }
 
     open fun addPrimitiveOverride(primName: String, args: List<Int>, returnValue: Int): Boolean {
+        logger.info("Mock primitive $primName(${args.joinToString(", ")}) = $returnValue")
         val primNameSerialised = primName.chars().toList().joinToString("") { c: Int -> String.format("%02x", c) } + "00"
         val payload = primNameSerialised + args.joinToString { String.format("%08x", it) } + String.format("%08x", returnValue)
         send(80, payload)
@@ -472,6 +491,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
     }
 
     open fun removePrimitiveOverride(primName: String, args: List<Int>): Boolean {
+        logger.info("Remove primitive mock $primName(${args.joinToString(", ")})")
         val primNameSerialised = primName.chars().toList().joinToString("") { c: Int -> String.format("%02x", c) } + "00"
         val payload = primNameSerialised + args.joinToString { String.format("%08x", it) }
         send(81, payload)
@@ -479,6 +499,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
     }
 
     fun updateModule(wasmFilename: String) {
+        logger.info("Update module from $wasmFilename")
         val bytes = File(wasmFilename).readBytes()
         sendRaw("22${HexaEncoder.convertToLEB128(bytes.size)}" + HexFormat.of().formatHex(bytes) + "\n")
         messageQueue.waitForResponse("CHANGE Module!")
@@ -511,6 +532,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
     }
 
     fun setSnapshotPolicy(policy: SnapshotPolicy) {
+        logger.info("Set snapshot policy to $policy")
         sendRaw("61${policy.serialize()}\n")
         messageQueue.waitForResponse("ack61")
     }
