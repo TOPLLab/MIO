@@ -27,6 +27,7 @@ import java.io.File
 import java.io.IOException
 import javax.swing.*
 import javax.swing.JOptionPane.ERROR_MESSAGE
+import javax.swing.JOptionPane.YES_NO_OPTION
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 import javax.swing.table.DefaultTableModel
@@ -536,14 +537,47 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
             thread {
                 // TODO: Reimplement
                 // Disable breakpoints
-                /*val breakpointsStart = multiverseDebugger.checkpoints.last()!!.snapshot.breakpoints!!
+                val breakpointsStart = multiverseDebugger.checkpoints.last()!!.snapshot.breakpoints!!
                 for (breakpoint in breakpointsStart) {
                     multiverseDebugger.removeBreakpoint(breakpoint)
                 }
 
                 multiverseDebugger.printCheckpoints(multiverseDebugger.wasmBinary.metadata)
 
-                val backwardsLength = graphPanel.selectedPath!!.first.size
+                val forwardPath = graphPanel.selectedPath!!.second.toMutableList()
+                if (graphPanel.reset) {
+                    if (JOptionPane.showConfirmDialog(this, "This operation will restart the execution, continue?", "Restart program", YES_NO_OPTION, ERROR_MESSAGE) == JOptionPane.NO_OPTION) {
+                        customButton.isEnabled = true
+                        followButton.isEnabled = true
+                        graphPanel.allowSelection = true
+                        concolicButton.isEnabled = true
+                        stateChanged(null, 1.0)
+                        return@thread
+                    }
+                    multiverseDebugger.reset()
+                }
+
+                // Perform actual slide operation.
+                // Amount of instructions that still need to be stepped forward at the end.
+                var continueCount = graphPanel.selectedValue!!.instructionOffset
+                if (forwardPath.size == 1 && graphPanel.selectedValue!!.value == multiverseDebugger.graph.currentNode) {
+                    continueCount = graphPanel.selectedValue!!.instructionOffset - multiverseDebugger.graph.instructionOffset
+                }
+                if (forwardPath.size > 1) {
+                    val stepCount = forwardPath[0].instrExecuted - multiverseDebugger.graph.instructionOffset
+                    multiverseDebugger.continueFor(stepCount)
+                    for (i in 1 ..< forwardPath.size - 1) {
+                        val valueIndex = forwardPath[i-1].children.indexOf(forwardPath[i])
+                        multiverseDebugger.addPrimitiveOverride(forwardPath[i].primitive, forwardPath[i].arg, forwardPath[i - 1].values[valueIndex])
+                        multiverseDebugger.continueFor(1 + forwardPath[i].instrExecuted)
+                    }
+                    val valueIndex = forwardPath[forwardPath.size - 2].children.indexOf(forwardPath[forwardPath.size - 1])
+                    multiverseDebugger.addPrimitiveOverride(forwardPath.last().primitive, forwardPath.last().arg, forwardPath[forwardPath.size - 2].values[valueIndex])
+                    continueCount += 1
+                }
+                multiverseDebugger.continueFor(continueCount)
+
+                /*val backwardsLength = graphPanel.selectedPath!!.first.size
                 val forwardsLength = graphPanel.selectedPath!!.second.size
                 val totalLength = backwardsLength + forwardsLength
                 val backwardPath = graphPanel.selectedPath!!.first.toMutableList()
@@ -593,7 +627,7 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
                         graphPanel.repaint()
                     }
                 }
-                graphPanel.repaint()
+                graphPanel.repaint()*/
                 // Re-enable breakpoints
                 for (breakpoint in breakpointsStart) {
                     multiverseDebugger.addBreakpoint(breakpoint)
@@ -601,7 +635,8 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
                 stateChanged(multiverseDebugger.checkpoints.last(), 1.0)
                 //debugger.continueFor(forwardPath.size - 1)
 
-                graphPanel.completedPath.add(forwardPath.last())
+                // TODO: Re-enable 06/08/2026
+                //graphPanel.completedPath.add(forwardPath.last())
                 graphPanel.repaint()
 
                 //multiverseDebugger.graph.currentNode = forwardPath.last()
@@ -614,7 +649,7 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
                 graphPanel.clearSelection()
                 customButton.isEnabled = true
                 graphPanel.allowSelection = true
-                concolicButton.isEnabled = true*/
+                concolicButton.isEnabled = true
             }
         }
 
