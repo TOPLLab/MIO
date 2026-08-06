@@ -414,7 +414,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
     }
 
     override fun mousePressed(p0: MouseEvent) {
-        println("Mouse pressed")
+        //println("Mouse pressed")
         startPos = p0.point
     }
 
@@ -425,7 +425,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
     }
     private var draggingScrollBar = MouseState.None
     override fun mouseReleased(e: MouseEvent) {
-        println("Mouse released")
+        //println("Mouse released")
         if (draggingScrollBar == MouseState.Pressed) {
             draggingScrollBar = MouseState.None
             repaint()
@@ -447,7 +447,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
     }
 
     override fun mouseDragged(e: MouseEvent) {
-        println("Mouse dragged")
+        //println("Mouse dragged")
         if (e.button != MouseEvent.BUTTON1) {
             e.consume()
             return
@@ -469,7 +469,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
             return
         }
 
-        println("" + e.x + " " + e.y)
+        //println("" + e.x + " " + e.y)
         xOffset -= (delta.x / scaleFactor).toInt()
         yOffset -= (delta.y / scaleFactor).toInt()
         repaint()
