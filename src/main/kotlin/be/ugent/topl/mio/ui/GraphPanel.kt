@@ -197,13 +197,15 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         return true
     }
 
+    private val collapsedMap = mutableMapOf<MultiverseNode, Boolean>()
+
     private fun drawGraph(g: Graphics2D, node: MultiverseNode, x: Int = 0, y: Int = 0): Triple<Point, Int, Int> {
         //println("Draw subgraph at $x")
         val newPoints = mutableListOf<Point>()
         var currentHeight = 0
         //val collapsed = true && graph.currentNode != node // TODO: make this a node property
         //val collapsed = true
-        val collapsed = true
+        val collapsed = collapsedMap.getOrPut(node) { true }
         val count = if (collapsed) min(1, node.totalInstrExecuted) else node.totalInstrExecuted
         val edgeLength = if (collapsed) collapsedDetEdgeLength else detEdgeLength
         val widthConsumed = count * (edgeLength + d)
@@ -325,6 +327,8 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
             g.color = secondaryColour
             g.fillOval(point.x, point.y, d, d)
             g.color = primaryColour
+        } else if (collapsedMap[node.node]!! && node.node === graph.currentNode) {
+            currentNode = Node(point.x, point.y, d, d, GraphPanel.NodeLocation(graph.currentNode, graph.instructionOffset))
         }
 
         // Update nodes for selection
