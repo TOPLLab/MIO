@@ -635,12 +635,9 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
                 stateChanged(multiverseDebugger.checkpoints.last(), 1.0)
                 //debugger.continueFor(forwardPath.size - 1)
 
-                // TODO: Re-enable 06/08/2026
-                //graphPanel.completedPath.add(forwardPath.last())
                 graphPanel.repaint()
 
                 //multiverseDebugger.graph.currentNode = forwardPath.last()
-                graphPanel.completedPath.clear()
                 graphPanel.selectedNodes.clear()
                 graphPanel.repaint()
 

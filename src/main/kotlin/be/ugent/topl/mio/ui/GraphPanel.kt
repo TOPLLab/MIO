@@ -149,7 +149,15 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         println("Finished writing")
     }
 
+    private var prevCurrentNode: MultiverseNode = graph.currentNode
+
     private fun drawPaths(g: Graphics2D, rootNode: MultiverseNode) {
+        if (prevCurrentNode != graph.currentNode) {
+            // We moved, remove the previous node from selected.
+            selectedNodes.remove(prevCurrentNode)
+            prevCurrentNode = graph.currentNode
+        }
+
         val xStart = g.fontMetrics.stringWidth(rootNode.displayName)/2
         val yPadding = 15
         val result = drawGraph(g, rootNode, x = xStart + 5, yPadding)
@@ -167,9 +175,6 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
             }
 
             g.color = secondaryColour
-            if (completedPath.contains(destNode)) {
-                g.color = green
-            }
         }
     }
 
@@ -314,21 +319,15 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
             g.color = primaryColour
         } else if (inSelectedPath(node)) {
             g.color = secondaryColour
-            /*if (completedPath.contains(node)) {
-                g.color = green
-                if (node == completedPath.last()) {
-                    lastCompleted = Node(point.x, point.y, d, d, node)
-                }
-            }*/
             g.fillOval(point.x, point.y, d, d)
             g.color = primaryColour
         } else if (node.node === graph.currentNode && node.instructionOffset == graph.instructionOffset) {
-            currentNode = Node(point.x, point.y, d, d, GraphPanel.NodeLocation(graph.currentNode, graph.instructionOffset))
+            currentNode = Node(point.x, point.y, d, d, NodeLocation(graph.currentNode, graph.instructionOffset))
             g.color = secondaryColour
             g.fillOval(point.x, point.y, d, d)
             g.color = primaryColour
         } else if (collapsedMap[node.node]!! && node.node === graph.currentNode) {
-            currentNode = Node(point.x, point.y, d, d, GraphPanel.NodeLocation(graph.currentNode, graph.instructionOffset))
+            currentNode = Node(point.x, point.y, d, d, NodeLocation(graph.currentNode, graph.instructionOffset))
         }
 
         // Update nodes for selection
@@ -393,7 +392,6 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
     var selectedNodes = mutableSetOf<MultiverseNode>()
     var selectedPath: Pair<List<MultiverseNode>, List<MultiverseNode>>? = null
     var reset = true
-    var completedPath = mutableSetOf<MultiverseNode>()
     override fun mouseClicked(e: MouseEvent) {
         if (e.button == MouseEvent.BUTTON3) {
             JPopupMenu().apply {
