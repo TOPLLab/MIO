@@ -281,7 +281,7 @@ class InteractiveDebugger(
                 }
             }
         })
-        //toolBar.add(consoleToggle)
+        toolBar.add(consoleToggle)
         toolBar.add(progressBar)
 
         val theme =
