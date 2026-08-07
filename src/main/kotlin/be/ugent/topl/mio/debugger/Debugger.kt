@@ -483,7 +483,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
     open fun addPrimitiveOverride(primName: String, args: List<Int>, returnValue: Int): Boolean {
         logger.info("Mock primitive $primName(${args.joinToString(", ")}) = $returnValue")
         val primNameSerialised = primName.chars().toList().joinToString("") { c: Int -> String.format("%02x", c) } + "00"
-        val payload = primNameSerialised + args.joinToString { String.format("%08x", it) } + String.format("%08x", returnValue)
+        val payload = primNameSerialised + args.joinToString("") { String.format("%08x", it) } + String.format("%08x", returnValue)
         send(80, payload)
         return messageQueue.waitForAck("80")[0] == "1"
     }
