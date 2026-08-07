@@ -32,6 +32,8 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
     val barHeight = UIManager.getInt("ScrollBar.width")
     private val green = if (!FlatLaf.isLafDark()) Color(89, 158, 94) else Color(136, 207, 131)
     private val d = 20
+    private val detEdgeLength = 30
+    private val collapsedDetEdgeLength = 100
     private val hSpace = 100
     private var renderedHeight = 100
     private var renderedWidth = 100
@@ -201,9 +203,10 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         var currentHeight = 0
         //val collapsed = true && graph.currentNode != node // TODO: make this a node property
         //val collapsed = true
-        val collapsed = false
-        var count = if (collapsed) min(1, node.totalInstrExecuted) else node.totalInstrExecuted
-        val widthConsumed = count * (node.edgeLength + d)
+        val collapsed = true
+        val count = if (collapsed) min(1, node.totalInstrExecuted) else node.totalInstrExecuted
+        val edgeLength = if (collapsed) collapsedDetEdgeLength else detEdgeLength
+        val widthConsumed = count * (edgeLength + d)
         for (child in node.children) {
             val result = drawGraph(g, child, x + widthConsumed + child.edgeLength, y + currentHeight)
             currentHeight += result.second
@@ -241,7 +244,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
         var currentX = x
         repeat(count) { offset ->
             val prevPoint = Point(currentX, y + currentHeight / 2 - d / 2)
-            currentX += node.edgeLength + d
+            currentX += edgeLength + d
             val point = Point(currentX, y + currentHeight / 2 - d / 2)
             g.color = borderColour
             // If the node itself is part of the selected path it will get a color if the offset is below the selected
@@ -253,7 +256,8 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
             else {
                 curvedLine(prevPoint.x + d, prevPoint.y + d/2, point.x, point.y + d/2, g)
             }
-            drawNode(g, NodeLocation(node, offset + 1), point)
+            var instructionOffset = if (collapsed) node.totalInstrExecuted else offset + 1
+            drawNode(g, NodeLocation(node, instructionOffset), point)
         }
 
         val prevPoint = Point(x, y + currentHeight / 2 - d / 2)
