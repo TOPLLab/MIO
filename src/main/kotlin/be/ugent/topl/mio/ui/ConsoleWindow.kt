@@ -2,13 +2,9 @@ package be.ugent.topl.mio.ui
 
 import be.ugent.topl.mio.debugger.Debugger
 import java.awt.BorderLayout
-import java.awt.Checkbox
 import java.awt.Dimension
 import java.awt.Font
-import javax.swing.JCheckBox
-import javax.swing.JFrame
-import javax.swing.JScrollPane
-import javax.swing.JTextArea
+import javax.swing.*
 import javax.swing.text.DefaultCaret
 import javax.swing.text.StyleContext
 
@@ -25,8 +21,17 @@ class ConsoleWindow(debugger: Debugger) : JFrame("Console") {
         caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE)
         layout = BorderLayout()
         add(scrollPane, BorderLayout.CENTER)
+        val stayAbove = JCheckBox("Stay on top", false).apply {
+            addActionListener {
+                isAlwaysOnTop = isSelected
+            }
+        }
         val emuCheckBox = JCheckBox("EMU Only", true)
-        add(emuCheckBox, BorderLayout.SOUTH)
+        val optionBox = Box.createHorizontalBox().apply {
+            add(emuCheckBox)
+            add(stayAbove)
+        }
+        add(optionBox, BorderLayout.SOUTH)
         debugger.printListener = { msg ->
             if (emuCheckBox.isSelected) {
                 if (msg.startsWith("EMU: ")) {
@@ -37,6 +42,6 @@ class ConsoleWindow(debugger: Debugger) : JFrame("Console") {
                 textArea.text += msg + "\n"
             }
         }
-        isAlwaysOnTop = true
+        isAlwaysOnTop = stayAbove.isSelected
     }
 }
