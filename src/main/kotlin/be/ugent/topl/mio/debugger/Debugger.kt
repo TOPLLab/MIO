@@ -376,7 +376,8 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
         send(6, String.format("%08x", address))
         messageQueue.waitForResponse("BP $address!")
 
-        val s = checkpoints.last()!!.snapshot
+        // Get a new state with breakpoints, fetch one if we don't have it yet.
+        val s = getCurrentState(getCurrentState().breakpoints == null)
         s.breakpoints = s.breakpoints!!.toMutableList() + address
     }
     fun enableBreakpoints(breakpoints: List<Int>) {
