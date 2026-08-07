@@ -19,9 +19,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
     var printListener: ((String) -> Unit)? = null
     private val messageQueue = MessageQueue {
         for (msg in it) {
-            if (msg.startsWith("EMU: ")) {
-                this.printListener?.invoke(msg.substring(5))
-            }
+            this.printListener?.invoke(msg)
         }
     }
     val errorHandlers = mutableListOf<(String) -> Unit>()
