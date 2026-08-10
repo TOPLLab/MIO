@@ -47,8 +47,8 @@ class DisassemblyWindow(debugger: Debugger, wasmFile: String) : JFrame("Disassem
             val command = listOf("wasm-objdump", "-d", wasmFile)
             println("Running command: ${command.joinToString(" ")}")
             val process = ProcessBuilder(command).redirectErrorStream(true).start()
+            val result = process.inputStream.readAllBytes().toString(Charsets.UTF_8)
             process.waitFor()
-            var result = process.inputStream.readAllBytes().toString(Charsets.UTF_8)
             val startString = "Code Disassembly:\n\n"
             return result.substring(result.indexOf(startString) + startString.length)
         } catch (e: IOException) {
