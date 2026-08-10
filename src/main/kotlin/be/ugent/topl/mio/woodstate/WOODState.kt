@@ -617,7 +617,7 @@ class WOODState(woodResponse: WOODDumpResponse) {
         logger.trace("--------------")
         logger.trace("Found ${woodResponse.overrides.size} active overrides.")
         serializeList(stateMsgs, ExecutionStateType.overridesState, woodResponse.overrides) {
-            HexaEncoder.serializeUInt32BE(it.fidx) + it.args.joinToString { HexaEncoder.serializeUInt32BE(it) } + HexaEncoder.serializeUInt32BE(it.return_value)
+            HexaEncoder.serializeUInt32BE(it.fidx) + it.args.joinToString("") { HexaEncoder.serializeUInt32BE(it) } + HexaEncoder.serializeUInt32BE(it.return_value)
         }
     }
 
