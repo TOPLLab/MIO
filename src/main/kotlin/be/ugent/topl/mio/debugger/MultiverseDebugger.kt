@@ -252,6 +252,46 @@ class MultiverseDebugger(
         }
     }
 
+    /**
+     * Navigate to [targetNode] at [targetInstructionOffset] in the multiverse graph. If this state is earlier in time
+     * or in a different branch, the execution will first reset and then re-execute from the root node.
+     */
+    fun slide(targetNode: MultiverseNode, targetInstructionOffset: Int) {
+        // Determine path.
+        val forwardPath = if (graph.currentNode.findPath(targetNode).isEmpty() ||
+            (graph.currentNode == targetNode && graph.instructionOffset > targetInstructionOffset)) {
+            reset() // The current node is earlier in time or in a different branch so we reset the execution.
+            graph.rootNode.findPath(targetNode)
+        }
+        else {
+            graph.currentNode.findPath(targetNode)
+        }
+
+
+        // Perform actual slide operation. We do this without breakpoints because we don't want the VM to stop in the
+        // middle of the slide operation. The user wants to go to a particular node, not stop in between on random
+        // re-executed instructions.
+        withoutBreakpoints {
+            var continueCount = targetInstructionOffset
+            if (forwardPath.size == 1 && targetNode == graph.currentNode) {
+                continueCount = targetInstructionOffset - graph.instructionOffset
+            }
+            if (forwardPath.size > 1) {
+                val stepCount = forwardPath[0].totalInstrExecuted - graph.instructionOffset
+                continueFor(stepCount)
+                for (i in 1 ..< forwardPath.size - 1) {
+                    val valueIndex = forwardPath[i-1].children.indexOf(forwardPath[i])
+                    addPrimitiveOverride(forwardPath[i].primitive, forwardPath[i].arg, forwardPath[i - 1].values[valueIndex])
+                    continueFor(1 + forwardPath[i].totalInstrExecuted)
+                }
+                val valueIndex = forwardPath[forwardPath.size - 2].children.indexOf(forwardPath[forwardPath.size - 1])
+                addPrimitiveOverride(forwardPath.last().primitive, forwardPath.last().arg, forwardPath[forwardPath.size - 2].values[valueIndex])
+                continueCount += 1
+            }
+            continueFor(continueCount)
+        }
+    }
+
     fun predictFuture(maxInstructions: Int = 50, maxSymbolicVariables: Int = -1, maxIterations: Int = -1, stopPc: Int = -1): Boolean {
         val result = analyse(
             symbolicWdcliPath,
