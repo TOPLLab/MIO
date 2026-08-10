@@ -5,27 +5,31 @@ import kotlin.streams.toList
 class HexaEncoder {
     companion object {
         fun serializeBool(b: Boolean): String {
-            return serializeUInt(if (b) 1 else 0, 1, true)
+            return serializeUInt(if (b) 1U else 0U, 1, true)
         }
 
         fun serializeUInt8(n: Int): String {
-            return serializeUInt(n, 1, true)
+            return serializeUInt(n.toUInt(), 1, true)
         }
 
         fun serializeUInt16BE(n: Int): String {
-            return serializeUInt(n, 2, true)
+            return serializeUInt(n.toUInt(), 2, true)
         }
 
         fun serializeUInt32BE(n: Int): String {
+            return serializeUInt(n.toUInt(), 4, true)
+        }
+
+        fun serializeUInt32BE(n: UInt): String {
             return serializeUInt(n, 4, true)
         }
 
         fun serializeInt32LE(n: Int): String {
-            return serializeUInt(n, 4, false)
+            return serializeUInt(n.toUInt(), 4, false)
         }
 
         fun serializeUInt32LE(n: Int): String {
-            return serializeUInt(n, 4, false)
+            return serializeUInt(n.toUInt(), 4, false)
         }
 
         fun serializeBigUInt64LE(n: Long): String {
@@ -41,15 +45,15 @@ class HexaEncoder {
             return if (bigendian) str else hexStringBEToLE(str)
         }
 
-        fun serializeUInt(n: Int, amountBytes: Int, bigendian: Boolean): String {
+        fun serializeUInt(n: UInt, amountBytes: Int, bigendian: Boolean): String {
             if (amountBytes < 1 || amountBytes > 4) {
                 throw Error("invalid amount of bytes")
             }
             // We have 4 bytes, our number is limited to amountBytes so we throw away the other bytes.
             val shift = (4 - amountBytes) * 8
-            val nLimited = ((n shl shift) ushr shift)
+            val nLimited = ((n shl shift) shr shift)
 
-            val str = String.format("%0${amountBytes*2}x", nLimited)
+            val str = String.format("%0${amountBytes*2}x", nLimited.toLong())
             if (!bigendian) {
                 return str.chunked(2).reversed().joinToString(separator = "")
             }

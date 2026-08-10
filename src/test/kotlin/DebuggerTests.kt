@@ -59,7 +59,7 @@ class DebuggerTests : DebuggerTestBase() {
         val results = mutableListOf<Triple<Int, Double, Debugger.SnapshotPolicy>>()
         for (policy in listOf(
             //      Debugger.SnapshotPolicy.None(),
-            Debugger.SnapshotPolicy.Checkpointing(1),
+            Debugger.SnapshotPolicy.Checkpointing(1U),
             /*Debugger.SnapshotPolicy.Checkpointing(5),
             Debugger.SnapshotPolicy.Checkpointing(10),
             Debugger.SnapshotPolicy.Checkpointing(50),
@@ -96,7 +96,7 @@ class DebuggerTests : DebuggerTestBase() {
         //val connection = ProcessConnection(wdcliPath, getFile("blink.wasm").path, "--no-socket")
         val connection = ProcessConnection(wdcliPath, getFile("/home/maarten/Documents/Projects/maarten-thesis-23-24/wardbg/src/test/resources/prime/prime-no-mem.wasm").path, "--no-socket")
         val debugger = Debugger(connection)
-        debugger.setSnapshotPolicy(Debugger.SnapshotPolicy.Checkpointing(100))
+        debugger.setSnapshotPolicy(Debugger.SnapshotPolicy.Checkpointing(100U))
         debugger.pause()
         val count = debugger.checkpoints.size
         debugger.continueFor(1000)
@@ -108,8 +108,8 @@ class DebuggerTests : DebuggerTestBase() {
     fun `Test snapshot policy serialization`() {
         assertEquals("00", Debugger.SnapshotPolicy.None().serialize())
         assertEquals("01", Debugger.SnapshotPolicy.AtEveryInstruction().serialize())
-        assertEquals("0205", Debugger.SnapshotPolicy.Checkpointing(5).serialize())
-        assertEquals("02ff", Debugger.SnapshotPolicy.Checkpointing(255).serialize())
+        assertEquals("0205", Debugger.SnapshotPolicy.Checkpointing(5U).serialize())
+        assertEquals("02ff", Debugger.SnapshotPolicy.Checkpointing(255U).serialize())
     }
 
     @Test
@@ -139,7 +139,7 @@ class DebuggerTests : DebuggerTestBase() {
             xSorted.sort()
             for (n in xSorted) {
                 runWithDebugger(wasmFile, emulator = false) { debugger ->
-                    debugger.setSnapshotPolicy(Debugger.SnapshotPolicy.Checkpointing(checkpointInterval))
+                    debugger.setSnapshotPolicy(Debugger.SnapshotPolicy.Checkpointing(checkpointInterval.toUInt()))
                     var time = 0L
                     //val repeatCount = 50
                     //val repeatCount = 5
@@ -184,10 +184,10 @@ class DebuggerTests : DebuggerTestBase() {
     fun `Test stepBack performance, min max average time`(stepSize: Int) {*/
     fun `Test stepBack performance`() {
         val fileWriter = File("results.txt").bufferedWriter()
-        val results = mutableListOf<Pair<Triple<Int, Int, Int>, Triple<Long, Long, Double>>>()
+        val results = mutableListOf<Pair<Triple<Int, Int, UInt>, Triple<Long, Long, Double>>>()
         //for (checkpointInterval in listOf(1, 2, 5, 10)) {
         //for (checkpointInterval in listOf(1, 5, 10, 50, 100)) {
-        for (checkpointInterval in listOf(5, 10, 50, 100)) {
+        for (checkpointInterval in listOf(5U, 10U, 50U, 100U)) {
             for (stepSize in listOf(1, 3, 5, 8, 10, 15)) {
             //for (stepSize in listOf(5, 8, 10, 15)) {
                 val n = 200
@@ -250,7 +250,7 @@ class DebuggerTests : DebuggerTestBase() {
     @Test
     fun `x` () {
         runWithDebugger("prime/prime.wasm", false) {
-            it.setSnapshotPolicy(Debugger.SnapshotPolicy.Checkpointing(10))
+            it.setSnapshotPolicy(Debugger.SnapshotPolicy.Checkpointing(10U))
             it.continueFor(50)
         }
     }
@@ -265,7 +265,7 @@ class DebuggerTests : DebuggerTestBase() {
             runWithDebugger(wasmFile, false) {
                 var t = 0
                 val timings = mutableListOf<Pair<Int, Long>>()
-                it.setSnapshotPolicy(Debugger.SnapshotPolicy.Checkpointing(0xffffff))
+                it.setSnapshotPolicy(Debugger.SnapshotPolicy.Checkpointing(0xffffffU))
                 it.stepInto()
                 it.checkpoints[it.checkpoints.size - 1] = null
                 timings.add(Pair(t, timeElapsed {
@@ -312,7 +312,7 @@ class DebuggerTests : DebuggerTestBase() {
         val connection = ProcessConnection(wdcliPath, getFile(wasmFile).path, "--no-socket")
         val binaryInfo = getBinaryInfo(config.symbolicWdcliPath, getFile(wasmFile).absolutePath)
         val debugger = MultiverseDebugger(connection, WasmBinary(File(wasmFile), binaryInfo.getOrThrow()), config.symbolicWdcliPath)
-        debugger.setSnapshotPolicy(Debugger.SnapshotPolicy.Checkpointing(10))
+        debugger.setSnapshotPolicy(Debugger.SnapshotPolicy.Checkpointing(10U))
         debugger.pause()
         //debugger.continueFor(5)
         debugger.step(5)

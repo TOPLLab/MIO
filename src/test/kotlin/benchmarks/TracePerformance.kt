@@ -14,7 +14,7 @@ class TracePerformance : DebuggerTestBase() {
         for (policy in listOf(
             Debugger.SnapshotPolicy.None(),
             Debugger.SnapshotPolicy.Tracing(listOf(ExecutionState.ProgramCounter)),
-            Debugger.SnapshotPolicy.Checkpointing(0xffff)
+            Debugger.SnapshotPolicy.Checkpointing(0xffffU)
         )) {
             println("Policy $policy")
             val pairs = mutableListOf<Pair<Long, Long>>()

@@ -27,11 +27,11 @@ class Benchmarks : DebuggerTestBase() {
         val results = mutableListOf<Triple<Int, Double, Debugger.SnapshotPolicy>>()
         for (policy in listOf(
             Debugger.SnapshotPolicy.None(),
-            Debugger.SnapshotPolicy.Checkpointing(1),
-            Debugger.SnapshotPolicy.Checkpointing(5),
-            Debugger.SnapshotPolicy.Checkpointing(10),
-            Debugger.SnapshotPolicy.Checkpointing(50),
-            Debugger.SnapshotPolicy.Checkpointing(100))) {
+            Debugger.SnapshotPolicy.Checkpointing(1U),
+            Debugger.SnapshotPolicy.Checkpointing(5U),
+            Debugger.SnapshotPolicy.Checkpointing(10U),
+            Debugger.SnapshotPolicy.Checkpointing(50U),
+            Debugger.SnapshotPolicy.Checkpointing(100U))) {
 
             for (n in 250 ..< 1500 step 250) {
                 println("Progress $n/1500")
@@ -71,7 +71,7 @@ class Benchmarks : DebuggerTestBase() {
             runWithDebugger(wasmFile, useEmulator()) {
                 var t = 0
                 val timings = mutableListOf<Pair<Int, Long>>()
-                it.setSnapshotPolicy(Debugger.SnapshotPolicy.Checkpointing(0xffffff))
+                it.setSnapshotPolicy(Debugger.SnapshotPolicy.Checkpointing(0xffffffU))
                 it.stepInto()
                 it.checkpoints[it.checkpoints.size - 1] = null
                 timings.add(Pair(t, timeElapsed {

@@ -515,17 +515,18 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
         class AtEveryInstruction()  : SnapshotPolicy(1) {
             override fun toString() = "Snapshot at every instruction"
         }
-        data class Checkpointing(val interval: Int = 20) : SnapshotPolicy(2) {
+        data class Checkpointing(val interval: UInt = 20U) : SnapshotPolicy(2) {
             override fun serialize(): String {
                 return super.serialize() + HexaEncoder.serializeUInt32BE(interval)
             }
         }
-        data class Tracing(val states: List<ExecutionState>, val minimumArgCount: Int = 1) : SnapshotPolicy(3) {
+        data class Tracing(val states: List<ExecutionState>, val minimumArgCount: Int = 1, val interval: UInt = 0xffffffffU) : SnapshotPolicy(3) {
             override fun serialize(): String {
                 return super.serialize() +
                         HexaEncoder.convertToLEB128(minimumArgCount) +
                         HexaEncoder.convertToLEB128(states.size) +
-                        states.joinToString("") { HexaEncoder.convertToLEB128(it.ordinal + 1) }
+                        states.joinToString("") { HexaEncoder.convertToLEB128(it.ordinal + 1) } +
+                        HexaEncoder.serializeUInt32BE(interval)
             }
         }
     }
