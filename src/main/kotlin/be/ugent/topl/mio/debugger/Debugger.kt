@@ -492,7 +492,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
     open fun removePrimitiveOverride(primName: String, args: List<Int>): Boolean {
         logger.info("Remove primitive mock $primName(${args.joinToString(", ")})")
         val primNameSerialised = primName.chars().toList().joinToString("") { c: Int -> String.format("%02x", c) } + "00"
-        val payload = primNameSerialised + args.joinToString { String.format("%08x", it) }
+        val payload = primNameSerialised + args.joinToString("") { String.format("%08x", it) }
         send(81, payload)
         return messageQueue.waitForAck("81")[0] == "1"
     }

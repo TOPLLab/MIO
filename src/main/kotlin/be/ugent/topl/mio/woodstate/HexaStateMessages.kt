@@ -50,7 +50,7 @@ class HexaStateMessages(val messageSize: Int) {
         }
         val regexHexa = Regex("([0-9A-Fa-f]{2})*")
         if (!regexHexa.matches(payload)) {
-            throw Error("Payload should only contain hexa chars")
+            throw Error("Payload should only contain hexa chars, payload = \"$payload\"")
         }
     }
 
