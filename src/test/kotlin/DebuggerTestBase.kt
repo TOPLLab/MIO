@@ -1,4 +1,5 @@
 import be.ugent.topl.mio.DebuggerConfig
+import be.ugent.topl.mio.connections.Connection
 import be.ugent.topl.mio.connections.ProcessConnection
 import be.ugent.topl.mio.connections.SerialConnection
 import be.ugent.topl.mio.debugger.Debugger
@@ -13,13 +14,19 @@ abstract class DebuggerTestBase {
     }
 
     protected fun <T> runWithDebugger(file:String, emulator: Boolean = false, action: (Debugger) -> T): T {
-        val connection = if (emulator) ProcessConnection(wdcliPath, getFile(file).path, "--no-socket", "--paused") else SerialConnection(config.port ?: throw RuntimeException("Port was not configured!"))
-        val debugger = Debugger(connection)
+        val wasmFile = getFile(file)
+        val wasmFilePath = wasmFile.path
+        val connection = if (emulator) ProcessConnection(wdcliPath, wasmFilePath, "--no-socket", "--paused", workingDir = wasmFile.parentFile) else SerialConnection(config.port ?: throw RuntimeException("Port was not configured!"))
+        val debugger = createDebugger(connection, wasmFilePath)
         if (!emulator) {
             debugger.updateModule(getFile(file).absolutePath)
         }
         val x = action(debugger)
         debugger.close()
         return x
+    }
+
+    open fun createDebugger(connection: Connection, wasmFilePath: String): Debugger {
+        return Debugger(connection)
     }
 }

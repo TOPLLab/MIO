@@ -1,7 +1,9 @@
 package be.ugent.topl.mio.connections
 
-class ProcessConnection(vararg command: String, private val name: String ="ProcessConnection") : Connection {
-    private val process = ProcessBuilder(*command).start()
+import java.io.File
+
+class ProcessConnection(vararg command: String, private val name: String ="ProcessConnection", workingDir: File? = null) : Connection {
+    private val process = ProcessBuilder(*command).directory(workingDir).start()
 
     override fun bytesAvailable(): Int {
         return process.inputStream.available()

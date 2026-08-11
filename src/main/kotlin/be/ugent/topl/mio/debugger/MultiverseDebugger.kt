@@ -290,6 +290,10 @@ class MultiverseDebugger(
             }
             continueFor(continueCount)
         }
+
+        if (targetNode != graph.currentNode || targetInstructionOffset != graph.instructionOffset) {
+            throw Error("Incorrect slide path detected")
+        }
     }
 
     fun predictFuture(maxInstructions: Int = 50, maxSymbolicVariables: Int = -1, maxIterations: Int = -1, stopPc: Int = -1): Boolean {
