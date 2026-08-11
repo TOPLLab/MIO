@@ -426,12 +426,25 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
 
         val x = e.x/scaleFactor + xOffset
         val y = e.y/scaleFactor + yOffset
+        var clickedNode: Node? = null
         for (node in nodes) {
             if (x > node.x && y > node.y && x < node.x + node.w && y < node.y + node.h) {
-                selectedNode = node
+                clickedNode = node
+                break
             }
         }
-        if (selectedNode == null) return
+        if (clickedNode == null) return
+
+        if (e.button == MouseEvent.BUTTON2) {
+            val node = clickedNode.value.node
+            collapsedMap[node] = !collapsedMap[node]!!
+            e.consume()
+            repaint()
+            return
+        }
+
+        // We used BUTTON1 so it is a selection.
+        selectedNode = clickedNode
 
         //selectedPath = graph.rootNode.findPath(graph.currentNode, selectedValue!!)
         if (graph.currentNode.findPath(selectedValue!!.node).isEmpty() ||
@@ -467,7 +480,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
             draggingScrollBar = MouseState.None
             repaint()
         }
-        if (e.button != MouseEvent.BUTTON1) {
+        if (e.button == MouseEvent.BUTTON3) {
             mouseClicked(e)
             e.consume()
             return
