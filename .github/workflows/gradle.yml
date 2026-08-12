@@ -57,6 +57,9 @@ jobs:
     - name: Setup MIO
       run: ./gradlew setup
 
+    - name: Test slide
+      run: ./gradlew test --tests slide.SlideTest
+
     - name: Test concolic execution engine
       run: ./gradlew test --tests concolic.ConcolicTests
 
