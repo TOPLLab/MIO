@@ -42,21 +42,6 @@ class DisassemblyWindow(debugger: Debugger, wasmFile: String) : JFrame("Disassem
         debugger.registerCurrentStateListener(listener)
     }
 
-    private fun disassemble(wasmFile: String): String {
-        try {
-            val command = listOf("wasm-objdump", "-d", wasmFile)
-            println("Running command: ${command.joinToString(" ")}")
-            val process = ProcessBuilder(command).redirectErrorStream(true).start()
-            val result = process.inputStream.readAllBytes().toString(Charsets.UTF_8)
-            process.waitFor()
-            val startString = "Code Disassembly:\n\n"
-            return result.substring(result.indexOf(startString) + startString.length)
-        } catch (e: IOException) {
-            // Catch exception and add additional information.
-            throw IOException("An error occurred when attempting to disassemble the program, make sure the The WebAssembly Binary Toolkit is installed on your system.\n" + e.message)
-        }
-    }
-
     private fun highlightCurrentLine(currentState: WOODDumpResponse) {
         // IDEA: Would maybe be fun to highlight the instructions associated with the current line with the same color.
         val pc = currentState.pc!!
@@ -72,5 +57,20 @@ class DisassemblyWindow(debugger: Debugger, wasmFile: String) : JFrame("Disassem
                 scrollPane.gutter.addLineTrackingIcon(lineIndex, lineIcon, "Current pc")
             }
         }
+    }
+}
+
+fun disassemble(wasmFile: String): String {
+    try {
+        val command = listOf("wasm-objdump", "-d", wasmFile)
+        println("Running command: ${command.joinToString(" ")}")
+        val process = ProcessBuilder(command).redirectErrorStream(true).start()
+        val result = process.inputStream.readAllBytes().toString(Charsets.UTF_8)
+        process.waitFor()
+        val startString = "Code Disassembly:\n\n"
+        return result.substring(result.indexOf(startString) + startString.length)
+    } catch (e: IOException) {
+        // Catch exception and add additional information.
+        throw IOException("An error occurred when attempting to disassemble the program, make sure the The WebAssembly Binary Toolkit is installed on your system.\n" + e.message)
     }
 }
