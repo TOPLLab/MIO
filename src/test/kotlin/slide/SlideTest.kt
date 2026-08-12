@@ -26,21 +26,28 @@ class SlideTest : DebuggerTestBase() {
         return currentNode
     }
 
-    fun randomSlide(wasmFileName: String, snapshotInterval: Int = 0xf0000) {
+    fun randomSlide(wasmFileName: String, snapshotInterval: Int = 0xf0000, slideCount: Int = 3) {
         runWithDebugger(wasmFileName, true) { debugger ->
             debugger as MultiverseDebugger
             debugger.setSnapshotPolicy(Debugger.SnapshotPolicy.Tracing(listOf(ExecutionState.ProgramCounter), interval = snapshotInterval.toUInt()))
             debugger.reset()
             val depth = snapshotInterval * 5
             debugger.continueFor(depth)
-            val destNode = randomNode(debugger, depth)
-            val offset = if (destNode.totalInstrExecuted == 0) 0 else Random.nextInt(destNode.totalInstrExecuted)
-            debugger.slide(destNode, offset)
+            repeat(slideCount) {
+                val destNode = randomNode(debugger, depth)
+                val offset = if (destNode.totalInstrExecuted == 0) 0 else Random.nextInt(destNode.totalInstrExecuted)
+                debugger.slide(destNode, offset)
+            }
         }
     }
 
     @RepeatedTest(10)
-    fun `Random slide in temperature indicator program`() {
+    fun `Random slide in temperature indicator program - interval 20`() {
+        randomSlide("temp-indicator.wasm", 20)
+    }
+
+    @RepeatedTest(10)
+    fun `Random slide in temperature indicator program - interval 100`() {
         randomSlide("temp-indicator.wasm", 100)
     }
 
