@@ -114,7 +114,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
     val checkpoints = mutableListOf<Checkpoint?>()
     private val stateListeners = mutableListOf<(WOODDumpResponse) -> Unit>()
     private var commandBreakpoint = false
-    private val logger = LoggerFactory.getLogger(Debugger::class.java)
+    protected val logger = LoggerFactory.getLogger(Debugger::class.java)
 
     /**
      * Fetch the current state, if [fetchFullState] is true a new full state will be fetched and will replace the
@@ -281,12 +281,13 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
             return
 
         println("Checkpoints:")
-        for (checkpoint in checkpoints) {
+        for (i in checkpoints.indices) {
+            val checkpoint = checkpoints[i]
             if (checkpoint == null) {
-                println("|")
+                println("| offset = $i")
             }
             else {
-                print("* pc = ${checkpoint.snapshot.pc}")
+                print("* offset = $i, pc = ${checkpoint.snapshot.pc} (0x${checkpoint.snapshot.pc!!.toString(16)})")
                 if (binaryInfo != null) {
                     if (checkpoint.snapshot.pc in binaryInfo.primitive_calls) {
                         print(" CALL Primitive")
@@ -469,7 +470,6 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
         logger.info("Load snapshot")
         val woodState = WOODState(snapshot)
         val messages = woodState.toBinary()
-        println(messages)
         for (message in messages) {
             sendRaw(message)
             if (message != messages.last()) {

@@ -4,6 +4,7 @@ import WasmBinary
 import be.ugent.topl.mio.concolic.analyse
 import be.ugent.topl.mio.concolic.processPaths
 import be.ugent.topl.mio.connections.Connection
+import be.ugent.topl.mio.ui.disassemble
 import be.ugent.topl.mio.woodstate.Checkpoint
 import be.ugent.topl.mio.woodstate.WOODDumpResponse
 import be.ugent.topl.mio.woodstate.WasmStackValue
@@ -252,19 +253,99 @@ class MultiverseDebugger(
         }
     }
 
+    private fun restoreBestSnapshotForPath(maxValidInstrCount: Int): Int {
+        val searchUpTo = minOf(maxValidInstrCount, checkpoints.size - 1)
+        val currentBreakpoints = getCurrentState().breakpoints
+
+        for (timestep in searchUpTo downTo 1) {
+            // Step 1. Find snapshot to restore.
+            val checkpoint = checkpoints[timestep] ?: continue
+            val snapshot = checkpoint.snapshot
+            if (snapshot.memory == null || snapshot.globals == null || snapshot.table == null) continue
+
+            // Step 2. Restore that snapshot.
+            logger.info("Restoring snapshot at timestep $timestep")
+            loadSnapshot(snapshot.copy(breakpoints = currentBreakpoints))
+            checkpoints.subList(timestep + 1, checkpoints.size).clear()
+            logger.info("Checkpoints size = ${checkpoints.size}")
+
+            // Step 3. We have found a snapshot to restore, now we have to update the current node + instructionOffset.
+            // TODO: Check if checkpointsUpdated correctly moves us forward!
+            graph.currentNode = graph.rootNode
+            graph.instructionOffset = 0
+            len = 1 //TODO: This might have to be set to 1 since 0 is the rootnode, we don't really receive a new rootnode and go forward normally
+            // checkpointsUpdated will move forward from the rootnode using the checkpoints!
+            checkpointsUpdated()
+            logger.info("Restored snapshot at checkpoint $timestep (node=${graph.currentNode.displayName}, offset=${graph.instructionOffset}, maxInstructions=${graph.currentNode.totalInstrExecuted})")
+            graph.instructionOffset-- // TODO: Hack, I just added this to see if it would solve the problem, turns out it does
+            return timestep
+        }
+
+        println("No suitable snapshot found before instruction $maxValidInstrCount, falling back to full reset")
+        reset()
+        return 0
+    }
+
     /**
      * Navigate to [targetNode] at [targetInstructionOffset] in the multiverse graph. If this state is earlier in time
-     * or in a different branch, the execution will first reset and then re-execute from the root node.
+     * or in a different branch, the execution will restore the closest available full snapshot before the target,
+     * falling back to a full reset if none exists.
      */
     fun slide(targetNode: MultiverseNode, targetInstructionOffset: Int) {
+        logger.info("Sliding to $targetNode, offset = $targetInstructionOffset")
+        val needsRestore = graph.currentNode.findPath(targetNode).isEmpty() ||
+            (graph.currentNode == targetNode && graph.instructionOffset > targetInstructionOffset)
+
         // Determine path.
-        val forwardPath = if (graph.currentNode.findPath(targetNode).isEmpty() ||
-            (graph.currentNode == targetNode && graph.instructionOffset > targetInstructionOffset)) {
-            reset() // The current node is earlier in time or in a different branch so we reset the execution.
+        var forwardPath: List<MultiverseNode> = if (needsRestore) {
             graph.rootNode.findPath(targetNode)
-        }
-        else {
+        } else {
             graph.currentNode.findPath(targetNode)
+        }
+
+        if (needsRestore) {
+            // Step 1. Determine the length of the path that is shared, counted in nodes.
+            // First calculate the path to the current node.
+            val currentPath = graph.rootNode.findPath(graph.currentNode)
+            // Then find the intersection of the path to the current node from the root and the path from the root to
+            // the destination node.
+            val maxSharedLength = minOf(currentPath.size, forwardPath.size)
+            var sharedNodeLength = 0
+            while (sharedNodeLength < maxSharedLength && currentPath[sharedNodeLength] == forwardPath[sharedNodeLength]) {
+                sharedNodeLength++
+            }
+
+            // Step 2. Determine the shared instruction length.
+            var sharedInstructionCount = 0
+            for (i in 0 until sharedNodeLength - 1) {
+                sharedInstructionCount += forwardPath[i].totalInstrExecuted + 1
+                logger.info("[$i] Current count $sharedInstructionCount, node instruction count = ${forwardPath[i].totalInstrExecuted}")
+            }
+            // We always add the one non-deterministic insruction at the end, but we should not do this for the end part.
+            if (sharedNodeLength > 0) {
+                sharedInstructionCount -= 1
+            }
+            // If target and current node are the target is before the current instruction offset
+            if (graph.currentNode == targetNode) {
+                assert(targetInstructionOffset < graph.instructionOffset,
+                    { "When equal the target should be before the current node, otherwise we could have just walked forward" })
+                sharedInstructionCount -= targetInstructionOffset
+            }
+            logger.info("Current node path length = ${currentPath.size}")
+            logger.info("Target node path length = ${forwardPath.size}")
+            logger.info("Found $sharedInstructionCount shared instructions along the $sharedNodeLength node(s) long shared path")
+
+            // Step 3. Restore the closest snapshot before or at this instruction offset.
+            val restoredCount = restoreBestSnapshotForPath(sharedInstructionCount)
+            // Update the forwardPath, we can remove the nodes along the shared path.
+            // Maybe there is no valid snapshot so we reset, or it is far away, that's why we need [restoredCount].
+            if (restoredCount > 0) {
+                // Why do we need this indexOf, can't we just use restoredCount?
+                val restoredNodeIndex = forwardPath.indexOf(graph.currentNode)
+                if (restoredNodeIndex > 0) forwardPath = forwardPath.subList(restoredNodeIndex, forwardPath.size)
+            }
+            printCheckpoints(wasmBinary.metadata)
+            logger.info("Remaining forward path length = ${forwardPath.size}")
         }
 
 
@@ -281,18 +362,31 @@ class MultiverseDebugger(
                 continueFor(stepCount)
                 for (i in 1 ..< forwardPath.size - 1) {
                     val valueIndex = forwardPath[i-1].children.indexOf(forwardPath[i])
+                    println("pc = 0x${getCurrentState().pc!!.toString(16)}")
+                    //println(disassemble(wasmBinary.file.absolutePath))
                     addPrimitiveOverride(forwardPath[i].primitive, forwardPath[i].arg, forwardPath[i - 1].values[valueIndex])
+                    if (graph.instructionOffset != graph.currentNode.totalInstrExecuted) {
+                        throw Error("Not at choice point, distance to choicepoint = ${graph.currentNode.totalInstrExecuted - graph.instructionOffset}")
+                    }
+                    println("${graph.currentNode} ${graph.instructionOffset} remaining = ${graph.currentNode.totalInstrExecuted - graph.instructionOffset}")
                     continueFor(1 + forwardPath[i].totalInstrExecuted)
+                    println("${graph.currentNode} ${graph.instructionOffset}")
                 }
                 val valueIndex = forwardPath[forwardPath.size - 2].children.indexOf(forwardPath[forwardPath.size - 1])
                 addPrimitiveOverride(forwardPath.last().primitive, forwardPath.last().arg, forwardPath[forwardPath.size - 2].values[valueIndex])
+                if (graph.instructionOffset != graph.currentNode.totalInstrExecuted) {
+                    // What appears to be going wrong is that we continue forward and are then at a choicepoint but then
+                    // the execution seems to mismatch,we are not at a choicepoint in the execution yet, and so we
+                    // actually add two more deterministic instructions to the current node, and so we miss on the next one.
+                    throw Error("Not at choice point, distance to choicepoint = ${graph.currentNode.totalInstrExecuted - graph.instructionOffset}")
+                }
                 continueCount += 1
             }
             continueFor(continueCount)
         }
 
         if (targetNode != graph.currentNode || targetInstructionOffset != graph.instructionOffset) {
-            throw Error("Incorrect slide path detected")
+            throw Error("Incorrect slide end destination")
         }
     }
 

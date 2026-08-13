@@ -371,7 +371,7 @@ class InteractiveDebugger(
 
     init {
         debugger.startReading()
-        debugger.setSnapshotPolicy(Debugger.SnapshotPolicy.Tracing(listOf(ExecutionState.ProgramCounter)))
+        debugger.setSnapshotPolicy(Debugger.SnapshotPolicy.Tracing(listOf(ExecutionState.ProgramCounter), interval = 0xf0000U))
         debugger.reset()
         debugger.graph.reset()
         pause()
