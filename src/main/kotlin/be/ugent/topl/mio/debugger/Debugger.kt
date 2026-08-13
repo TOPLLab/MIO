@@ -114,7 +114,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
     val checkpoints = mutableListOf<Checkpoint?>()
     private val stateListeners = mutableListOf<(WOODDumpResponse) -> Unit>()
     private var commandBreakpoint = false
-    private val logger = LoggerFactory.getLogger(Debugger::class.java)
+    protected val logger = LoggerFactory.getLogger(Debugger::class.java)
 
     /**
      * Fetch the current state, if [fetchFullState] is true a new full state will be fetched and will replace the
@@ -406,6 +406,8 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
         enableBreakpoints(breakpoints)
     }
     private fun internalContinueFor(n: Int) {
+        if (n < 0) throw IllegalArgumentException("$n should be positive")
+
         //Thread.sleep(n * 1L)
         val startLen = checkpoints.size
         send(8, String.format("%08x", n))

@@ -4,9 +4,11 @@ import WasmBinary
 import be.ugent.topl.mio.concolic.analyse
 import be.ugent.topl.mio.concolic.processPaths
 import be.ugent.topl.mio.connections.Connection
+import be.ugent.topl.mio.ui.disassemble
 import be.ugent.topl.mio.woodstate.Checkpoint
 import be.ugent.topl.mio.woodstate.WOODDumpResponse
 import be.ugent.topl.mio.woodstate.WasmStackValue
+import kotlin.collections.iterator
 
 class MultiverseGraph(var rootNode: MultiverseNode = MultiverseNode("main", listOf()), var currentNode: MultiverseNode = rootNode, var instructionOffset: Int = 0) {
     /**
@@ -49,6 +51,8 @@ open class MultiverseNode(
     var parent: MultiverseNode? = null,
     var totalInstrExecuted: Int = 0,
 ) {
+    val checkpoints: MutableList<Checkpoint> = mutableListOf()
+
     val displayName: String
         get() = "$primitive(${arg.joinToString(", ")})"
 
@@ -111,6 +115,10 @@ open class MultiverseNode(
     fun incDetInstrCount() {
         totalInstrExecuted++
     }
+
+    override fun toString(): String {
+        return "Node(displayName=\"${displayName}\", totalInstrExecuted = $totalInstrExecuted)"
+    }
 }
 
 class MultiverseDebugger(
@@ -163,6 +171,15 @@ class MultiverseDebugger(
         overrides[primName]?.remove(args)
         mockingUpdated()
         return result
+    }
+
+    fun removeAllPrimitiveOverrides() {
+        for (override in overrides.toMap()) {
+            val argReturnValuePairs = override.value
+            for (argSet in argReturnValuePairs.keys.toSet()) {
+                removePrimitiveOverride(override.key, argSet)
+            }
+        }
     }
 
     fun createNewPath(returnValue: Int, override: Boolean = true) {
@@ -238,13 +255,16 @@ class MultiverseDebugger(
                     val newNode = MultiverseNode(wasmBinary.metadata.primitives[checkpoint!!.fidx_called!!].name, checkpoint.args!!)
                     graph.currentNode.addChild(newNode, checkpoint.returns!!.first())
                     graph.currentNode = newNode
+                    addCheckpointToCurrentNode(checkpoint)
                 }
                 graph.instructionOffset = 0
             }
             // If deterministic, increment our counter.
             else {
+                // New deterministic instructions
                 graph.currentNode.incDetInstrCount()
                 graph.instructionOffset++
+                addCheckpointToCurrentNode(checkpoint)
             }
         } else {
             // Follow existing deterministic path
@@ -253,19 +273,121 @@ class MultiverseDebugger(
     }
 
     /**
+     * Should only be called when creating new parts, we should not store checkpoints for old sections that we traverse again.
+     * TODO: Will the counters be wrong if we are navigating partially an existing part and then create a partially a new part?
+     */
+    fun addCheckpointToCurrentNode(checkpoint: Checkpoint?) {
+        if (checkpoint != null) {
+            graph.currentNode.checkpoints.add(checkpoint)
+            var instructionCount = -graph.currentNode.checkpoints.first().instructions_executed // This one created the node.
+            for (checkpoint in graph.currentNode.checkpoints) {
+                instructionCount += checkpoint.instructions_executed
+            }
+            if (instructionCount > graph.currentNode.totalInstrExecuted) {
+                throw Error("This should not happen")
+            }
+        }
+    }
+
+    fun findValidSnapshot(checkPointNode: MultiverseNode, targetNode: MultiverseNode, targetInstructionOffset: Int): Pair<WOODDumpResponse, Int>? {
+        var currentOffset = 0
+        println(checkPointNode.checkpoints.map { "Checkpoint(function_called = ${if(it.fidx_called != null) wasmBinary.metadata.primitives[it.fidx_called] else null}, instructions_executed = ${it.instructions_executed})" }.joinToString())
+        for (checkpoint in checkPointNode.checkpoints) {
+            if (checkpoint != checkPointNode.checkpoints.first())
+                currentOffset += checkpoint.instructions_executed
+            println("Current offset = $currentOffset in node $checkPointNode")
+            // TODO: Use a function from woodstate to say if it's restorable
+            if (checkpoint.snapshot.memory != null) {
+                if (checkPointNode == targetNode) {
+                    if(targetInstructionOffset >= currentOffset)
+                        return Pair(checkpoint.snapshot, currentOffset)
+                }
+                else {
+                    return Pair(checkpoint.snapshot, currentOffset)
+                }
+            }
+        }
+        return null
+    }
+
+    fun determineForwardPathNonDescendant(targetNode: MultiverseNode, targetInstructionOffset: Int): List<MultiverseNode> {
+        // rCMD policy:
+        /*reset() // The current node is earlier in time or in a different branch so we reset the execution.
+        return graph.rootNode.findPath(targetNode)*/
+
+        val path = mutableListOf<MultiverseNode>() // visited path, should be inverted to go forwards
+        var currentNode = targetNode
+        var restorePoint = findValidSnapshot(currentNode, targetNode, targetInstructionOffset)
+        while (restorePoint == null && currentNode.parent != null) {
+            path.addFirst(currentNode)
+            currentNode = currentNode.parent!!
+            restorePoint = findValidSnapshot(currentNode, targetNode, targetInstructionOffset)
+        }
+        path.addFirst(currentNode)
+        if (currentNode.parent == null) {
+            // We went all the way to the rootnode and found no snapshots -> reset!
+            reset()
+        }
+        else {
+            // We found a valid snapshot to restore on the path back.
+            loadSnapshot(restorePoint!!.first)
+            graph.currentNode = currentNode
+            graph.instructionOffset = restorePoint.second
+            if (graph.instructionOffset > graph.currentNode.totalInstrExecuted) {
+                throw IllegalStateException("The instructionOffset cannot be larger than the maximum instruction count in the current node!")
+            }
+        }
+        return path
+    }
+
+    fun determineForwardPathDescendant(cNode: MultiverseNode, targetNode: MultiverseNode, targetInstructionOffset: Int): List<MultiverseNode> {
+        // rCMD policy:
+        /*reset() // The current node is earlier in time or in a different branch so we reset the execution.
+        return graph.rootNode.findPath(targetNode)*/
+
+        val path = mutableListOf<MultiverseNode>() // visited path, should be inverted to go forwards
+        var currentNode = targetNode
+        var restorePoint = findValidSnapshot(currentNode, targetNode, targetInstructionOffset)
+        while (restorePoint == null && currentNode != cNode) {
+            path.addFirst(currentNode)
+            currentNode = currentNode.parent!!
+            restorePoint = findValidSnapshot(currentNode, targetNode, targetInstructionOffset)
+        }
+        path.addFirst(currentNode)
+        if (currentNode == cNode) {
+            // We went all the way to the current node, now we just need to walk forward.
+        }
+        else {
+            // We found a valid snapshot to restore on the path back.
+            loadSnapshot(restorePoint!!.first)
+            graph.currentNode = currentNode
+            graph.instructionOffset = restorePoint.second
+        }
+        return path
+    }
+
+    /**
      * Navigate to [targetNode] at [targetInstructionOffset] in the multiverse graph. If this state is earlier in time
      * or in a different branch, the execution will first reset and then re-execute from the root node.
      */
     fun slide(targetNode: MultiverseNode, targetInstructionOffset: Int) {
+        logger.info("Slide to node = $targetNode, offset = $targetInstructionOffset")
+        logger.info("Current node = ${graph.currentNode}, offset = ${graph.instructionOffset}")
         // Determine path.
         val forwardPath = if (graph.currentNode.findPath(targetNode).isEmpty() ||
             (graph.currentNode == targetNode && graph.instructionOffset > targetInstructionOffset)) {
-            reset() // The current node is earlier in time or in a different branch so we reset the execution.
-            graph.rootNode.findPath(targetNode)
+            logger.info("Target is not a descendant of the current node")
+            // In this path we first restore or reset and then go forward/
+            determineForwardPathNonDescendant(targetNode, targetInstructionOffset)
         }
         else {
-            graph.currentNode.findPath(targetNode)
+            logger.info("Target is a descendant of the current node")
+            // In this path we could go forward from the current node or we restore a closer snapshot and then go forward.
+            //graph.currentNode.findPath(targetNode)
+            determineForwardPathDescendant(graph.currentNode, targetNode, targetInstructionOffset)
         }
+        logger.info("Forward path (len = ${forwardPath.size}) = $forwardPath")
+        logger.info("Current node = ${graph.currentNode}, offset = ${graph.instructionOffset}")
 
 
         // Perform actual slide operation. We do this without breakpoints because we don't want the VM to stop in the
@@ -281,7 +403,14 @@ class MultiverseDebugger(
                 continueFor(stepCount)
                 for (i in 1 ..< forwardPath.size - 1) {
                     val valueIndex = forwardPath[i-1].children.indexOf(forwardPath[i])
+                    println("pc = 0x${getCurrentState().pc!!.toString(16)}")
+                    //println(disassemble(wasmBinary.file.path))
                     addPrimitiveOverride(forwardPath[i].primitive, forwardPath[i].arg, forwardPath[i - 1].values[valueIndex])
+                    if (!wasmBinary.metadata.primitive_calls.contains(getCurrentState().pc)) {
+                        println(disassemble(wasmBinary.file.absolutePath))
+                        println(graph.instructionOffset != graph.currentNode.totalInstrExecuted)
+                        throw Error("Not at choice point according to pc = 0x${getCurrentState().pc!!.toString(16)}")
+                    }
                     if (graph.instructionOffset != graph.currentNode.totalInstrExecuted) {
                         throw Error("Not at choice point, distance to choicepoint = ${graph.currentNode.totalInstrExecuted - graph.instructionOffset}")
                     }
@@ -289,6 +418,8 @@ class MultiverseDebugger(
                 }
                 val valueIndex = forwardPath[forwardPath.size - 2].children.indexOf(forwardPath[forwardPath.size - 1])
                 addPrimitiveOverride(forwardPath.last().primitive, forwardPath.last().arg, forwardPath[forwardPath.size - 2].values[valueIndex])
+                println("pc = 0x${getCurrentState().pc!!.toString(16)}")
+                //println(disassemble(wasmBinary.file.path))
                 if (graph.instructionOffset != graph.currentNode.totalInstrExecuted) {
                     throw Error("Not at choice point, distance to choicepoint = ${graph.currentNode.totalInstrExecuted - graph.instructionOffset}")
                 }
@@ -298,7 +429,7 @@ class MultiverseDebugger(
         }
 
         if (targetNode != graph.currentNode || targetInstructionOffset != graph.instructionOffset) {
-            throw Error("Incorrect slide end destination")
+            throw Error("Incorrect slide end destination, nodes equal = ${targetNode != graph.currentNode}, offset difference = ${graph.instructionOffset - targetInstructionOffset}, current = ${graph.instructionOffset}, expected = ${targetInstructionOffset}, max instr = ${graph.currentNode.totalInstrExecuted}")
         }
     }
 

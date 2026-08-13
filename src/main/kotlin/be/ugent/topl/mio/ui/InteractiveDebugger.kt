@@ -137,6 +137,7 @@ class InteractiveDebugger(
         pauseButton.icon = pauseIcon
         pauseButton.addActionListener {
             if (paused) {
+                debugger.removeAllPrimitiveOverrides()
                 debugger.run()
                 pauseButton.icon = pauseIcon
             } else {
@@ -371,7 +372,7 @@ class InteractiveDebugger(
 
     init {
         debugger.startReading()
-        debugger.setSnapshotPolicy(Debugger.SnapshotPolicy.Tracing(listOf(ExecutionState.ProgramCounter)))
+        debugger.setSnapshotPolicy(Debugger.SnapshotPolicy.Tracing(listOf(ExecutionState.ProgramCounter), interval = 0xa0000U))
         debugger.reset()
         debugger.graph.reset()
         pause()
