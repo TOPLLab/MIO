@@ -282,17 +282,23 @@ class MultiverseDebugger(
                 for (i in 1 ..< forwardPath.size - 1) {
                     val valueIndex = forwardPath[i-1].children.indexOf(forwardPath[i])
                     addPrimitiveOverride(forwardPath[i].primitive, forwardPath[i].arg, forwardPath[i - 1].values[valueIndex])
+                    if (graph.instructionOffset != graph.currentNode.totalInstrExecuted) {
+                        throw Error("Not at choice point, distance to choicepoint = ${graph.currentNode.totalInstrExecuted - graph.instructionOffset}")
+                    }
                     continueFor(1 + forwardPath[i].totalInstrExecuted)
                 }
                 val valueIndex = forwardPath[forwardPath.size - 2].children.indexOf(forwardPath[forwardPath.size - 1])
                 addPrimitiveOverride(forwardPath.last().primitive, forwardPath.last().arg, forwardPath[forwardPath.size - 2].values[valueIndex])
+                if (graph.instructionOffset != graph.currentNode.totalInstrExecuted) {
+                    throw Error("Not at choice point, distance to choicepoint = ${graph.currentNode.totalInstrExecuted - graph.instructionOffset}")
+                }
                 continueCount += 1
             }
             continueFor(continueCount)
         }
 
         if (targetNode != graph.currentNode || targetInstructionOffset != graph.instructionOffset) {
-            throw Error("Incorrect slide path detected")
+            throw Error("Incorrect slide end destination")
         }
     }
 
