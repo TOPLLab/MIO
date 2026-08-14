@@ -310,23 +310,26 @@ class MultiverseDebugger(
         return null
     }
 
-    fun determineForwardPathNonDescendant(targetNode: MultiverseNode, targetInstructionOffset: Int): List<MultiverseNode> {
-        // rCMD policy:
-        /*reset() // The current node is earlier in time or in a different branch so we reset the execution.
-        return graph.rootNode.findPath(targetNode)*/
+    fun determineForwardPath(stopNode: MultiverseNode, targetNode: MultiverseNode, targetInstructionOffset: Int): List<MultiverseNode> {
+        if (stopNode != graph.currentNode && stopNode != graph.rootNode) {
+            throw IllegalArgumentException("stopNode should be the root node or the current node!")
+        }
 
         val path = mutableListOf<MultiverseNode>() // visited path, should be inverted to go forwards
         var currentNode = targetNode
         var restorePoint = findValidSnapshot(currentNode, targetNode, targetInstructionOffset)
-        while (restorePoint == null && currentNode.parent != null) {
+        while (restorePoint == null && currentNode != stopNode) {
             path.addFirst(currentNode)
             currentNode = currentNode.parent!!
             restorePoint = findValidSnapshot(currentNode, targetNode, targetInstructionOffset)
         }
         path.addFirst(currentNode)
-        if (currentNode.parent == null) {
-            // We went all the way to the rootnode and found no snapshots -> reset!
-            reset()
+        if (currentNode == stopNode) {
+            // We went all the way to the current node, now we just need to walk forward.
+            if (currentNode != graph.currentNode) {
+                // We will restart from the root -> reset first.
+                reset()
+            }
         }
         else {
             // We found a valid snapshot to restore on the path back.
@@ -336,32 +339,6 @@ class MultiverseDebugger(
             if (graph.instructionOffset > graph.currentNode.totalInstrExecuted) {
                 throw IllegalStateException("The instructionOffset cannot be larger than the maximum instruction count in the current node!")
             }
-        }
-        return path
-    }
-
-    fun determineForwardPathDescendant(cNode: MultiverseNode, targetNode: MultiverseNode, targetInstructionOffset: Int): List<MultiverseNode> {
-        // rCMD policy:
-        /*reset() // The current node is earlier in time or in a different branch so we reset the execution.
-        return graph.rootNode.findPath(targetNode)*/
-
-        val path = mutableListOf<MultiverseNode>() // visited path, should be inverted to go forwards
-        var currentNode = targetNode
-        var restorePoint = findValidSnapshot(currentNode, targetNode, targetInstructionOffset)
-        while (restorePoint == null && currentNode != cNode) {
-            path.addFirst(currentNode)
-            currentNode = currentNode.parent!!
-            restorePoint = findValidSnapshot(currentNode, targetNode, targetInstructionOffset)
-        }
-        path.addFirst(currentNode)
-        if (currentNode == cNode) {
-            // We went all the way to the current node, now we just need to walk forward.
-        }
-        else {
-            // We found a valid snapshot to restore on the path back.
-            loadSnapshot(restorePoint!!.first)
-            graph.currentNode = currentNode
-            graph.instructionOffset = restorePoint.second
         }
         return path
     }
@@ -377,14 +354,14 @@ class MultiverseDebugger(
         val forwardPath = if (graph.currentNode.findPath(targetNode).isEmpty() ||
             (graph.currentNode == targetNode && graph.instructionOffset > targetInstructionOffset)) {
             logger.info("Target is not a descendant of the current node")
-            // In this path we first restore or reset and then go forward/
-            determineForwardPathNonDescendant(targetNode, targetInstructionOffset)
+            // In this path we first restore or reset and then go forward.
+            determineForwardPath(graph.rootNode, targetNode, targetInstructionOffset)
         }
         else {
             logger.info("Target is a descendant of the current node")
-            // In this path we could go forward from the current node or we restore a closer snapshot and then go forward.
+            // In this path we could go forward from the current node, or we restore a closer snapshot and then go forward.
             //graph.currentNode.findPath(targetNode)
-            determineForwardPathDescendant(graph.currentNode, targetNode, targetInstructionOffset)
+            determineForwardPath(graph.currentNode, targetNode, targetInstructionOffset)
         }
         logger.info("Forward path (len = ${forwardPath.size}) = $forwardPath")
         logger.info("Current node = ${graph.currentNode}, offset = ${graph.instructionOffset}")
