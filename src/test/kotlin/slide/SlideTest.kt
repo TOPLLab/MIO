@@ -17,6 +17,11 @@ import kotlin.random.Random
 class SlideTest : DebuggerTestBase() {
     fun randomNode(debugger: MultiverseDebugger, depth: Int) : MultiverseNode {
         var remainingDepth = Random.nextInt(depth)
+        return randomNodeAtDepth(debugger, remainingDepth)
+    }
+
+    fun randomNodeAtDepth(debugger: MultiverseDebugger, depth: Int) : MultiverseNode {
+        var remainingDepth = depth
         println("Determining a random node at depth $remainingDepth")
         var currentNode = debugger.graph.rootNode
         while (remainingDepth > 0 && currentNode.children.isNotEmpty()) {
@@ -26,7 +31,7 @@ class SlideTest : DebuggerTestBase() {
         return currentNode
     }
 
-    fun randomSlide(wasmFileName: String, snapshotInterval: Int = 0xf0000, slideCount: Int = 3) {
+    fun randomSlide(wasmFileName: String, snapshotInterval: Int = 0xf0000, slideCount: Int = 3, depths: List<Int> = listOf()) {
         runWithDebugger(wasmFileName, true) { debugger ->
             debugger as MultiverseDebugger
             debugger.setSnapshotPolicy(Debugger.SnapshotPolicy.Tracing(listOf(ExecutionState.ProgramCounter), interval = snapshotInterval.toUInt()))
@@ -34,7 +39,8 @@ class SlideTest : DebuggerTestBase() {
             val depth = snapshotInterval * 5
             debugger.continueFor(depth)
             repeat(slideCount) {
-                val destNode = randomNode(debugger, depth)
+                println("Performing slide $it/$slideCount")
+                val destNode = if(it < depths.size) randomNodeAtDepth(debugger, depths[it]) else randomNode(debugger, depth)
                 val offset = if (destNode.totalInstrExecuted == 0) 0 else Random.nextInt(destNode.totalInstrExecuted)
                 debugger.slide(destNode, offset)
             }
@@ -46,19 +52,23 @@ class SlideTest : DebuggerTestBase() {
         randomSlide("temp-indicator.wasm", 20)
     }
 
+    /**
+     * Seems like this one fails even though all the other tests work fine, strange but maybe this is the one edge case
+     * I was still planning to solve.
+     */
     @RepeatedTest(10)
     fun `Random slide in temperature indicator program - interval 100`() {
         randomSlide("temp-indicator.wasm", 100)
     }
 
     @RepeatedTest(10)
-    fun `Random slide in temperature indicator program advanced`() {
-        randomSlide("temp-indicator-advanced.wasm", 1000)
+    fun `Random slide in temperature indicator program advanced - interval 1000`() {
+        randomSlide("temp-indicator-advanced.wasm", 1000, slideCount = 15)
     }
 
-    /*@RepeatedTest(10)
+    /*@RepeatedTest(3)
     fun `Random slide in sokoban`() {
-        randomSlide("/Users/maarten/Projects/WARDuino-platformer/sokoban.wasm", 0xf0000)
+        randomSlide("/Users/maarten/Projects/WARDuino-platformer/sokoban.wasm", 0xf0000, slideCount=15)
     }*/
 
     override fun createDebugger(connection: Connection, wasmFilePath: String): Debugger {
