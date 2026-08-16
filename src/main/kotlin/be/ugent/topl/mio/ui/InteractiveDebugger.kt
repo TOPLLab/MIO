@@ -3,9 +3,11 @@ package be.ugent.topl.mio.ui
 import WasmBinary
 import be.ugent.topl.mio.DebuggerConfig
 import be.ugent.topl.mio.connections.Connection
-import be.ugent.topl.mio.debugger.*
+import be.ugent.topl.mio.debugger.ConstraintParser
+import be.ugent.topl.mio.debugger.Debugger
+import be.ugent.topl.mio.debugger.ExecutionState
+import be.ugent.topl.mio.debugger.MultiverseDebugger
 import be.ugent.topl.mio.sourcemap.SourceMap
-import be.ugent.topl.mio.woodstate.Checkpoint
 import be.ugent.topl.mio.woodstate.WOODDumpResponse
 import com.formdev.flatlaf.FlatClientProperties
 import com.formdev.flatlaf.FlatLaf
@@ -18,7 +20,10 @@ import org.fife.ui.rsyntaxtextarea.SyntaxConstants
 import org.fife.ui.rsyntaxtextarea.Theme
 import org.fife.ui.rtextarea.IconRowHeader
 import org.fife.ui.rtextarea.RTextScrollPane
-import java.awt.*
+import java.awt.BorderLayout
+import java.awt.Color
+import java.awt.Dimension
+import java.awt.FlowLayout
 import java.awt.event.MouseEvent
 import java.awt.event.MouseListener
 import java.awt.event.WindowAdapter
@@ -103,8 +108,8 @@ class InteractiveDebugger(
 
     private val textArea = RSyntaxTextArea()
     private val scrollPane = RTextScrollPane(textArea, true)
-    private val multiversePanel = MultiversePanel(debugger, config) { checkpoint, progress ->
-        if (checkpoint != null) {
+    private val multiversePanel = MultiversePanel(debugger, config) { currentState, progress ->
+        if (currentState != null) {
             updateStepBackButton()
             updatePcLabel()
         }
@@ -180,7 +185,7 @@ class InteractiveDebugger(
             println("Step line")
             var startLine = -1
             try {
-                startLine = sourceMapping.getLineForPc(debugger.checkpoints.last()!!.snapshot.pc!!)
+                startLine = sourceMapping.getLineForPc(debugger.getCurrentState().pc!!)
             } catch(re: RuntimeException) {
                 System.err.println("WARNING: " + re.message)
             }
@@ -205,7 +210,7 @@ class InteractiveDebugger(
             println("Step back line")
             var startLine = -1
             try {
-                startLine = sourceMapping.getLineForPc(debugger.checkpoints.last()!!.snapshot.pc!!)
+                startLine = sourceMapping.getLineForPc(debugger.getCurrentState().pc!!)
             } catch(re: RuntimeException) {
                 System.err.println("WARNING: " + re.message)
             }
@@ -476,7 +481,7 @@ interface MultiverseAction {
     fun doAction()
 }
 
-class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config: DebuggerConfig, stateChanged: (c: Checkpoint?, b: Double) -> Unit) : JPanel() {
+class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config: DebuggerConfig, stateChanged: (c: WOODDumpResponse?, b: Double) -> Unit) : JPanel() {
     private val graphPanel = GraphPanel(multiverseDebugger.graph)
     private val mockPanel = OverridesPanel()
     private val concolicButton = JButton("Suggest paths")
@@ -549,7 +554,7 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
                 }
 
                 multiverseDebugger.slide(graphPanel.selectedValue!!.node, graphPanel.selectedValue!!.instructionOffset)
-                stateChanged(multiverseDebugger.checkpoints.last(), 1.0)
+                stateChanged(multiverseDebugger.currentState, 1.0)
 
                 graphPanel.selectedNodes.clear()
                 graphPanel.repaint()

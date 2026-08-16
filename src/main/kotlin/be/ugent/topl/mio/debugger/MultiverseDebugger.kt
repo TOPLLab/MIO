@@ -117,7 +117,7 @@ open class MultiverseNode(
     }
 
     override fun toString(): String {
-        return "Node(displayName=\"${displayName}\", totalInstrExecuted = $totalInstrExecuted)"
+        return "Node(displayName=\"${displayName}\", totalInstrExecuted = $totalInstrExecuted, #children = ${children.size})"
     }
 }
 
@@ -133,6 +133,7 @@ class MultiverseDebugger(
     val graph = MultiverseGraph()
     private var len = 0
     val overrides = mutableMapOf<String, MutableMap<List<Int>, Int>>()
+    var currentState: WOODDumpResponse? = null
 
     override fun stepBack(n: Int, stepDone: () -> Unit) {
         var destinationNode = graph.currentNode
@@ -216,10 +217,20 @@ class MultiverseDebugger(
             }
             mockingUpdated()
         }
+        /*val index = checkpoints.indexOfFirst { it?.snapshot === snapshot }
+        checkpoints.subList(index + 1, checkpoints.size).clear()
+        len = checkpoints.size*/
+        currentState = snapshot
+    }
+
+    fun updateCurrentState() {
+        val lastCheckpoint = checkpoints.last()
+        currentState = lastCheckpoint?.snapshot
     }
 
     override fun checkpointsUpdated() {
         super.checkpointsUpdated()
+        updateCurrentState()
         val newCheckpoints = checkpoints.subList(0, checkpoints.size)
         val change = newCheckpoints.size - len
         len = newCheckpoints.size
@@ -278,6 +289,7 @@ class MultiverseDebugger(
      */
     fun addCheckpointToCurrentNode(checkpoint: Checkpoint?) {
         if (checkpoint != null) {
+            logger.info("Adding new checkpoint to ${graph.currentNode}")
             graph.currentNode.checkpoints.add(checkpoint)
             var instructionCount = -graph.currentNode.checkpoints.first().instructions_executed // This one created the node.
             for (checkpoint in graph.currentNode.checkpoints) {
@@ -291,7 +303,9 @@ class MultiverseDebugger(
 
     fun findValidSnapshot(checkPointNode: MultiverseNode, targetNode: MultiverseNode, targetInstructionOffset: Int): Pair<WOODDumpResponse, Int>? {
         var currentOffset = 0
-        println(checkPointNode.checkpoints.map { "Checkpoint(function_called = ${if(it.fidx_called != null) wasmBinary.metadata.primitives[it.fidx_called] else null}, instructions_executed = ${it.instructions_executed})" }.joinToString())
+        println("checkPointNode.checkpoints = [${checkPointNode.checkpoints.joinToString {
+            "Checkpoint(function_called = ${if (it.fidx_called != null) wasmBinary.metadata.primitives[it.fidx_called].name else null}, instructions_executed = ${it.instructions_executed})"
+        }}]")
         for (checkpoint in checkPointNode.checkpoints) {
             if (checkpoint != checkPointNode.checkpoints.first())
                 currentOffset += checkpoint.instructions_executed
@@ -334,6 +348,9 @@ class MultiverseDebugger(
         else {
             // We found a valid snapshot to restore on the path back.
             loadSnapshot(restorePoint!!.first)
+            if (currentNode.children.isEmpty()) {
+                println("Current node is unfinished")
+            }
             graph.currentNode = currentNode
             graph.instructionOffset = restorePoint.second
             if (graph.instructionOffset > graph.currentNode.totalInstrExecuted) {
@@ -439,9 +456,10 @@ class MultiverseDebugger(
         return true
     }
 
-    // TODO: Remove/move/improve
-    fun getCurrentState(): WOODDumpResponse {
-        return checkpoints.last()!!.snapshot
+    override fun getCurrentState(fetchFullState: Boolean): WOODDumpResponse {
+        if (fetchFullState) {
+            currentState = snapshotFull().second
+        }
+        return currentState!!
     }
 }
-

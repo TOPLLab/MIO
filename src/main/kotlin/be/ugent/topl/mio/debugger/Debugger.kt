@@ -121,7 +121,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
      * current last state. This is great for when the execution is paused, and you need all data but the VM was using a
      * limited tracing mode.
      */
-    fun getCurrentState(fetchFullState: Boolean = false): WOODDumpResponse {
+    open fun getCurrentState(fetchFullState: Boolean = false): WOODDumpResponse {
         val idx = checkpoints.size - 1
         if (fetchFullState) {
             val currentCheckpoint = checkpoints[idx]!!
@@ -407,6 +407,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
     }
     private fun internalContinueFor(n: Int) {
         if (n < 0) throw IllegalArgumentException("$n should be positive")
+        if (n == 0) return
 
         //Thread.sleep(n * 1L)
         val startLen = checkpoints.size
