@@ -31,7 +31,7 @@ class DisassemblyWindow(debugger: Debugger, wasmFile: String) : JFrame("Disassem
         preferredSize = Dimension(400, 600)
         isVisible = true
 
-        highlightCurrentLine(debugger.getCurrentState())
+        highlightCurrentLine(debugger.requireCurrentState())
 
         val listener = this::highlightCurrentLine
         addWindowListener(object : WindowAdapter() {

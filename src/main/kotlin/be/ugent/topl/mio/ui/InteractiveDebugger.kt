@@ -185,7 +185,7 @@ class InteractiveDebugger(
             println("Step line")
             var startLine = -1
             try {
-                startLine = sourceMapping.getLineForPc(debugger.getCurrentState().pc!!)
+                startLine = sourceMapping.getLineForPc(debugger.requireCurrentState().pc!!)
             } catch(re: RuntimeException) {
                 System.err.println("WARNING: " + re.message)
             }
@@ -210,7 +210,7 @@ class InteractiveDebugger(
             println("Step back line")
             var startLine = -1
             try {
-                startLine = sourceMapping.getLineForPc(debugger.getCurrentState().pc!!)
+                startLine = sourceMapping.getLineForPc(debugger.requireCurrentState().pc!!)
             } catch(re: RuntimeException) {
                 System.err.println("WARNING: " + re.message)
             }
@@ -411,7 +411,7 @@ class InteractiveDebugger(
             return
         }
 
-        val snapshot = debugger.getCurrentState(true)
+        val snapshot = debugger.requireCurrentState(true)
         watchWindow.update(snapshot)
 
         if (sourceMapping == null)
@@ -626,7 +626,7 @@ class MultiversePanel(private val multiverseDebugger: MultiverseDebugger, config
                     if (primitiveSelector.selectedItem == relation.override.primName &&
                         argTextFields[0].text == relation.override.arg.toString()
                     ) {
-                        val state = multiverseDebugger.getCurrentState()
+                        val state = multiverseDebugger.requireCurrentState()
                         val realValue = state.io!!.find { it.key == relation.io.key }?.value
                         if (realValue != null && relation.comp(realValue, relation.io.value)) {
                             returnValueTextField.text = relation.override.returnValue.toString()

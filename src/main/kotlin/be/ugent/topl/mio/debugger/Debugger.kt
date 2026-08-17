@@ -121,7 +121,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
      * current last state. This is great for when the execution is paused, and you need all data but the VM was using a
      * limited tracing mode.
      */
-    open fun getCurrentState(fetchFullState: Boolean = false): WOODDumpResponse {
+    open fun requireCurrentState(fetchFullState: Boolean = false): WOODDumpResponse {
         val idx = checkpoints.size - 1
         if (fetchFullState) {
             val currentCheckpoint = checkpoints[idx]!!
@@ -134,6 +134,10 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
             )
         }
         return checkpoints[idx]!!.snapshot
+    }
+
+    fun requireCurrentState(required: (knownState: WOODDumpResponse) -> Boolean): WOODDumpResponse {
+        return requireCurrentState(!required(requireCurrentState()))
     }
 
     init {
@@ -248,7 +252,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
     }
     fun stepUntil(cond: (WOODDumpResponse) -> Boolean) {
         stepInto()
-        while (!cond(getCurrentState())) {
+        while (!cond(requireCurrentState())) {
             stepInto()
         }
     }
@@ -259,7 +263,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
 
     fun stepBackUntil(cond: (WOODDumpResponse) -> Boolean) {
         stepBack()
-        while (!cond(getCurrentState())) {
+        while (!cond(requireCurrentState())) {
             if (!canStepBack()) {
                 System.err.println("WARNING: Can't go back further!")
                 return
@@ -377,7 +381,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
         messageQueue.waitForResponse("BP $address!")
 
         // Get a new state with breakpoints, fetch one if we don't have it yet.
-        val s = getCurrentState(getCurrentState().breakpoints == null)
+        val s = requireCurrentState(requireCurrentState().breakpoints == null)
         s.breakpoints = s.breakpoints!!.toMutableList() + address
     }
     fun enableBreakpoints(breakpoints: List<Int>) {
@@ -390,20 +394,22 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
         send(7, String.format("%08x", address))
         messageQueue.waitForResponse("BP $address!")
 
-        val s = getCurrentState()
+        val s = requireCurrentState()
         s.breakpoints = s.breakpoints!!.toMutableList() - address
     }
     fun disableAllBreakpoints(): List<Int> {
-        val breakpointsStart = getCurrentState().breakpoints?: emptyList()
+        val breakpointsStart = requireCurrentState { it.breakpoints != null }.breakpoints!!
         for (breakpoint in breakpointsStart) {
             removeBreakpoint(breakpoint)
         }
         return breakpointsStart
     }
     fun withoutBreakpoints(f: () -> Unit) {
+        logger.info("Disable breakpoints")
         val breakpoints = disableAllBreakpoints()
         f()
         enableBreakpoints(breakpoints)
+        logger.info("Re-enable breakpoints")
     }
     private fun internalContinueFor(n: Int) {
         if (n < 0) throw IllegalArgumentException("$n should be positive")

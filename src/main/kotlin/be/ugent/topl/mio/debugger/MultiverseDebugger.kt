@@ -348,7 +348,7 @@ class MultiverseDebugger(
         }
         else {
             // We found a valid snapshot to restore on the path back.
-            loadSnapshot(restorePoint!!.first)
+            loadSnapshot(restorePoint!!.first.copy(breakpoints = requireCurrentState().breakpoints))
             if (currentNode.children.isEmpty()) {
                 println("Current node is unfinished")
             }
@@ -368,27 +368,26 @@ class MultiverseDebugger(
     fun slide(targetNode: MultiverseNode, targetInstructionOffset: Int) {
         logger.info("Slide to node = $targetNode, offset = $targetInstructionOffset")
         logger.info("Current node = ${graph.currentNode}, offset = ${graph.instructionOffset}")
-        // Determine path.
-        val forwardPath = if (graph.currentNode.findPath(targetNode).isEmpty() ||
-            (graph.currentNode == targetNode && graph.instructionOffset > targetInstructionOffset)) {
-            logger.info("Target is not a descendant of the current node")
-            // In this path we first restore or reset and then go forward.
-            determineForwardPath(graph.rootNode, targetNode, targetInstructionOffset)
-        }
-        else {
-            logger.info("Target is a descendant of the current node")
-            // In this path we could go forward from the current node, or we restore a closer snapshot and then go forward.
-            //graph.currentNode.findPath(targetNode)
-            determineForwardPath(graph.currentNode, targetNode, targetInstructionOffset)
-        }
-        logger.info("Forward path (len = ${forwardPath.size}) = $forwardPath")
-        logger.info("Current node = ${graph.currentNode}, offset = ${graph.instructionOffset}")
-
-
-        // Perform actual slide operation. We do this without breakpoints because we don't want the VM to stop in the
-        // middle of the slide operation. The user wants to go to a particular node, not stop in between on random
-        // re-executed instructions.
         withoutBreakpoints {
+            // Determine path.
+            val forwardPath = if (graph.currentNode.findPath(targetNode).isEmpty() ||
+                (graph.currentNode == targetNode && graph.instructionOffset > targetInstructionOffset)) {
+                logger.info("Target is not a descendant of the current node")
+                // In this path we first restore or reset and then go forward.
+                determineForwardPath(graph.rootNode, targetNode, targetInstructionOffset)
+            }
+            else {
+                logger.info("Target is a descendant of the current node")
+                // In this path we could go forward from the current node, or we restore a closer snapshot and then go forward.
+                //graph.currentNode.findPath(targetNode)
+                determineForwardPath(graph.currentNode, targetNode, targetInstructionOffset)
+            }
+            logger.info("Forward path (len = ${forwardPath.size}) = $forwardPath")
+            logger.info("Current node = ${graph.currentNode}, offset = ${graph.instructionOffset}")
+
+            // Perform actual slide operation. We do this without breakpoints because we don't want the VM to stop in the
+            // middle of the slide operation. The user wants to go to a particular node, not stop in between on random
+            // re-executed instructions.
             var continueCount = targetInstructionOffset
             if (forwardPath.size == 1 && targetNode == graph.currentNode) {
                 continueCount = targetInstructionOffset - graph.instructionOffset
@@ -398,13 +397,13 @@ class MultiverseDebugger(
                 continueFor(stepCount)
                 for (i in 1 ..< forwardPath.size - 1) {
                     val valueIndex = forwardPath[i-1].children.indexOf(forwardPath[i])
-                    println("pc = 0x${getCurrentState().pc!!.toString(16)}")
+                    println("pc = 0x${requireCurrentState().pc!!.toString(16)}")
                     //println(disassemble(wasmBinary.file.path))
                     addPrimitiveOverride(forwardPath[i].primitive, forwardPath[i].arg, forwardPath[i - 1].values[valueIndex])
-                    if (!wasmBinary.metadata.primitive_calls.contains(getCurrentState().pc)) {
+                    if (!wasmBinary.metadata.primitive_calls.contains(requireCurrentState().pc)) {
                         println(disassemble(wasmBinary.file.absolutePath))
                         println(graph.instructionOffset != graph.currentNode.totalInstrExecuted)
-                        throw Error("Not at choice point according to pc = 0x${getCurrentState().pc!!.toString(16)}")
+                        throw Error("Not at choice point according to pc = 0x${requireCurrentState().pc!!.toString(16)}")
                     }
                     if (graph.instructionOffset != graph.currentNode.totalInstrExecuted) {
                         throw Error("Not at choice point, distance to choicepoint = ${graph.currentNode.totalInstrExecuted - graph.instructionOffset}")
@@ -413,7 +412,7 @@ class MultiverseDebugger(
                 }
                 val valueIndex = forwardPath[forwardPath.size - 2].children.indexOf(forwardPath[forwardPath.size - 1])
                 addPrimitiveOverride(forwardPath.last().primitive, forwardPath.last().arg, forwardPath[forwardPath.size - 2].values[valueIndex])
-                println("pc = 0x${getCurrentState().pc!!.toString(16)}")
+                println("pc = 0x${requireCurrentState().pc!!.toString(16)}")
                 //println(disassemble(wasmBinary.file.path))
                 if (graph.instructionOffset != graph.currentNode.totalInstrExecuted) {
                     throw Error("Not at choice point, distance to choicepoint = ${graph.currentNode.totalInstrExecuted - graph.instructionOffset}")
@@ -457,7 +456,7 @@ class MultiverseDebugger(
         return true
     }
 
-    override fun getCurrentState(fetchFullState: Boolean): WOODDumpResponse {
+    override fun requireCurrentState(fetchFullState: Boolean): WOODDumpResponse {
         if (fetchFullState) {
             currentState = snapshotFull().second
         }
