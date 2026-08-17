@@ -248,7 +248,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
     }
     fun stepUntil(cond: (WOODDumpResponse) -> Boolean) {
         stepInto()
-        while (!cond(checkpoints.last()!!.snapshot)) {
+        while (!cond(getCurrentState())) {
             stepInto()
         }
     }
@@ -259,7 +259,7 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
 
     fun stepBackUntil(cond: (WOODDumpResponse) -> Boolean) {
         stepBack()
-        while (!cond(checkpoints.last()!!.snapshot)) {
+        while (!cond(getCurrentState())) {
             if (!canStepBack()) {
                 System.err.println("WARNING: Can't go back further!")
                 return
@@ -390,11 +390,11 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
         send(7, String.format("%08x", address))
         messageQueue.waitForResponse("BP $address!")
 
-        val s = checkpoints.last()!!.snapshot
+        val s = getCurrentState()
         s.breakpoints = s.breakpoints!!.toMutableList() - address
     }
     fun disableAllBreakpoints(): List<Int> {
-        val breakpointsStart = checkpoints.last()!!.snapshot.breakpoints?: emptyList()
+        val breakpointsStart = getCurrentState().breakpoints?: emptyList()
         for (breakpoint in breakpointsStart) {
             removeBreakpoint(breakpoint)
         }
