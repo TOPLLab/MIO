@@ -24,6 +24,7 @@ class MultiverseGraph(var rootNode: MultiverseNode = MultiverseNode("main", list
 
         val childIndex = currentNode.parent!!.children.indexOf(currentNode)
         currentNode.parent!!.children[childIndex] = newNode
+        newNode.parent = currentNode.parent!!
         currentNode = newNode
     }
 
