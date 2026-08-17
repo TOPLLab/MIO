@@ -160,6 +160,7 @@ class GraphPanel(private val graph: MultiverseGraph) : JPanel(),
 
         val xStart = g.fontMetrics.stringWidth(rootNode.displayName)/2
         val yPadding = 15
+        nodes.clear()
         val result = drawGraph(g, rootNode, x = xStart + 5, yPadding)
         renderedHeight = result.second + yPadding
 
