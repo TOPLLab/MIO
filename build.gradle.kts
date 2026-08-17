@@ -32,6 +32,10 @@ dependencies {
 
     // Logging
     implementation("ch.qos.logback:logback-classic:1.5.32")
+
+    // Ktor embedded HTTP server for the web-based multiverse debugger
+    implementation("io.ktor:ktor-server-netty:3.5.2")
+    implementation("io.ktor:ktor-server-sse:3.5.2")
 }
 
 tasks.test {

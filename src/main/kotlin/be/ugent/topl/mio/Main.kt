@@ -1,8 +1,13 @@
 package be.ugent.topl.mio
 
+import WasmBinary
 import be.ugent.topl.mio.connections.ProcessConnection
 import be.ugent.topl.mio.connections.SerialConnection
 import be.ugent.topl.mio.debugger.Debugger
+import be.ugent.topl.mio.debugger.ExecutionState
+import be.ugent.topl.mio.debugger.MultiverseDebugger
+import be.ugent.topl.mio.ui.WebDebugger
+import getBinaryInfo
 import com.formdev.flatlaf.FlatDarkLaf
 import com.formdev.flatlaf.FlatIntelliJLaf
 import be.ugent.topl.mio.sourcemap.AsSourceMapping
@@ -15,6 +20,7 @@ import com.formdev.flatlaf.FlatLaf
 import com.formdev.flatlaf.themes.FlatMacDarkLaf
 import com.formdev.flatlaf.themes.FlatMacLightLaf
 import com.formdev.flatlaf.util.SystemInfo
+import kotlinx.coroutines.flow.MutableSharedFlow
 import java.io.File
 import java.io.FileNotFoundException
 import javax.swing.JOptionPane
@@ -170,6 +176,41 @@ fun main(args: Array<String>) {
                 config.fqbn,
                 config.port!!
             )
+        }
+        "web" -> {
+            expectNArguments(args, 2)
+            val wasmFilename = args[1]
+            val wasmFile = File(wasmFilename)
+            val connection = if (config.useEmulator) {
+                ProcessConnection(config.wdcliPath, wasmFile.absolutePath, "--no-socket", "--paused")
+            } else {
+                portRequired(config)
+                SerialConnection(config.port!!)
+            }
+            val binaryInfo = getBinaryInfo(config.wdcliPath, wasmFile.absolutePath).getOrElse {
+                System.err.println(it.message)
+                exitProcess(1)
+            }
+            val breakpointEvents = MutableSharedFlow<Int>(extraBufferCapacity = 64)
+            val debugger = MultiverseDebugger(
+                connection,
+                WasmBinary(wasmFile, binaryInfo),
+                config.symbolicWdcliPath,
+                start = false,
+                onHitBreakpoint = { pc -> breakpointEvents.tryEmit(pc) }
+            )
+            debugger.startReading()
+            debugger.setSnapshotPolicy(
+                Debugger.SnapshotPolicy.Tracing(listOf(ExecutionState.ProgramCounter), interval = 0xa0000U)
+            )
+            debugger.reset()
+            debugger.graph.reset()
+            val sourceMap = File(wasmFile.absolutePath + ".map").takeIf { it.exists() }?.let {
+                println("Loading source map: ${it.absolutePath}")
+                AsSourceMapping(it.readText())
+            }
+            val port = if (args.size > 2) args[2].toInt() else 8080
+            WebDebugger(debugger, sourceMap, port, breakpointEvents).start()
         }
         else -> {
             println("Invalid option \"${args[0]}\"!")
