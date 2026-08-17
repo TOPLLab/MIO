@@ -39,7 +39,7 @@ class SlideTest : DebuggerTestBase() {
             val depth = snapshotInterval * 5
             debugger.continueFor(depth)
             repeat(slideCount) {
-                println("Performing slide $it/$slideCount")
+                println("Performing slide ${it + 1}/$slideCount")
                 val destNode = if(it < depths.size) randomNodeAtDepth(debugger, depths[it]) else randomNode(debugger, depth)
                 val offset = if (destNode.totalInstrExecuted == 0) 0 else Random.nextInt(destNode.totalInstrExecuted)
                 debugger.slide(destNode, offset)
@@ -70,6 +70,35 @@ class SlideTest : DebuggerTestBase() {
     fun `Random slide in sokoban`() {
         randomSlide("/Users/maarten/Projects/WARDuino-platformer/sokoban.wasm", 0xf0000, slideCount=15)
     }*/
+
+    fun slideToRandomNode(debugger: MultiverseDebugger) {
+        val destNode = randomNode(debugger, Int.MAX_VALUE)
+        val offset = if (destNode.totalInstrExecuted == 0) 0 else Random.nextInt(destNode.totalInstrExecuted)
+        debugger.slide(destNode, offset)
+    }
+
+    @RepeatedTest(3)
+    fun `test concolic with slide`() {
+        val wasmFileName = "temp-indicator.wasm"
+        val snapshotInterval = 20
+        val slideCount = 10
+        runWithDebugger(wasmFileName, true) { debugger ->
+            debugger as MultiverseDebugger
+            debugger.setSnapshotPolicy(Debugger.SnapshotPolicy.Tracing(listOf(ExecutionState.ProgramCounter), interval = snapshotInterval.toUInt()))
+            debugger.reset()
+            debugger.predictFuture(maxInstructions = 75)
+            repeat(slideCount/2) {
+                println("Performing slide ${it + 1}/$slideCount")
+                slideToRandomNode(debugger)
+                debugger.predictFuture(maxInstructions = 50)
+            }
+
+            repeat(slideCount/2) {
+                println("Performing slide ${slideCount/2 + it + 1}/$slideCount")
+                slideToRandomNode(debugger)
+            }
+        }
+    }
 
     override fun createDebugger(connection: Connection, wasmFilePath: String): Debugger {
         val binaryInfo = getBinaryInfo(config.wdcliPath, getFile(wasmFilePath).absolutePath)
