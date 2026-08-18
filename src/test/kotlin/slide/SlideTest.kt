@@ -10,6 +10,7 @@ import be.ugent.topl.mio.debugger.MultiverseNode
 import getBinaryInfo
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.RepeatedTest
+import org.junit.jupiter.api.Test
 import java.io.File
 import kotlin.random.Random
 
@@ -97,6 +98,18 @@ class SlideTest : DebuggerTestBase() {
                 println("Performing slide ${slideCount/2 + it + 1}/$slideCount")
                 slideToRandomNode(debugger)
             }
+        }
+    }
+
+    @Test
+    fun `Slide to start from next choicepoint`() {
+        runWithDebugger("temp-indicator.wasm", true) { debugger ->
+            debugger as MultiverseDebugger
+            debugger.setSnapshotPolicy(Debugger.SnapshotPolicy.Tracing(listOf(ExecutionState.ProgramCounter), interval = 5U))
+            // Go to the first choice point in this program.
+            debugger.continueFor(14)
+            // Now go back to the start node.
+            debugger.slide(debugger.graph.rootNode, 0)
         }
     }
 

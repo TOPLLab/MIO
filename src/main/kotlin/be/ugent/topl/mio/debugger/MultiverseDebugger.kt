@@ -341,7 +341,7 @@ class MultiverseDebugger(
         path.addFirst(currentNode)
         if (currentNode == stopNode) {
             // We went all the way to the current node, now we just need to walk forward.
-            if (currentNode != graph.currentNode) {
+            if (currentNode == graph.rootNode) {
                 // We will restart from the root -> reset first.
                 reset()
             }
