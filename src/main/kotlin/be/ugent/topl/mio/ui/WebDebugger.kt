@@ -10,18 +10,20 @@ import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.ktor.server.request.*
 import io.ktor.server.sse.*
 import io.ktor.sse.*
-import kotlin.time.Duration.Companion.milliseconds
+import io.ktor.util.cio.*
+import io.ktor.utils.io.*
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.withContext
+import kotlin.time.Duration.Companion.seconds
 
 data class GraphNodeDto(
     val id: String,
@@ -120,13 +122,19 @@ class WebDebugger(
             routing {
                 sse("/api/events") {
                     heartbeat {
-                        period = 10.milliseconds
+                        period = 10.seconds
                         event = ServerSentEvent("heartbeat")
                     }
-                    merge(
-                        breakpointEvents.map { pc -> ServerSentEvent(data = pc.toString(16), event = "breakpoint") },
-                        consoleFlow.map { msg -> ServerSentEvent(data = msg, event = "console") }
-                    ).collect { send(it) }
+                    try {
+                        merge(
+                            breakpointEvents.map { pc -> ServerSentEvent(data = pc.toString(16), event = "breakpoint") },
+                            consoleFlow.map { msg -> ServerSentEvent(data = msg, event = "console") }
+                        ).collect { send(it) }
+                    } catch (e: ChannelWriteException) {
+                        // client disconnected mid-write; nothing to do
+                    } catch (e: ClosedWriteChannelException) {
+                        // client disconnected mid-write; nothing to do
+                    }
                 }
                 get("/") {
                     call.respondText(INDEX_HTML, ContentType.Text.Html)
