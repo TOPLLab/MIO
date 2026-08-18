@@ -13,6 +13,7 @@ import org.junit.jupiter.api.RepeatedTest
 import org.junit.jupiter.api.Test
 import java.io.File
 import kotlin.random.Random
+import kotlin.test.assertEquals
 
 @DisplayName("Slide behaviour tests")
 class SlideTest : DebuggerTestBase() {
@@ -112,6 +113,54 @@ class SlideTest : DebuggerTestBase() {
             debugger.slide(debugger.graph.rootNode, 0)
         }
     }
+
+    @Test
+    fun `Check count with double checkpoint`() {
+        runWithDebugger("temp-indicator.wasm", true) { debugger ->
+            debugger as MultiverseDebugger
+            debugger.printListener = { it ->
+                println(it)
+            }
+            debugger.setSnapshotPolicy(Debugger.SnapshotPolicy.Tracing(
+                listOf(ExecutionState.ProgramCounter),
+                interval = 18U
+            ))
+            // continueFor also takes snapshots, this will result in an instructions_executed=0 snapshot, make sure the
+            // count is still correct.
+            assertEquals(0, debugger.graph.rootNode.totalInstrExecuted)
+            debugger.continueFor(18)
+            assertEquals(3, debugger.graph.instructionOffset)
+            assertEquals(3, debugger.graph.currentNode.totalInstrExecuted)
+            debugger.continueFor(1)
+            assertEquals(14, debugger.graph.rootNode.totalInstrExecuted)
+            assertEquals(4, debugger.graph.instructionOffset)
+            assertEquals(4, debugger.graph.currentNode.totalInstrExecuted)
+
+            debugger.reset()
+            assertEquals(debugger.graph.rootNode, debugger.graph.currentNode)
+            assertEquals(0, debugger.graph.instructionOffset)
+            assertEquals(14, debugger.graph.currentNode.totalInstrExecuted)
+            debugger.continueFor(19)
+            assertEquals(4, debugger.graph.instructionOffset)
+            assertEquals(4, debugger.graph.currentNode.totalInstrExecuted)
+        }
+    }
+
+    /*@Test
+    fun `Check update`() {
+        runWithDebugger("temp-indicator.wasm", true) { debugger ->
+            debugger as MultiverseDebugger
+            debugger.printListener = { it ->
+                println(it)
+            }
+            debugger.setSnapshotPolicy(Debugger.SnapshotPolicy.Tracing(
+                listOf(ExecutionState.ProgramCounter),
+                interval = 18U
+            ))
+            debugger.continueFor(19)
+            // TODO: Test not finished yet
+        }
+    }*/
 
     override fun createDebugger(connection: Connection, wasmFilePath: String): Debugger {
         val binaryInfo = getBinaryInfo(config.wdcliPath, getFile(wasmFilePath).absolutePath)

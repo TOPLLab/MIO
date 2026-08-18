@@ -239,7 +239,12 @@ class MultiverseDebugger(
         println("$change instructions added, total = ${checkpoints.size}")
 
         for (i in len - change ..< len) {
-            traverse(newCheckpoints[i], i)
+            // We already have a rootnode, at depth 0 we can skip.
+            if (i == 0) {
+                return
+            }
+
+            traverse(newCheckpoints[i])
         }
 
         graphUpdated()
@@ -252,7 +257,7 @@ class MultiverseDebugger(
      * Follow the graph if the nodes/edges are already present, otherwise add them. Also add metadata to the existing
      * or new graph such a which functions were executed.
      */
-    private fun traverse(checkpoint: Checkpoint?, depth: Int) {
+    private fun traverse(checkpoint: Checkpoint?) {
         // Process one checkpoint
         if (graph.instructionOffset == graph.currentNode.totalInstrExecuted) {
             // If non-deterministic add a new node or follow an existing edge. The destination node becomes the new node.
