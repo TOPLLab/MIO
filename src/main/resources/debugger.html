@@ -206,7 +206,7 @@
   <button class="icon-btn" id="btn-step-line" title="Step Line"><i class="codicon codicon-debug-step-into"></i></button>
   <button class="icon-btn" id="btn-mock" title="Mock"><i class="codicon codicon-worktree"></i></button>
   <button class="icon-btn" id="btn-predict" title="Suggest Paths"><i class="codicon codicon-sparkle"></i></button>
-  <button class="icon-btn" id="btn-theme" title="Toggle theme" style="font-size:14px;margin-left:auto">Dark</button>
+  <button class="icon-btn" id="btn-theme" title="Toggle theme" style="margin-left:auto"><i class="codicon codicon-color-mode"></i></button>
 </div>
 <div id="mocks-bar"></div>
 <div id="dockview-container" class="dockview-theme-abyss"></div>
@@ -304,8 +304,6 @@ let monacoEditor = null;   // forward-declared; Monaco callback sets this
 function applyTheme(theme) {
   currentTheme = theme;
   document.body.classList.toggle('light', theme === 'light');
-  const btn = document.getElementById('btn-theme');
-  if (btn) btn.textContent = theme === 'light' ? 'Dark' : 'Light️';
   if (monacoEditor) monaco.editor.setTheme(theme === 'light' ? 'vs' : 'vs-dark');
   localStorage.setItem('theme', theme);
 }
