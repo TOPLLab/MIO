@@ -6,6 +6,7 @@ import be.ugent.topl.mio.connections.SerialConnection
 import be.ugent.topl.mio.debugger.Debugger
 import be.ugent.topl.mio.debugger.ExecutionState
 import be.ugent.topl.mio.debugger.MultiverseDebugger
+import be.ugent.topl.mio.ui.JcefWindow
 import be.ugent.topl.mio.ui.WebDebugger
 import getBinaryInfo
 import com.formdev.flatlaf.FlatDarkLaf
@@ -61,6 +62,42 @@ fun configureFlatLafTheme(config: DebuggerConfig) {
         }
         else FlatDarkLaf.setup()
     }
+}
+
+fun setupWebDebugger(args: Array<String>, config: DebuggerConfig): Pair<WebDebugger, Int> {
+    expectNArguments(args, 2)
+    val wasmFilename = args[1]
+    val wasmFile = File(wasmFilename)
+    val connection = if (config.useEmulator) {
+        ProcessConnection(config.wdcliPath, wasmFile.absolutePath, "--no-socket", "--paused")
+    } else {
+        portRequired(config)
+        SerialConnection(config.port!!)
+    }
+    val binaryInfo = getBinaryInfo(config.wdcliPath, wasmFile.absolutePath).getOrElse {
+        System.err.println(it.message)
+        exitProcess(1)
+    }
+    val breakpointEvents = MutableSharedFlow<Int>(extraBufferCapacity = 64)
+    val debugger = MultiverseDebugger(
+        connection,
+        WasmBinary(wasmFile, binaryInfo),
+        config.symbolicWdcliPath,
+        start = false,
+        onHitBreakpoint = { pc -> breakpointEvents.tryEmit(pc) }
+    )
+    debugger.startReading()
+    debugger.setSnapshotPolicy(
+        Debugger.SnapshotPolicy.Tracing(listOf(ExecutionState.ProgramCounter), interval = 0xa0000U)
+    )
+    debugger.reset()
+    debugger.graph.reset()
+    val sourceMap = File(wasmFile.absolutePath + ".map").takeIf { it.exists() }?.let {
+        println("Loading source map: ${it.absolutePath}")
+        AsSourceMapping(it.readText())
+    }
+    val port = if (args.size > 2) args[2].toInt() else 8080
+    return WebDebugger(debugger, sourceMap, port, breakpointEvents) to port
 }
 
 fun main(args: Array<String>) {
@@ -178,39 +215,13 @@ fun main(args: Array<String>) {
             )
         }
         "web" -> {
-            expectNArguments(args, 2)
-            val wasmFilename = args[1]
-            val wasmFile = File(wasmFilename)
-            val connection = if (config.useEmulator) {
-                ProcessConnection(config.wdcliPath, wasmFile.absolutePath, "--no-socket", "--paused")
-            } else {
-                portRequired(config)
-                SerialConnection(config.port!!)
-            }
-            val binaryInfo = getBinaryInfo(config.wdcliPath, wasmFile.absolutePath).getOrElse {
-                System.err.println(it.message)
-                exitProcess(1)
-            }
-            val breakpointEvents = MutableSharedFlow<Int>(extraBufferCapacity = 64)
-            val debugger = MultiverseDebugger(
-                connection,
-                WasmBinary(wasmFile, binaryInfo),
-                config.symbolicWdcliPath,
-                start = false,
-                onHitBreakpoint = { pc -> breakpointEvents.tryEmit(pc) }
-            )
-            debugger.startReading()
-            debugger.setSnapshotPolicy(
-                Debugger.SnapshotPolicy.Tracing(listOf(ExecutionState.ProgramCounter), interval = 0xa0000U)
-            )
-            debugger.reset()
-            debugger.graph.reset()
-            val sourceMap = File(wasmFile.absolutePath + ".map").takeIf { it.exists() }?.let {
-                println("Loading source map: ${it.absolutePath}")
-                AsSourceMapping(it.readText())
-            }
-            val port = if (args.size > 2) args[2].toInt() else 8080
-            WebDebugger(debugger, sourceMap, port, breakpointEvents).start()
+            val (webDebugger, _) = setupWebDebugger(args, config)
+            webDebugger.start()
+        }
+        "webview" -> {
+            val (webDebugger, port) = setupWebDebugger(args, config)
+            Thread({ webDebugger.start(wait = true) }, "web-debugger-server").apply { isDaemon = true }.start()
+            JcefWindow.open(port)
         }
         else -> {
             println("Invalid option \"${args[0]}\"!")

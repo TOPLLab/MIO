@@ -36,6 +36,9 @@ dependencies {
     // Ktor embedded HTTP server for the web-based multiverse debugger
     implementation("io.ktor:ktor-server-netty:3.5.2")
     implementation("io.ktor:ktor-server-sse:3.5.2")
+
+    // Embedded Chromium (via JCEF) to show the web debugger as a desktop window
+    implementation("me.friwi:jcefmaven:146.0.10")
 }
 
 tasks.test {
@@ -52,8 +55,18 @@ kotlin {
     jvmToolchain(21)
 }
 
+val isMacOs = System.getProperty("os.name").lowercase().contains("mac")
+
 application {
     mainClass.set("be.ugent.topl.mio.MainKt")
+    // Required by JCEF on macOS, see https://github.com/jcefmaven/jcefmaven#limitations
+    if (isMacOs) {
+        applicationDefaultJvmArgs = listOf(
+            "--add-opens", "java.desktop/sun.awt=ALL-UNNAMED",
+            "--add-opens", "java.desktop/sun.lwawt=ALL-UNNAMED",
+            "--add-opens", "java.desktop/sun.lwawt.macosx=ALL-UNNAMED"
+        )
+    }
 }
 
 

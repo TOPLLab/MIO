@@ -114,7 +114,7 @@ class WebDebugger(
         }
     }
 
-    fun start() {
+    fun start(wait: Boolean = true) {
         println("Multiverse web debugger running at http://localhost:$port")
         debugger.printListener = { msg -> consoleFlow.tryEmit(msg) }
         embeddedServer(Netty, port = port) {
@@ -358,6 +358,6 @@ class WebDebugger(
                     call.respond(HttpStatusCode.OK)
                 }
             }
-        }.start(wait = true)
+        }.start(wait = wait)
     }
 }
