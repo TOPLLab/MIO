@@ -151,7 +151,9 @@ data class WOODDumpResponse(
     val events: List<InterruptEvent>?,
     val io: List<IOState>?,
     val overrides: List<PrimitiveOverride>?
-)
+) {
+    fun isRestorable(): Boolean = globals != null && table != null && memory != null
+}
 
 data class Checkpoint(
     val instructions_executed: Int,
@@ -452,7 +454,7 @@ class WOODState(woodResponse: WOODDumpResponse) {
 
     private fun serialiseAllocationMessage(stateMsgs: HexaStateMessages) {
         val wr = this.woodResponse
-        if (wr.globals == null || wr.table == null || wr.memory == null) {
+        if (!wr.isRestorable()) {
             throw Error("cannot serialise Allocaton Message when state is missing")
         }
 
@@ -462,19 +464,19 @@ class WOODState(woodResponse: WOODDumpResponse) {
 
         // Globals
 
-        val gblsAmountHex = HexaEncoder.serializeUInt32BE(wr.globals.size)
+        val gblsAmountHex = HexaEncoder.serializeUInt32BE(wr.globals!!.size)
         logger.trace("Globals: total=${wr.globals.size}")
         val globals = "${ExecutionStateType.globalsState}${gblsAmountHex}"
 
         // Table
-        val tblInitHex = HexaEncoder.serializeUInt32BE(wr.table.init)
+        val tblInitHex = HexaEncoder.serializeUInt32BE(wr.table!!.init)
         val tblMaxHex = HexaEncoder.serializeUInt32BE(wr.table.max)
         val tblSizeHex = HexaEncoder.serializeUInt32BE(wr.table.elements.size)
         val tbl = "${ExecutionStateType.tableState}${tblInitHex}${tblMaxHex}${tblSizeHex}"
 
         logger.trace("Table:  init=${wr.table.init} max=${wr.table.max} size=${wr.table.elements.size}")
         // Memory
-        val memInitHex = HexaEncoder.serializeUInt32BE(wr.memory.init)
+        val memInitHex = HexaEncoder.serializeUInt32BE(wr.memory!!.init)
         val memMaxHex = HexaEncoder.serializeUInt32BE(wr.memory.max)
         val memPagesHex = HexaEncoder.serializeUInt32BE(wr.memory.pages)
         val mem = "${ExecutionStateType.memState}${memMaxHex}${memInitHex}${memPagesHex}"

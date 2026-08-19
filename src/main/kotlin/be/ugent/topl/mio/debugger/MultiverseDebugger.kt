@@ -8,7 +8,6 @@ import be.ugent.topl.mio.ui.disassemble
 import be.ugent.topl.mio.woodstate.Checkpoint
 import be.ugent.topl.mio.woodstate.WOODDumpResponse
 import be.ugent.topl.mio.woodstate.WasmStackValue
-import kotlin.collections.iterator
 
 class MultiverseGraph(var rootNode: MultiverseNode = MultiverseNode("main", listOf()), var currentNode: MultiverseNode = rootNode, var instructionOffset: Int = 0) {
     /**
@@ -317,8 +316,7 @@ class MultiverseDebugger(
         for (checkpoint in checkPointNode.checkpoints) {
             currentOffset += checkpoint.instructions_executed
             println("Current offset = $currentOffset in node $checkPointNode")
-            // TODO: Use a function from woodstate to say if it's restorable
-            if (checkpoint.snapshot.memory != null) {
+            if (checkpoint.snapshot.isRestorable()) {
                 if (checkPointNode == targetNode) {
                     if(targetInstructionOffset >= currentOffset)
                         return Pair(checkpoint.snapshot, currentOffset)
