@@ -284,7 +284,7 @@ const zoom = d3.zoom()
     currentTransform = e.transform;
     updateScrollbar();
   });
-svg.call(zoom);
+svg.call(zoom).on("dblclick.zoom", null);
 
 let busy = false;
 let paused = true;
