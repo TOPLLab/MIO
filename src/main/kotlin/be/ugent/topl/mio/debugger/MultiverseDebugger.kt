@@ -262,6 +262,7 @@ class MultiverseDebugger(
         if (graph.instructionOffset == graph.currentNode.totalInstrExecuted) {
             // If non-deterministic add a new node or follow an existing edge. The destination node becomes the new node.
             if (nonDet(checkpoint)) {
+                graph.instructionOffset = 0
                 if (graph.currentNode.children.isNotEmpty() && graph.currentNode.values.indexOf(checkpoint!!.returns!!.first()) != -1) {
                     // Path already exists, follow it.
                     val index = graph.currentNode.values.indexOf(checkpoint!!.returns!!.first())
@@ -274,7 +275,6 @@ class MultiverseDebugger(
                     graph.currentNode = newNode
                     addCheckpointToCurrentNode(checkpoint)
                 }
-                graph.instructionOffset = 0
             }
             // If deterministic, increment our counter.
             else {
@@ -293,28 +293,29 @@ class MultiverseDebugger(
      * Should only be called when creating new parts, we should not store checkpoints for old sections that we traverse again.
      * TODO: Will the counters be wrong if we are navigating partially an existing part and then create a partially a new part?
      */
-    fun addCheckpointToCurrentNode(checkpoint: Checkpoint?) {
+    private fun addCheckpointToCurrentNode(checkpoint: Checkpoint?) {
         if (checkpoint != null) {
             logger.info("Adding new checkpoint to ${graph.currentNode}")
-            graph.currentNode.checkpoints.add(checkpoint)
-            var instructionCount = -graph.currentNode.checkpoints.first().instructions_executed // This one created the node.
-            for (checkpoint in graph.currentNode.checkpoints) {
-                instructionCount += checkpoint.instructions_executed
+            val instructionCount = graph.currentNode.checkpoints.sumOf {
+                it.instructions_executed
             }
+            val offset = graph.instructionOffset - instructionCount
+            println("offset = $offset, ${checkpoint.instructions_executed}")
+            graph.currentNode.checkpoints.add(checkpoint.copy(instructions_executed = offset))
             if (instructionCount > graph.currentNode.totalInstrExecuted) {
-                throw Error("This should not happen")
+                println(graph.instructionOffset - (instructionCount - checkpoint.instructions_executed))
+                throw Error("The combined instruction count can never be higher than the total number of instructions executed! instructionCount = $instructionCount, total = ${graph.currentNode.totalInstrExecuted}")
             }
         }
     }
 
-    fun findValidSnapshot(checkPointNode: MultiverseNode, targetNode: MultiverseNode, targetInstructionOffset: Int): Pair<WOODDumpResponse, Int>? {
+    private fun findValidSnapshot(checkPointNode: MultiverseNode, targetNode: MultiverseNode, targetInstructionOffset: Int): Pair<WOODDumpResponse, Int>? {
         var currentOffset = 0
         println("checkPointNode.checkpoints = [${checkPointNode.checkpoints.joinToString {
             "Checkpoint(function_called = ${if (it.fidx_called != null) wasmBinary.metadata.primitives[it.fidx_called].name else null}, instructions_executed = ${it.instructions_executed})"
         }}]")
         for (checkpoint in checkPointNode.checkpoints) {
-            if (checkpoint != checkPointNode.checkpoints.first())
-                currentOffset += checkpoint.instructions_executed
+            currentOffset += checkpoint.instructions_executed
             println("Current offset = $currentOffset in node $checkPointNode")
             // TODO: Use a function from woodstate to say if it's restorable
             if (checkpoint.snapshot.memory != null) {
@@ -330,7 +331,7 @@ class MultiverseDebugger(
         return null
     }
 
-    fun determineForwardPath(stopNode: MultiverseNode, targetNode: MultiverseNode, targetInstructionOffset: Int): List<MultiverseNode> {
+    private fun determineForwardPath(stopNode: MultiverseNode, targetNode: MultiverseNode, targetInstructionOffset: Int): List<MultiverseNode> {
         if (stopNode != graph.currentNode && stopNode != graph.rootNode) {
             throw IllegalArgumentException("stopNode should be the root node or the current node!")
         }
@@ -344,7 +345,7 @@ class MultiverseDebugger(
             restorePoint = findValidSnapshot(currentNode, targetNode, targetInstructionOffset)
         }
         path.addFirst(currentNode)
-        if (currentNode == stopNode) {
+        if (restorePoint == null) {
             // We went all the way to the current node, now we just need to walk forward.
             if (currentNode == graph.rootNode) {
                 // We will restart from the root -> reset first.

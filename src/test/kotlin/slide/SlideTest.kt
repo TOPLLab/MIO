@@ -7,6 +7,7 @@ import be.ugent.topl.mio.debugger.Debugger
 import be.ugent.topl.mio.debugger.ExecutionState
 import be.ugent.topl.mio.debugger.MultiverseDebugger
 import be.ugent.topl.mio.debugger.MultiverseNode
+import be.ugent.topl.mio.ui.disassemble
 import getBinaryInfo
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.RepeatedTest
@@ -14,6 +15,8 @@ import org.junit.jupiter.api.Test
 import java.io.File
 import kotlin.random.Random
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+
 
 @DisplayName("Slide behaviour tests")
 class SlideTest : DebuggerTestBase() {
@@ -146,8 +149,8 @@ class SlideTest : DebuggerTestBase() {
         }
     }
 
-    /*@Test
-    fun `Check update`() {
+    @Test
+    fun `Check update and counters`() {
         runWithDebugger("temp-indicator.wasm", true) { debugger ->
             debugger as MultiverseDebugger
             debugger.printListener = { it ->
@@ -155,12 +158,38 @@ class SlideTest : DebuggerTestBase() {
             }
             debugger.setSnapshotPolicy(Debugger.SnapshotPolicy.Tracing(
                 listOf(ExecutionState.ProgramCounter),
-                interval = 18U
+                interval = 9U
             ))
             debugger.continueFor(19)
-            // TODO: Test not finished yet
+            assertNotNull(debugger.graph.rootNode.checkpoints.find { it.instructions_executed == 9 })
+            assertEquals(3, debugger.graph.currentNode.checkpoints.size)
+            // Try to mess with the VM counters, if they are not reset on snapshot load this will cause drift resulting
+            // in a failure.
+            debugger.slide(debugger.graph.rootNode, 10)
+            debugger.slide(debugger.graph.rootNode, 9)
+            val targetNode = debugger.graph.rootNode.children.first()
+            assertEquals(3, targetNode.checkpoints.size)
+            println("targetNode checkpoint offsets = [${targetNode.checkpoints.map {
+                "${it.instructions_executed}"
+            }.joinToString { it }}], current instructionOffset = ${debugger.graph.instructionOffset}")
+            debugger.slide(targetNode, 2)
+            println("targetNode checkpoint offsets = [${targetNode.checkpoints.map {
+                "${it.instructions_executed}"
+            }.joinToString { it }}], current instructionOffset = ${debugger.graph.instructionOffset}")
+            println(disassemble(debugger.wasmBinary.file.absolutePath))
+            // Handle uncaught exceptions in the collecting thread
+            withUncaughtHandler {
+                /**
+                 * What happens:
+                 * [Start checkpoint, Global check point, Continue for checkpoint]
+                 * Re-execute
+                 * [Start checkpoint, Global check point, Continue for checkpoint (now skipped), Continue for checkpoint (with counter off by one)]
+                 */
+                debugger.continueFor(9)
+            }
+            assertEquals(4, debugger.graph.currentNode.checkpoints.size)
         }
-    }*/
+    }
 
     override fun createDebugger(connection: Connection, wasmFilePath: String): Debugger {
         val binaryInfo = getBinaryInfo(config.wdcliPath, getFile(wasmFilePath).absolutePath)
