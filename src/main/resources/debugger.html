@@ -267,10 +267,10 @@ const dockviewApi = createDockview(
   }
 );
 
-const graphPanel  = dockviewApi.addPanel({ id: 'graph',   component: 'graph',   title: 'Multiverse Graph' });
-const sourcePanel = dockviewApi.addPanel({ id: 'source',  component: 'source',  title: 'Source',  position: { direction: 'left',  referencePanel: 'graph' } });
-const watchPanel  = dockviewApi.addPanel({ id: 'watch',   component: 'watch',   title: 'Watch',   renderer: 'always', position: { direction: 'below', referencePanel: 'graph' } });
-dockviewApi.addPanel({                     id: 'console', component: 'console', title: 'Console', renderer: 'always', position: { referencePanel: 'watch' } });
+dockviewApi.addPanel({ id: 'graph',   component: 'graph',   title: 'Multiverse Graph' });
+dockviewApi.addPanel({ id: 'source',  component: 'source',  title: 'Source',  position: { direction: 'left',  referencePanel: 'graph' }});
+dockviewApi.addPanel({ id: 'watch',   component: 'watch',   title: 'Watch',   renderer: 'always', position: { direction: 'below', referencePanel: 'source' }});
+dockviewApi.addPanel({ id: 'console', component: 'console', title: 'Console', renderer: 'always', position: { referencePanel: 'watch' }, inactive: true });
 
 // ── Graph ────────────────────────────────────────────────────────────────────
 
