@@ -75,6 +75,13 @@
   #btn-reset .codicon { color: var(--icon-green); }
   #btn-step-back .codicon, #btn-step .codicon, #btn-step-line .codicon,
   #btn-mock .codicon, #btn-predict .codicon { color: var(--icon-blue); }
+  .svg-icon {
+    display: block; width: 16px; height: 16px; background-color: currentColor;
+    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+    -webkit-mask-position: center; mask-position: center;
+    -webkit-mask-size: contain; mask-size: contain;
+  }
+  #btn-step-back-choicepoint, #btn-rewind-choicepoint, #btn-choicepoint-filter { color: var(--icon-blue); }
 
   #dockview-container { flex: 1; overflow: hidden; position: relative; }
 
@@ -201,6 +208,9 @@
 <div id="toolbar">
   <button class="icon-btn" id="btn-pause-continue" title="Continue"><i class="codicon codicon-debug-continue" style="color:var(--icon-green)"></i></button>
   <button class="icon-btn" id="btn-reset" title="Reset"><i class="codicon codicon-debug-restart"></i></button>
+  <button class="icon-btn" id="btn-choicepoint-filter" title="Configure choicepoint filter"><span class="svg-icon" style="mask-image:url(/icons/settings-gear.svg);-webkit-mask-image:url(/icons/settings-gear.svg)"></span></button>
+  <button class="icon-btn" id="btn-rewind-choicepoint" title="Rewind to first choicepoint"><span class="svg-icon" style="mask-image:url(/icons/debug-rewind-back-choicepoint.svg);-webkit-mask-image:url(/icons/debug-rewind-back-choicepoint.svg)"></span></button>
+  <button class="icon-btn" id="btn-step-back-choicepoint" title="Step back to choicepoint"><span class="svg-icon" style="mask-image:url(/icons/debug-step-back-choicepoint.svg);-webkit-mask-image:url(/icons/debug-step-back-choicepoint.svg)"></span></button>
   <button class="icon-btn" id="btn-step-back" title="Step Back"><i class="codicon codicon-debug-step-back"></i></button>
   <button class="icon-btn" id="btn-step" title="Step"><i class="codicon codicon-debug-step-over"></i></button>
   <button class="icon-btn" id="btn-step-line" title="Step Line"><i class="codicon codicon-debug-step-into"></i></button>
@@ -316,7 +326,7 @@ document.getElementById('btn-theme').addEventListener('click', () => {
 function setStatus(msg) { console.log('[status]', msg); }
 
 function updateButtons() {
-  ['btn-step', 'btn-step-back', 'btn-reset', 'btn-mock', 'btn-predict'].forEach(id => {
+  ['btn-step', 'btn-step-back', 'btn-step-back-choicepoint', 'btn-rewind-choicepoint', 'btn-reset', 'btn-mock', 'btn-predict'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.disabled = busy || !paused;
   });
@@ -857,7 +867,8 @@ async function init() {
     const [graph, source] = await Promise.all([
       fetch('/api/graph').then(r => r.json()),
       fetchSource(),
-      fetchMocks()
+      fetchMocks(),
+      fetchChoicePointFilter()
     ]);
     renderGraph(graph);
     renderSource(source);
@@ -938,6 +949,54 @@ document.getElementById('btn-step').addEventListener('click', () => action('/api
 document.getElementById('btn-step-line').addEventListener('click', () => action('/api/step-line'));
 document.getElementById('btn-step-back').addEventListener('click', () => action('/api/step-back'));
 document.getElementById('btn-reset').addEventListener('click', () => action('/api/reset'));
+
+// ── Choicepoint filter / step-back / rewind ─────────────────────────────────
+
+let choicePointFilterRegex = '.*';
+
+async function fetchChoicePointFilter() {
+  try {
+    const r = await fetch('/api/choicepoint-filter');
+    if (r.ok) choicePointFilterRegex = (await r.json()).regex;
+  } catch (_) {}
+}
+
+document.getElementById('btn-choicepoint-filter').addEventListener('click', async () => {
+  const input = prompt('Regular expression matched against "<displayName> = <returnValue>"\nfor each choicepoint on the path back:', choicePointFilterRegex);
+  if (input === null) return;
+  const r = await fetch('/api/choicepoint-filter', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ regex: input })
+  });
+  if (r.ok) {
+    choicePointFilterRegex = input;
+  } else {
+    setStatus('Invalid filter: ' + (await r.text()));
+  }
+});
+
+async function choicePointAction(url) {
+  if (busy) return;
+  setBusy(true);
+  setStatus('Running…');
+  try {
+    const r = await fetch(url, { method: 'POST' });
+    if (!r.ok) throw new Error(`No nodes matching "${choicePointFilterRegex}" could be found in the past!`);
+    const graph = await r.json();
+    renderGraph(graph);
+    const [source] = await Promise.all([fetchSource(), fetchMocks()]);
+    renderSource(source);
+    fetchWatch();
+    fetchBreakpoints();
+  } catch (e) {
+    setStatus('Error: ' + e.message);
+  }
+  setBusy(false);
+}
+
+document.getElementById('btn-rewind-choicepoint').addEventListener('click', () => choicePointAction('/api/rewind-choicepoint'));
+document.getElementById('btn-step-back-choicepoint').addEventListener('click', () => choicePointAction('/api/step-back-choicepoint'));
 
 init();
 

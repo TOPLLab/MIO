@@ -54,6 +54,7 @@ data class WatchEntryDto(val name: String, val type: String, val value: String)
 data class WatchDto(val entries: List<WatchEntryDto>)
 data class BreakpointLineDto(val line: Int, val filename: String)
 data class BreakpointsResponseDto(val lines: List<Int>)
+data class ChoicePointFilterDto(val regex: String)
 
 fun findNodeById(graph: MultiverseGraph, targetId: String): MultiverseNode? {
     var counter = 0
@@ -99,6 +100,11 @@ class WebDebugger(
 ) {
     private val mapper = ObjectMapper().registerKotlinModule()
     private val consoleFlow = MutableSharedFlow<String>(extraBufferCapacity = 256)
+    private var choicePointFilterRegex = ".*"
+
+    private fun choicePointFilter(): (node: MultiverseNode) -> Boolean = { node ->
+        "${node.displayName} = ${node.returnValue}".matches(Regex(choicePointFilterRegex))
+    }
 
     private suspend fun RoutingContext.respondWithGraph(errorMessage: String, operation: suspend () -> Unit) {
         try {
@@ -194,8 +200,40 @@ class WebDebugger(
                 post("/api/step-back") {
                     respondWithGraph("step-back failed") { debugger.stepBack(1) {} }
                 }
+                post("/api/step-back-choicepoint") {
+                    respondWithGraph("step-back-choicepoint failed") { debugger.stepBackToChoicePoint(choicePointFilter()) }
+                }
+                post("/api/rewind-choicepoint") {
+                    respondWithGraph("rewind-choicepoint failed") { debugger.rewindToFirstChoicePoint(choicePointFilter()) }
+                }
                 post("/api/reset") {
                     respondWithGraph("reset failed") { debugger.reset() }
+                }
+                get("/api/choicepoint-filter") {
+                    call.respondText(
+                        mapper.writeValueAsString(ChoicePointFilterDto(choicePointFilterRegex)),
+                        ContentType.Application.Json
+                    )
+                }
+                post("/api/choicepoint-filter") {
+                    val dto = mapper.readValue(call.receiveText(), ChoicePointFilterDto::class.java)
+                    try {
+                        Regex(dto.regex)
+                    } catch (e: Exception) {
+                        call.respond(HttpStatusCode.BadRequest, e.message ?: "invalid regex")
+                        return@post
+                    }
+                    choicePointFilterRegex = dto.regex
+                    call.respond(HttpStatusCode.OK)
+                }
+                get("/icons/{name}") {
+                    val name = call.parameters["name"]
+                    if (name == null || !name.matches(Regex("^[\\w-]+\\.svg$"))) {
+                        return@get call.respond(HttpStatusCode.BadRequest)
+                    }
+                    val bytes = WebDebugger::class.java.getResourceAsStream("/$name")?.readBytes()
+                        ?: return@get call.respond(HttpStatusCode.NotFound)
+                    call.respondBytes(bytes, ContentType.parse("image/svg+xml"))
                 }
                 get("/api/primitives") {
                     val dtos = debugger.wasmBinary.metadata.primitives
