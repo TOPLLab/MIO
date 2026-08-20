@@ -99,6 +99,11 @@
   }
   #h-scroll-thumb:hover { background: var(--scroll-thumb-hover); }
   #h-scroll-thumb:active { cursor: grabbing; }
+  #h-scroll-marker {
+    position: absolute; top: -3px; width: 2px; height: 12px;
+    background: var(--node-stroke-cur); border-radius: 1px;
+    pointer-events: none; transform: translateX(-1px);
+  }
 
   .dv-default-tab-action { display: none !important; }
 
@@ -294,7 +299,7 @@ const dockviewApi = createDockview(
           break;
         case 'graph':
           el.id = 'canvas';
-          el.innerHTML = '<svg id="svg"></svg><div id="h-scroll"><div id="h-scroll-thumb"></div></div>';
+          el.innerHTML = '<svg id="svg"></svg><div id="h-scroll"><div id="h-scroll-thumb"></div><div id="h-scroll-marker" style="display:none"></div></div>';
           break;
         case 'watch':
           el.id = 'watch-panel';
@@ -333,6 +338,7 @@ let paused = true;
 let zoomInitialized = false;
 let currentTransform = d3.zoomIdentity;
 let natW = 0;
+let curNodeRatio = null;
 let hasSourceMap = false;
 let currentFilename = null;
 let currentLine = 0;
@@ -411,6 +417,7 @@ function updateScrollbar() {
   const canvas = document.getElementById('canvas');
   const track  = document.getElementById('h-scroll');
   const thumb  = document.getElementById('h-scroll-thumb');
+  const marker = document.getElementById('h-scroll-marker');
   if (!thumb || natW === 0) return;
 
   const vw = canvas.clientWidth;
@@ -419,6 +426,15 @@ function updateScrollbar() {
   const visRatio = Math.min(1, vw / contentW);
   const thumbW = Math.max(20, visRatio * trackW);
   thumb.style.width = thumbW + 'px';
+
+  if (marker) {
+    if (curNodeRatio === null) {
+      marker.style.display = 'none';
+    } else {
+      marker.style.display = 'block';
+      marker.style.left = (curNodeRatio * trackW) + 'px';
+    }
+  }
 
   if (visRatio >= 1) {
     thumb.style.left = '0px';
@@ -525,6 +541,7 @@ function renderGraph(rawData) {
   g.selectAll('*').remove();
 
   if (!rawData || !rawData.nodes || rawData.nodes.length === 0) {
+    curNodeRatio = null;
     setStatus('Graph empty');
     return;
   }
@@ -538,6 +555,7 @@ function renderGraph(rawData) {
       .parentId(d => d.parentId)
       (data.nodes);
   } catch (e) {
+    curNodeRatio = null;
     setStatus('Layout error: ' + e.message);
     return;
   }
@@ -553,6 +571,8 @@ function renderGraph(rawData) {
   const minX = Math.min(...xs), maxX = Math.max(...xs);
   const padH = 80, padV = 50;
   natW = (maxY - minY) + padH * 2;
+  const curDesc = desc.find(d => d.data.id === data.currentNodeId);
+  curNodeRatio = curDesc ? (curDesc.y - minY + padH) / natW : null;
   if (!zoomInitialized && desc.length > 0) {
     zoomInitialized = true;
     svg.call(zoom.transform, d3.zoomIdentity.translate(padH - minY, padV - minX));
