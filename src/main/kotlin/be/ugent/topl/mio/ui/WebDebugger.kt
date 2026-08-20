@@ -100,6 +100,18 @@ class WebDebugger(
     private val mapper = ObjectMapper().registerKotlinModule()
     private val consoleFlow = MutableSharedFlow<String>(extraBufferCapacity = 256)
 
+    private suspend fun RoutingContext.respondWithGraph(errorMessage: String, operation: suspend () -> Unit) {
+        try {
+            withContext(Dispatchers.IO) { operation() }
+            call.respondText(
+                mapper.writeValueAsString(serializeGraph(debugger.graph)),
+                ContentType.Application.Json
+            )
+        } catch (e: Exception) {
+            call.respond(HttpStatusCode.InternalServerError, e.message ?: errorMessage)
+        }
+    }
+
     private fun currentSourceDto(): SourceDto? {
         val map = sourceMap ?: return null
         val pc  = debugger.currentState?.pc ?: return null
@@ -158,76 +170,32 @@ class WebDebugger(
                     }
                 }
                 post("/api/step") {
-                    try {
-                        withContext(Dispatchers.IO) {
-                            debugger.stepInto()
-                        }
-                        call.respondText(
-                            mapper.writeValueAsString(serializeGraph(debugger.graph)),
-                            ContentType.Application.Json
-                        )
-                    } catch (e: Exception) {
-                        call.respond(HttpStatusCode.InternalServerError, e.message ?: "step failed")
-                    }
+                    respondWithGraph("step failed") { debugger.stepInto() }
                 }
                 post("/api/predict") {
-                    try {
-                        withContext(Dispatchers.IO) { debugger.predictFuture() }
-                        call.respondText(
-                            mapper.writeValueAsString(serializeGraph(debugger.graph)),
-                            ContentType.Application.Json
-                        )
-                    } catch (e: Exception) {
-                        call.respond(HttpStatusCode.InternalServerError, e.message ?: "predict failed")
-                    }
+                    respondWithGraph("predict failed") { debugger.predictFuture() }
                 }
                 post("/api/step-line") {
                     if (sourceMap == null) {
                         call.respond(HttpStatusCode.BadRequest, "no source map")
                         return@post
                     }
-                    try {
-                        withContext(Dispatchers.IO) {
-                            val startLine = runCatching {
-                                sourceMap.getLineForPc(debugger.requireCurrentState().pc!!)
-                            }.getOrDefault(-1)
-                            debugger.stepUntil { state ->
-                                runCatching {
-                                    sourceMap.getLineForPc(state.pc!!) != startLine
-                                }.getOrDefault(false)
-                            }
+                    respondWithGraph("step-line failed") {
+                        val startLine = runCatching {
+                            sourceMap.getLineForPc(debugger.requireCurrentState().pc!!)
+                        }.getOrDefault(-1)
+                        debugger.stepUntil { state ->
+                            runCatching {
+                                sourceMap.getLineForPc(state.pc!!) != startLine
+                            }.getOrDefault(false)
                         }
-                        call.respondText(
-                            mapper.writeValueAsString(serializeGraph(debugger.graph)),
-                            ContentType.Application.Json
-                        )
-                    } catch (e: Exception) {
-                        call.respond(HttpStatusCode.InternalServerError, e.message ?: "step-line failed")
                     }
                 }
                 post("/api/step-back") {
-                    try {
-                        withContext(Dispatchers.IO) { debugger.stepBack(1) {} }
-                        call.respondText(
-                            mapper.writeValueAsString(serializeGraph(debugger.graph)),
-                            ContentType.Application.Json
-                        )
-                    } catch (e: Exception) {
-                        call.respond(HttpStatusCode.InternalServerError, e.message ?: "step-back failed")
-                    }
+                    respondWithGraph("step-back failed") { debugger.stepBack(1) {} }
                 }
                 post("/api/reset") {
-                    try {
-                        withContext(Dispatchers.IO) {
-                            debugger.reset()
-                        }
-                        call.respondText(
-                            mapper.writeValueAsString(serializeGraph(debugger.graph)),
-                            ContentType.Application.Json
-                        )
-                    } catch (e: Exception) {
-                        call.respond(HttpStatusCode.InternalServerError, e.message ?: "reset failed")
-                    }
+                    respondWithGraph("reset failed") { debugger.reset() }
                 }
                 get("/api/primitives") {
                     val dtos = debugger.wasmBinary.metadata.primitives
@@ -294,33 +262,17 @@ class WebDebugger(
                     call.respond(HttpStatusCode.OK)
                 }
                 post("/api/pause") {
-                    try {
-                        withContext(Dispatchers.IO) { debugger.pause() }
-                        call.respondText(
-                            mapper.writeValueAsString(serializeGraph(debugger.graph)),
-                            ContentType.Application.Json
-                        )
-                    } catch (e: Exception) {
-                        call.respond(HttpStatusCode.InternalServerError, e.message ?: "pause failed")
-                    }
+                    respondWithGraph("pause failed") { debugger.pause() }
                 }
                 post("/api/slide") {
-                    try {
-                        val dto = mapper.readValue(call.receiveText(), SlideDto::class.java)
-                        val targetNode = findNodeById(debugger.graph, dto.nodeId)
-                            ?: return@post call.respond(HttpStatusCode.NotFound, "node not found")
-                        withContext(Dispatchers.IO) {
-                            debugger.requireCurrentState(
-                                debugger.requireCurrentState().breakpoints == null
-                            )
-                            debugger.slide(targetNode, dto.offset)
-                        }
-                        call.respondText(
-                            mapper.writeValueAsString(serializeGraph(debugger.graph)),
-                            ContentType.Application.Json
+                    val dto = mapper.readValue(call.receiveText(), SlideDto::class.java)
+                    val targetNode = findNodeById(debugger.graph, dto.nodeId)
+                        ?: return@post call.respond(HttpStatusCode.NotFound, "node not found")
+                    respondWithGraph("slide failed") {
+                        debugger.requireCurrentState(
+                            debugger.requireCurrentState().breakpoints == null
                         )
-                    } catch (e: Exception) {
-                        call.respond(HttpStatusCode.InternalServerError, e.message ?: "slide failed")
+                        debugger.slide(targetNode, dto.offset)
                     }
                 }
                 get("/api/breakpoints") {
