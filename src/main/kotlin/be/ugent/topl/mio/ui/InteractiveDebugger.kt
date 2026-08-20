@@ -7,6 +7,7 @@ import be.ugent.topl.mio.debugger.ConstraintParser
 import be.ugent.topl.mio.debugger.Debugger
 import be.ugent.topl.mio.debugger.ExecutionState
 import be.ugent.topl.mio.debugger.MultiverseDebugger
+import be.ugent.topl.mio.debugger.MultiverseNode
 import be.ugent.topl.mio.sourcemap.SourceMap
 import be.ugent.topl.mio.woodstate.WOODDumpResponse
 import com.formdev.flatlaf.FlatClientProperties
@@ -70,6 +71,15 @@ class InteractiveDebugger(
     private val stepBackButton = JButton().apply {
         toolTipText = "Step back one instruction"
     }
+    private val stepBackChoicePointButton = JButton().apply {
+        toolTipText = "Step back to choicepoint"
+    }
+    private val rewindBackChoicePointButton = JButton().apply {
+        toolTipText = "Rewind back to choicepoint"
+    }
+    private val configureStepBackChoicePointButton = JButton().apply {
+        toolTipText = "Configure step back to choicepoint"
+    }
     private val stepOverButton = JButton().apply {
         toolTipText = "Step over one instruction"
     }
@@ -94,8 +104,8 @@ class InteractiveDebugger(
     private val progressBar = JProgressBar().apply {
         isVisible = false
     }
-    private val allButtons = listOf(pauseButton, stepBackButton, stepOverButton, stepIntoButton, stepLineButton, stepBackLineButton, restartButton, flashButton)
-    private val pausedOnlyButtons = listOf(stepBackButton, stepOverButton, stepIntoButton, stepLineButton, stepBackLineButton, restartButton)
+    private val allButtons = listOf(pauseButton, stepBackButton, stepBackChoicePointButton, stepOverButton, stepIntoButton, stepLineButton, stepBackLineButton, restartButton, flashButton)
+    private val pausedOnlyButtons = listOf(stepBackButton, stepBackChoicePointButton, stepOverButton, stepIntoButton, stepLineButton, stepBackLineButton, restartButton)
     private var paused = false
 
     init {
@@ -160,6 +170,37 @@ class InteractiveDebugger(
             debugger.stepBack()
             updateStepBackButton()
             updatePcLabel()
+        }
+        var filter: (primNode: MultiverseNode) -> Boolean = { true }
+        var filterRegex = ".*"
+        configureStepBackChoicePointButton.icon = FlatSVGIcon(javaClass.getResource("/settings-choicepoint.svg"))
+        configureStepBackChoicePointButton.addActionListener {
+            JOptionPane.showInputDialog("Regular expression", filterRegex)?.let {
+                filterRegex = it
+                filter = {
+                    "${it.displayName} = ${it.returnValue}".matches(Regex(filterRegex))
+                }
+            }
+        }
+        rewindBackChoicePointButton.icon = FlatSVGIcon(javaClass.getResource("/debug-rewind-back-choicepoint.svg"))
+        rewindBackChoicePointButton.addActionListener {
+            try {
+                println("Rewind back to choicepoint")
+                debugger.rewindToFirstChoicePoint(filter)
+                updatePcLabel()
+            } catch(e: IllegalStateException) {
+                JOptionPane.showMessageDialog(this, "No nodes matching \"$filterRegex\" could be found in the past!", "Destination not found", JOptionPane.ERROR_MESSAGE)
+            }
+        }
+        stepBackChoicePointButton.icon = FlatSVGIcon(javaClass.getResource("/debug-step-back-choicepoint.svg"))
+        stepBackChoicePointButton.addActionListener {
+            try {
+                println("Step back to choicepoint")
+                debugger.stepBackToChoicePoint(filter)
+                updatePcLabel()
+            } catch(e: IllegalStateException) {
+                JOptionPane.showMessageDialog(this, "No nodes matching \"$filterRegex\" could be found in the past!", "Destination not found", JOptionPane.ERROR_MESSAGE)
+            }
         }
         stepOverButton.icon = FlatSVGIcon(javaClass.getResource("/debug-step-over-instruction.svg"))
         stepOverButton.addActionListener {
@@ -254,7 +295,12 @@ class InteractiveDebugger(
             contentPane.add(toolBarPanel, BorderLayout.NORTH)
         }
         toolBar.add(pauseButton)
+        toolBar.addSeparator()
         //toolBar.add(stepBackButton)
+        toolBar.add(configureStepBackChoicePointButton)
+        toolBar.add(rewindBackChoicePointButton)
+        toolBar.add(stepBackChoicePointButton)
+        toolBar.addSeparator()
         toolBar.add(stepOverButton)
         toolBar.add(stepIntoButton)
         toolBar.addSeparator()

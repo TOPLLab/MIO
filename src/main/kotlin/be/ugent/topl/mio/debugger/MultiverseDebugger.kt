@@ -59,6 +59,15 @@ open class MultiverseNode(
     val edgeLength: Int
         get() = 25 + displayName.length * 8
 
+    val returnValue: Int
+        get() {
+            val index = parent!!.children.indexOf(this)
+            return parent!!.values[index]
+        }
+
+    val hasParent: Boolean
+        get() = parent != null
+
     private fun findPath(n: MultiverseNode, path: MutableList<MultiverseNode>): Boolean {
         if (this == n)
             return true
@@ -458,6 +467,36 @@ class MultiverseDebugger(
         graph.replaceCurrentNode(concolicGraphRoot)
         graphUpdated()
         return true
+    }
+
+    fun stepBackToChoicePoint(filter: (primNode: MultiverseNode) -> Boolean = { true }) {
+        var primNode = graph.currentNode
+        var destNode = graph.currentNode.parent
+        while (destNode != null && !filter(primNode)) {
+            primNode = destNode
+            destNode = destNode.parent
+        }
+        if (destNode == null) {
+            throw IllegalStateException("Cannot go back further")
+        }
+        slide(destNode, destNode.totalInstrExecuted)
+    }
+
+    fun rewindToFirstChoicePoint(filter: (primNode: MultiverseNode) -> Boolean = { true }) {
+        var primNode: MultiverseNode
+        var destNode = graph.currentNode.parent
+        var lastFound: MultiverseNode? = null
+        while (destNode != null && destNode.hasParent) {
+            primNode = destNode
+            destNode = destNode.parent
+            if (filter(primNode)) {
+                lastFound = destNode
+            }
+        }
+        if (lastFound == null) {
+            throw IllegalStateException("Cannot go back further")
+        }
+        slide(lastFound, lastFound.totalInstrExecuted)
     }
 
     override fun requireCurrentState(fetchFullState: Boolean): WOODDumpResponse {
