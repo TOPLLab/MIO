@@ -211,6 +211,12 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
         messageQueue.waitForResponse("STEP!")
         //currentSnapshot = snapshotFull().second
     }
+    fun stepUntil(cond: (WOODDumpResponse) -> Boolean) {
+        stepInto()
+        while (!cond(checkpoints.last()!!.snapshot)) {
+            stepInto()
+        }
+    }
     open fun stepOver() {
         commandBreakpoint = true
         send(5)
@@ -220,10 +226,10 @@ open class Debugger(private val connection: Connection, start: Boolean = true, p
         }
         commandBreakpoint = false
     }
-    fun stepUntil(cond: (WOODDumpResponse) -> Boolean) {
-        stepInto()
+    fun stepOverUntil(cond: (WOODDumpResponse) -> Boolean) {
+        stepOver()
         while (!cond(checkpoints.last()!!.snapshot)) {
-            stepInto()
+            stepOver()
         }
     }
 

@@ -74,11 +74,14 @@ class InteractiveDebugger(
     private val stepIntoButton = JButton().apply {
         toolTipText = "Step a single instruction"
     }
+    private val stepBackLineButton = JButton().apply {
+        toolTipText = "Step to the previous line"
+    }
     private val stepLineButton = JButton().apply {
         toolTipText = "Step to the next line"
     }
-    private val stepBackLineButton = JButton().apply {
-        toolTipText = "Step to the previous line"
+    private val stepOverLineButton = JButton().apply {
+        toolTipText = "Step over line"
     }
     private val flashButton = JButton().apply {
         toolTipText = "Upload module to microcontroller"
@@ -86,8 +89,8 @@ class InteractiveDebugger(
     private val progressBar = JProgressBar().apply {
         isVisible = false
     }
-    private val allButtons = listOf(pauseButton, stepBackButton, stepOverButton, stepIntoButton, stepLineButton, stepBackLineButton, flashButton)
-    private val pausedOnlyButtons = listOf(stepBackButton, stepOverButton, stepIntoButton, stepLineButton, stepBackLineButton)
+    private val allButtons = listOf(pauseButton, stepBackButton, stepOverButton, stepIntoButton, stepLineButton, stepBackLineButton, stepOverLineButton, flashButton)
+    private val pausedOnlyButtons = listOf(stepBackButton, stepOverButton, stepIntoButton, stepLineButton, stepBackLineButton, stepOverLineButton)
     private var paused = false
 
     init {
@@ -216,6 +219,31 @@ class InteractiveDebugger(
             updateStepBackButton()
             updatePcLabel()
         }
+        stepOverLineButton.icon = FlatSVGIcon(javaClass.getResource("/debug-step-over.svg"))
+        stepOverLineButton.addActionListener {
+            if (sourceMapping == null) {
+                stepBackLineButton.isEnabled = false
+                return@addActionListener
+            }
+
+            println("Step over line")
+            var startLine = -1
+            try {
+                startLine = sourceMapping.getLineForPc(debugger.checkpoints.last()!!.snapshot.pc!!)
+            } catch(re: RuntimeException) {
+                System.err.println("WARNING: " + re.message)
+            }
+            debugger.stepOverUntil {
+                try {
+                    sourceMapping.getLineForPc(it.pc!!) != startLine
+                } catch(re: RuntimeException) {
+                    System.err.println("WARNING: " + re.message)
+                    false
+                }
+            }
+            updateStepBackButton()
+            updatePcLabel()
+        }
         flashButton.icon = FlatSVGIcon(javaClass.getResource("/debug-update-module.svg"))
         flashButton.addActionListener {
             /*val dialog = JFileChooser()
@@ -251,6 +279,7 @@ class InteractiveDebugger(
         toolBar.addSeparator()
         toolBar.add(stepBackLineButton)
         toolBar.add(stepLineButton)
+        toolBar.add(stepOverLineButton)
         toolBar.addSeparator()
         toolBar.add(flashButton)
         toolBar.addSeparator()
