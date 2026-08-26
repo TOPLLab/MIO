@@ -20,7 +20,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
     testImplementation("org.apache.commons:commons-math3:3.6.1")
     implementation("com.fazecast:jSerialComm:[2.0.0,3.0.0)")
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.18.9")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.15.2")
     implementation("com.formdev:flatlaf:3.7.1")
     implementation("com.formdev:flatlaf-extras:3.7.1")
